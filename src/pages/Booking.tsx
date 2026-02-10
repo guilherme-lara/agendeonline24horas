@@ -9,13 +9,13 @@ import StepIndicator from "@/components/StepIndicator";
 import ServiceCard from "@/components/ServiceCard";
 import BarberCard from "@/components/BarberCard";
 import TimeSlotPicker from "@/components/TimeSlotPicker";
+import CustomerInfoStep from "@/components/CustomerInfoStep";
+import PaymentStep from "@/components/PaymentStep";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/hooks/use-toast";
 
 const Booking = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const booking = useBooking();
   const [loading, setLoading] = useState(false);
 
@@ -29,21 +29,21 @@ const Booking = () => {
       case 1: return booking.selectedServices.length > 0;
       case 2: return booking.selectedBarber !== null;
       case 3: return booking.selectedDate !== null && booking.selectedTime !== null;
-      case 4: return true;
+      case 4: return booking.customerName.trim().length >= 2 && booking.customerPhone.replace(/\D/g, "").length >= 10;
+      case 5: return booking.paymentMethod !== null;
+      case 6: return true;
       default: return false;
     }
   };
 
+  const totalSteps = 6;
+
   const handleNext = () => {
-    if (booking.currentStep < 4) {
-      booking.setStep(booking.currentStep + 1);
-    }
+    if (booking.currentStep < totalSteps) booking.setStep(booking.currentStep + 1);
   };
 
   const handleBack = () => {
-    if (booking.currentStep > 1) {
-      booking.setStep(booking.currentStep - 1);
-    }
+    if (booking.currentStep > 1) booking.setStep(booking.currentStep - 1);
   };
 
   const handleConfirm = () => {
@@ -136,12 +136,23 @@ const Booking = () => {
         </div>
       )}
 
-      {/* Step 4 - Summary */}
-      {booking.currentStep === 4 && (
+      {/* Step 4 - Customer Info */}
+      {booking.currentStep === 4 && <CustomerInfoStep />}
+
+      {/* Step 5 - Payment */}
+      {booking.currentStep === 5 && <PaymentStep />}
+
+      {/* Step 6 - Summary */}
+      {booking.currentStep === 6 && (
         <div className="animate-fade-in">
           <h2 className="font-display text-xl font-bold mb-6">Resumo do Agendamento</h2>
           <div className="rounded-lg border border-border bg-card p-5 space-y-4">
             <div>
+              <p className="text-xs text-muted-foreground mb-1">Cliente</p>
+              <p className="text-sm font-medium">{booking.customerName}</p>
+              <p className="text-xs text-muted-foreground">{booking.customerPhone}</p>
+            </div>
+            <div className="border-t border-border pt-3">
               <p className="text-xs text-muted-foreground mb-1">Serviços</p>
               {booking.selectedServices.map((s) => (
                 <div key={s.id} className="flex justify-between text-sm">
@@ -168,6 +179,12 @@ const Booking = () => {
                 às <span className="text-primary font-medium">{booking.selectedTime}</span>
               </p>
             </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-xs text-muted-foreground mb-1">Pagamento</p>
+              <p className="text-sm font-medium">
+                {booking.paymentMethod === "pix" ? "PIX" : "Cartão de Crédito/Débito"}
+              </p>
+            </div>
             <div className="border-t border-border pt-3 flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="font-display text-2xl font-bold text-primary">R$ {booking.totalPrice}</span>
@@ -184,7 +201,7 @@ const Booking = () => {
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
             </Button>
           )}
-          {booking.currentStep < 4 ? (
+          {booking.currentStep < totalSteps ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
