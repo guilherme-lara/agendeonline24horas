@@ -6,6 +6,9 @@ interface BookingState {
   selectedBarber: Barber | null;
   selectedDate: Date | null;
   selectedTime: string | null;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: "pix" | "card" | null;
   currentStep: number;
 }
 
@@ -16,6 +19,9 @@ interface BookingContextType extends BookingState {
   setBarber: (barber: Barber) => void;
   setDate: (date: Date) => void;
   setTime: (time: string) => void;
+  setCustomerName: (name: string) => void;
+  setCustomerPhone: (phone: string) => void;
+  setPaymentMethod: (method: "pix" | "card") => void;
   setStep: (step: number) => void;
   totalPrice: number;
   totalDuration: number;
@@ -27,6 +33,9 @@ const initialState: BookingState = {
   selectedBarber: null,
   selectedDate: null,
   selectedTime: null,
+  customerName: "",
+  customerPhone: "",
+  paymentMethod: null,
   currentStep: 1,
 };
 
@@ -50,6 +59,9 @@ export const BookingProvider = ({ children }: { children: ReactNode }) => {
   const setBarber = (barber: Barber) => setState((s) => ({ ...s, selectedBarber: barber }));
   const setDate = (date: Date) => setState((s) => ({ ...s, selectedDate: date, selectedTime: null }));
   const setTime = (time: string) => setState((s) => ({ ...s, selectedTime: time }));
+  const setCustomerName = (name: string) => setState((s) => ({ ...s, customerName: name }));
+  const setCustomerPhone = (phone: string) => setState((s) => ({ ...s, customerPhone: phone }));
+  const setPaymentMethod = (method: "pix" | "card") => setState((s) => ({ ...s, paymentMethod: method }));
   const setStep = (step: number) => setState((s) => ({ ...s, currentStep: step }));
   const reset = () => setState(initialState);
 
@@ -58,7 +70,7 @@ export const BookingProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <BookingContext.Provider
-      value={{ ...state, addService, removeService, toggleService, setBarber, setDate, setTime, setStep, totalPrice, totalDuration, reset }}
+      value={{ ...state, addService, removeService, toggleService, setBarber, setDate, setTime, setCustomerName, setCustomerPhone, setPaymentMethod, setStep, totalPrice, totalDuration, reset }}
     >
       {children}
     </BookingContext.Provider>
