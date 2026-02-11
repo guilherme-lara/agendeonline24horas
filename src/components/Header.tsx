@@ -1,6 +1,8 @@
-import { Scissors, Menu, X } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Scissors, Menu, X, LogIn, LogOut, Shield } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { label: "Início", path: "/" },
@@ -11,6 +13,8 @@ const navItems = [
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user, isAdmin, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -35,6 +39,25 @@ const Header = () => {
               {item.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 ${
+                pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Shield className="h-3.5 w-3.5" /> Admin
+            </Link>
+          )}
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
+              <LogOut className="h-4 w-4 mr-1" /> Sair
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground">
+              <LogIn className="h-4 w-4 mr-1" /> Entrar
+            </Button>
+          )}
         </nav>
 
         {/* Mobile toggle */}
@@ -58,6 +81,33 @@ const Header = () => {
               {item.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className={`block px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary ${
+                pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              🛡️ Painel Admin
+            </Link>
+          )}
+          {user ? (
+            <button
+              onClick={() => { signOut(); setOpen(false); }}
+              className="block w-full text-left px-6 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary"
+            >
+              Sair
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="block px-6 py-3 text-sm font-medium text-primary hover:bg-secondary"
+            >
+              Entrar
+            </Link>
+          )}
         </nav>
       )}
     </header>
