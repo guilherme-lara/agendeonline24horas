@@ -53,7 +53,11 @@ export const useAuth = () => {
     setUser(null);
     setIsAdmin(false);
     setLoading(false);
-    // Force navigation to auth page
+    // Clear all local state to avoid stale data
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (_) {}
     window.location.href = "/auth";
   }, []);
 
