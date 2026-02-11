@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
+# TechBarber — SaaS Multi-Tenant para Barbearias
 
-## Project info
+Sistema completo de gestão para barbearias com agendamento online, dashboard inteligente e painel administrativo multi-tenant.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Tecnologias
 
-## How can I edit this code?
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 18, TypeScript, Vite |
+| Estilização | Tailwind CSS, shadcn/ui |
+| Ícones | Lucide React |
+| Gráficos | Recharts |
+| Backend | Supabase (Auth, Database, RLS) |
+| Roteamento | React Router v6 |
 
-There are several ways of editing your application.
+## 📐 Arquitetura Multi-Tenant
 
-**Use Lovable**
+Cada barbearia é um **tenant** isolado por `barbershop_id`. As políticas de **Row Level Security (RLS)** garantem que cada dono acessa apenas os dados de sua barbearia.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐
+│  Landing /  │────▶│  Auth /auth  │────▶│  Onboarding   │
+│  SaaS Page  │     │  Login/Signup│     │  (1ª config)  │
+└─────────────┘     └──────────────┘     └──────┬────────┘
+                                                │
+                    ┌──────────────┐     ┌───────▼────────┐
+                    │ Super Admin  │     │   Dashboard    │
+                    │ /super-admin │     │  /dashboard    │
+                    └──────────────┘     └───────┬────────┘
+                                                │
+                                        ┌───────▼────────┐
+                                        │ Public Booking │
+                                        │ /book/:slug    │
+                                        └────────────────┘
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🗂️ Estrutura de Rotas
 
-**Use your preferred IDE**
+| Rota | Descrição | Acesso |
+|------|-----------|--------|
+| `/` | Landing Page (venda SaaS) | Público |
+| `/auth` | Login e Cadastro unificado | Público |
+| `/onboarding` | Configuração inicial da barbearia | Autenticado (sem barbershop) |
+| `/dashboard` | Painel do barbeiro (admin local) | Dono da barbearia |
+| `/super-admin` | Painel Master (gestão global) | Admin (role `admin`) |
+| `/book/:slug` | Página pública de agendamento | Público |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🔐 Níveis de Acesso
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1. Cliente (Público)
+- Acessa `/book/:slug` para agendar
+- Não requer autenticação
 
-Follow these steps:
+### 2. Dono de Barbearia (Autenticado)
+- Cria conta em `/auth`
+- Configura barbearia em `/onboarding`
+- Gerencia agendamentos em `/dashboard`
+- Visualiza métricas e faturamento
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 3. Super Admin (Role `admin`)
+- Acessa `/super-admin`
+- Visualiza KPIs globais (MRR, total de barbearias, assinantes)
+- Gerencia planos SaaS de todos os tenants
+- Suspende/reativa acessos
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🗄️ Configuração do Supabase
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Tabelas necessárias
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sql
+-- Enum de roles
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+
+-- Tabela de roles
+CREATE TABLE public.user_roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL,
+  UNIQUE (user_id, role)
+);
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+-- Função de verificação de role
+CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role)
+$$;
+
+-- Barbearias
+CREATE TABLE public.barbershops (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  phone TEXT DEFAULT '',
+  address TEXT DEFAULT '',
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.barbershops ENABLE ROW LEVEL SECURITY;
+
+-- Perfis
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE,
+  barbershop_id UUID REFERENCES public.barbershops(id),
+  name TEXT DEFAULT '',
+  phone TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Trigger para criar perfil automaticamente
+CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, name)
+  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data ->> 'name', ''));
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Agendamentos
+CREATE TABLE public.appointments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  barbershop_id UUID NOT NULL REFERENCES public.barbershops(id),
+  client_id UUID,
+  client_name TEXT NOT NULL,
+  client_phone TEXT DEFAULT '',
+  service_name TEXT NOT NULL,
+  barber_name TEXT DEFAULT '',
+  price NUMERIC DEFAULT 0,
+  scheduled_at TIMESTAMPTZ NOT NULL,
+  status TEXT DEFAULT 'pending',
+  payment_status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+
+-- Planos SaaS
+CREATE TABLE public.saas_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  barbershop_id UUID NOT NULL REFERENCES public.barbershops(id),
+  plan_name TEXT DEFAULT 'essential',
+  price NUMERIC DEFAULT 97.00,
+  status TEXT DEFAULT 'active',
+  started_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.saas_plans ENABLE ROW LEVEL SECURITY;
+```
+
+### Conceder acesso admin
+
+```sql
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('<UUID_DO_USUARIO>', 'admin');
+```
+
+## 🛠️ Desenvolvimento Local
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd <PASTA_DO_PROJETO>
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📦 Deploy
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Abra o projeto no [Lovable](https://lovable.dev) e clique em **Share → Publish**.
 
-**Use GitHub Codespaces**
+## 📄 Licença
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Projeto privado — TechBarber © 2026

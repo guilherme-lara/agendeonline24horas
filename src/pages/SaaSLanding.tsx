@@ -89,7 +89,7 @@ const SaaSLanding = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: "200ms" }}>
             <Button
               size="lg"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/auth")}
               className="gold-gradient text-primary-foreground font-semibold shadow-gold hover:opacity-90 text-base px-8 py-6"
             >
               Criar Minha Barbearia <ArrowRight className="ml-2 h-5 w-5" />
@@ -208,7 +208,7 @@ const SaaSLanding = () => {
                   ))}
                 </ul>
                 <Button
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/auth")}
                   className={`w-full font-semibold ${
                     plan.popular
                       ? "gold-gradient text-primary-foreground hover:opacity-90 shadow-gold"
@@ -235,7 +235,7 @@ const SaaSLanding = () => {
           </p>
           <Button
             size="lg"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/auth")}
             className="gold-gradient text-primary-foreground font-semibold shadow-gold hover:opacity-90 text-base px-10 py-6"
           >
             Começar Gratuitamente <ArrowRight className="ml-2 h-5 w-5" />

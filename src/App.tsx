@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BookingProvider } from "@/contexts/BookingContext";
 import Header from "@/components/Header";
-import FloatingCTA from "@/components/FloatingCTA";
 import SaaSLanding from "./pages/SaaSLanding";
 import Booking from "./pages/Booking";
 import BookingSuccess from "./pages/BookingSuccess";
@@ -31,19 +30,19 @@ const App = () => (
           <Header />
           <Routes>
             <Route path="/" element={<SaaSLanding />} />
+            <Route path="/auth" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/super-admin" element={<SuperAdmin />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/booking/success" element={<BookingSuccess />} />
             <Route path="/appointments" element={<MyAppointments />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/super-admin" element={<SuperAdmin />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/subscribe/:planId" element={<Subscribe />} />
             <Route path="/book/:slug" element={<PublicBooking />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <FloatingCTA />
         </BookingProvider>
       </BrowserRouter>
     </TooltipProvider>
