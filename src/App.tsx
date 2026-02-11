@@ -12,6 +12,7 @@ import BookingSuccess from "./pages/BookingSuccess";
 import MyAppointments from "./pages/MyAppointments";
 import Admin from "./pages/Admin";
 import Dashboard from "./pages/Dashboard";
+import SuperAdmin from "./pages/SuperAdmin";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Subscribe from "./pages/Subscribe";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/appointments" element={<MyAppointments />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/super-admin" element={<SuperAdmin />} />
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/subscribe/:planId" element={<Subscribe />} />
