@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -18,6 +18,21 @@ export const useBarbershop = () => {
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refetch = useCallback(async () => {
+    if (!user) {
+      setBarbershop(null);
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("barbershops")
+      .select("*")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    setBarbershop(data as Barbershop | null);
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -25,17 +40,8 @@ export const useBarbershop = () => {
       setLoading(false);
       return;
     }
+    refetch();
+  }, [user, authLoading, refetch]);
 
-    supabase
-      .from("barbershops")
-      .select("*")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setBarbershop(data as Barbershop | null);
-        setLoading(false);
-      });
-  }, [user, authLoading]);
-
-  return { barbershop, loading: loading || authLoading, user };
+  return { barbershop, loading: loading || authLoading, user, refetch };
 };

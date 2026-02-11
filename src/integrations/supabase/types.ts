@@ -68,6 +68,13 @@ export type Database = {
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       barbershops: {
@@ -142,6 +149,13 @@ export type Database = {
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       saas_plans: {
@@ -181,6 +195,13 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_plans_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
             referencedColumns: ["id"]
           },
         ]
@@ -244,9 +265,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      barbershops_public: {
+        Row: {
+          address: string | null
+          id: string | null
+          name: string | null
+          slug: string | null
+        }
+        Insert: {
+          address?: string | null
+          id?: string | null
+          name?: string | null
+          slug?: string | null
+        }
+        Update: {
+          address?: string | null
+          id?: string | null
+          name?: string | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      create_public_appointment: {
+        Args: {
+          _barbershop_id: string
+          _client_name: string
+          _client_phone: string
+          _price: number
+          _scheduled_at: string
+          _service_name: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scissors, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { barbershop, loading: shopLoading } = useBarbershop();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,19 +19,22 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
+  const submittingRef = useRef(false);
 
   // Redirect if already logged in
   useEffect(() => {
-    if (shopLoading) return;
-    if (user && barbershop) navigate("/dashboard");
-    else if (user && !barbershop && !shopLoading) navigate("/onboarding");
-  }, [user, barbershop, shopLoading, navigate]);
+    if (authLoading || shopLoading) return;
+    if (user && barbershop) navigate("/dashboard", { replace: true });
+    else if (user && !barbershop) navigate("/onboarding", { replace: true });
+  }, [user, barbershop, authLoading, shopLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!email.trim() || !password.trim()) return;
     if (isSignUp && !name.trim()) return;
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       if (isSignUp) {
@@ -43,8 +46,15 @@ const Login = () => {
             data: { name: name.trim() },
           },
         });
-        if (error) throw error;
-        toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar." });
+        if (error) {
+          if (error.message.includes("rate limit")) {
+            toast({ title: "Limite atingido", description: "Aguarde alguns minutos antes de tentar novamente.", variant: "destructive" });
+          } else {
+            throw error;
+          }
+        } else {
+          toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar." });
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -52,7 +62,6 @@ const Login = () => {
         });
         if (error) throw error;
         toast({ title: "Bem-vindo de volta!" });
-        // Redirect handled by useEffect
       }
     } catch (err: any) {
       toast({
@@ -62,6 +71,7 @@ const Login = () => {
       });
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
