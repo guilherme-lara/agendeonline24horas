@@ -13,5 +13,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Disable Web Locks API to prevent getSession() from hanging in iframe contexts
+    lock: (name: string, acquireTimeout: number, fn: () => Promise<any>) => fn(),
   }
 });
