@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Scissors, Loader2, CalendarDays, Check } from "lucide-react";
+import { Scissors, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface Barbershop {
+interface BarbershopPublic {
   id: string;
   name: string;
   slug: string;
-  phone: string;
+  address: string;
 }
 
 const defaultServices = [
@@ -33,7 +33,7 @@ const timeSlots = [
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
-  const [shop, setShop] = useState<Barbershop | null>(null);
+  const [shop, setShop] = useState<BarbershopPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<typeof defaultServices[0] | null>(null);
@@ -46,13 +46,14 @@ const PublicBooking = () => {
 
   useEffect(() => {
     if (!slug) return;
+    // Only select public-safe fields (no owner_id, no phone)
     supabase
       .from("barbershops")
-      .select("*")
+      .select("id, name, slug, address")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
-        setShop(data as Barbershop | null);
+        setShop(data as BarbershopPublic | null);
         setLoading(false);
       });
   }, [slug]);
@@ -97,13 +98,14 @@ const PublicBooking = () => {
       const [h, m] = selectedTime.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
 
-      const { error } = await supabase.from("appointments").insert({
-        barbershop_id: shop.id,
-        client_name: clientName.trim(),
-        client_phone: clientPhone.trim(),
-        service_name: selectedService.name,
-        price: selectedService.price,
-        scheduled_at: scheduledAt.toISOString(),
+      // Use the security definer function to create appointments
+      const { error } = await supabase.rpc("create_public_appointment", {
+        _barbershop_id: shop.id,
+        _client_name: clientName.trim(),
+        _client_phone: clientPhone.trim(),
+        _service_name: selectedService.name,
+        _price: selectedService.price,
+        _scheduled_at: scheduledAt.toISOString(),
       });
 
       if (error) throw error;

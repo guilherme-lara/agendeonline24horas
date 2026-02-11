@@ -3,18 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { Scissors, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { barbershop, loading: shopLoading, refetch } = useBarbershop();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If user already has a barbershop, redirect to dashboard
+  useEffect(() => {
+    if (authLoading || shopLoading) return;
+    if (!user) { navigate("/auth", { replace: true }); return; }
+    if (barbershop) { navigate("/dashboard", { replace: true }); return; }
+  }, [user, barbershop, authLoading, shopLoading, navigate]);
 
   const generateSlug = (val: string) =>
     val
@@ -75,14 +85,25 @@ const Onboarding = () => {
         plan_name: "essential",
       });
 
+      // Refetch barbershop state so redirect works
+      await refetch();
+
       toast({ title: "Barbearia criada!", description: "Bem-vindo ao TechBarber." });
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading || shopLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
