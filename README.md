@@ -174,9 +174,6 @@ npm install
 npm run dev
 ```
 
-## 📦 Deploy
-
-Abra o projeto no [Lovable](https://lovable.dev) e clique em **Share → Publish**.
 
 ## 📄 Licença
 
