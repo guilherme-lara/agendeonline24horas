@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface BarbershopPublic {
@@ -16,47 +16,159 @@ interface BarbershopPublic {
   address: string;
 }
 
-const defaultServices = [
-  { name: "Corte Degradê", price: 50, duration: 40 },
-  { name: "Corte Social", price: 45, duration: 35 },
-  { name: "Barba Completa", price: 35, duration: 30 },
-  { name: "Corte + Barba", price: 75, duration: 60 },
-  { name: "Sobrancelha", price: 15, duration: 10 },
-];
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+}
 
-const timeSlots = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-  "16:00", "16:30", "17:00", "17:30", "18:00", "18:30",
-];
+interface BusinessHour {
+  day_of_week: number;
+  open_time: string;
+  close_time: string;
+  is_closed: boolean;
+}
+
+interface ExistingAppointment {
+  scheduled_at: string;
+  service_name: string;
+  status: string;
+}
+
+const BUFFER_MINUTES = 10;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
   const [shop, setShop] = useState<BarbershopPublic | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
+  const [existingAppts, setExistingAppts] = useState<ExistingAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<typeof defaultServices[0] | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
+  // Load shop, services, and business hours
   useEffect(() => {
     if (!slug) return;
-    // Only select public-safe fields (no owner_id, no phone)
     supabase
       .from("barbershops")
       .select("id, name, slug, address")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
-        setShop(data as BarbershopPublic | null);
+        const shopData = data as BarbershopPublic | null;
+        setShop(shopData);
+        if (shopData) {
+          Promise.all([
+            supabase.from("services").select("*").eq("barbershop_id", shopData.id).eq("active", true).order("sort_order"),
+            supabase.from("business_hours").select("*").eq("barbershop_id", shopData.id),
+          ]).then(([servRes, hoursRes]) => {
+            const srvData = (servRes.data || []) as Service[];
+            setServices(srvData);
+            setBusinessHours((hoursRes.data || []) as BusinessHour[]);
+            // If no custom services, use defaults
+            if (srvData.length === 0) {
+              setServices([
+                { id: "d1", name: "Corte Degradê", price: 50, duration: 40 },
+                { id: "d2", name: "Corte Social", price: 45, duration: 35 },
+                { id: "d3", name: "Barba Completa", price: 35, duration: 30 },
+                { id: "d4", name: "Corte + Barba", price: 75, duration: 60 },
+                { id: "d5", name: "Sobrancelha", price: 15, duration: 10 },
+              ]);
+            }
+          });
+        }
         setLoading(false);
       });
   }, [slug]);
+
+  // Load existing appointments when date changes
+  useEffect(() => {
+    if (!shop || !selectedDate) return;
+    setSlotsLoading(true);
+    const dayStart = startOfDay(selectedDate).toISOString();
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    supabase
+      .from("appointments")
+      .select("scheduled_at, service_name, status")
+      .eq("barbershop_id", shop.id)
+      .gte("scheduled_at", dayStart)
+      .lte("scheduled_at", dayEnd.toISOString())
+      .neq("status", "cancelled")
+      .then(({ data }) => {
+        setExistingAppts((data || []) as ExistingAppointment[]);
+        setSlotsLoading(false);
+      });
+  }, [shop, selectedDate]);
+
+  const getHoursForDay = (dayOfWeek: number): BusinessHour | null => {
+    return businessHours.find((h) => h.day_of_week === dayOfWeek) || null;
+  };
+
+  const isDayClosed = (date: Date): boolean => {
+    const bh = getHoursForDay(date.getDay());
+    if (bh) return bh.is_closed;
+    return date.getDay() === 0; // Default: Sunday closed
+  };
+
+  const generateTimeSlots = (): string[] => {
+    if (!selectedDate || !selectedService) return [];
+    const bh = getHoursForDay(selectedDate.getDay());
+    const openTime = bh ? bh.open_time : "09:00";
+    const closeTime = bh ? bh.close_time : "19:00";
+
+    const [openH, openM] = openTime.split(":").map(Number);
+    const [closeH, closeM] = closeTime.split(":").map(Number);
+    const slots: string[] = [];
+    const now = new Date();
+
+    for (let h = openH; h <= closeH; h++) {
+      for (let m = h === openH ? openM : 0; m < 60; m += 30) {
+        if (h === closeH && m >= closeM) break;
+        const slotTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
+        // If today, skip past times
+        if (isToday(selectedDate)) {
+          const slotDate = new Date(selectedDate);
+          slotDate.setHours(h, m, 0, 0);
+          if (isBefore(slotDate, now)) continue;
+        }
+
+        // Check if the slot + service duration + buffer overlaps with existing appointments
+        const slotStart = new Date(selectedDate);
+        slotStart.setHours(h, m, 0, 0);
+        const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+
+        // Check service end time doesn't exceed closing time
+        const closeDate = new Date(selectedDate);
+        closeDate.setHours(closeH, closeM, 0, 0);
+        if (isBefore(closeDate, addMinutes(slotStart, selectedService.duration))) continue;
+
+        const hasConflict = existingAppts.some((appt) => {
+          const apptStart = new Date(appt.scheduled_at);
+          const apptService = services.find((s) => s.name === appt.service_name);
+          const apptDuration = apptService?.duration || 30;
+          const apptEnd = addMinutes(apptStart, apptDuration + BUFFER_MINUTES);
+
+          return slotStart < apptEnd && slotEnd > apptStart;
+        });
+
+        if (!hasConflict) slots.push(slotTime);
+      }
+    }
+    return slots;
+  };
 
   if (loading) {
     return (
@@ -98,7 +210,6 @@ const PublicBooking = () => {
       const [h, m] = selectedTime.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
 
-      // Use the security definer function to create appointments
       const { error } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop.id,
         _client_name: clientName.trim(),
@@ -117,6 +228,8 @@ const PublicBooking = () => {
     }
   };
 
+  const availableSlots = generateTimeSlots();
+
   return (
     <div className="min-h-screen">
       {/* Shop Header */}
@@ -132,19 +245,28 @@ const PublicBooking = () => {
         </div>
       </div>
 
-      <div className="container max-w-2xl py-8">
+      {/* Step indicator */}
+      <div className="container max-w-2xl pt-6">
+        <div className="flex gap-2 mb-6">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= step ? "gold-gradient" : "bg-secondary"}`} />
+          ))}
+        </div>
+      </div>
+
+      <div className="container max-w-2xl pb-8">
         {/* Step 1: Service */}
         {step === 1 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Escolha o Serviço</h2>
             <p className="text-sm text-muted-foreground mb-6">Selecione o serviço desejado</p>
             <div className="space-y-3">
-              {defaultServices.map((s) => (
+              {services.map((s) => (
                 <button
-                  key={s.name}
-                  onClick={() => { setSelectedService(s); setStep(2); }}
+                  key={s.id}
+                  onClick={() => { setSelectedService(s); setSelectedTime(null); setStep(2); }}
                   className={`w-full text-left rounded-lg border p-4 transition-all hover:border-primary/40 ${
-                    selectedService?.name === s.name ? "border-primary bg-primary/5" : "border-border bg-card"
+                    selectedService?.id === s.id ? "border-primary bg-primary/5" : "border-border bg-card"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -164,13 +286,16 @@ const PublicBooking = () => {
         {step === 2 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Data e Horário</h2>
-            <p className="text-sm text-muted-foreground mb-6">Escolha o melhor dia e horário</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Escolha o melhor dia e horário
+              {selectedService && <span className="text-primary"> • {selectedService.name} ({selectedService.duration}min)</span>}
+            </p>
             <div className="flex justify-center mb-6">
               <Calendar
                 mode="single"
                 selected={selectedDate || undefined}
-                onSelect={(d) => d && setSelectedDate(d)}
-                disabled={(d) => d < new Date() || d.getDay() === 0}
+                onSelect={(d) => { if (d) { setSelectedDate(d); setSelectedTime(null); } }}
+                disabled={(d) => d < new Date(new Date().setHours(0,0,0,0)) || isDayClosed(d)}
                 locale={ptBR}
                 className="rounded-lg border border-border bg-card p-3"
               />
@@ -181,21 +306,29 @@ const PublicBooking = () => {
                   Horários para{" "}
                   <span className="text-primary">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                 </p>
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-6">
-                  {timeSlots.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setSelectedTime(t)}
-                      className={`rounded-md border px-2 py-2 text-sm font-medium transition-all ${
-                        selectedTime === t
-                          ? "border-primary gold-gradient text-primary-foreground"
-                          : "border-border bg-card text-foreground hover:border-primary/40"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                {slotsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum horário disponível nesta data.</p>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-6">
+                    {availableSlots.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setSelectedTime(t)}
+                        className={`rounded-md border px-2 py-2 text-sm font-medium transition-all ${
+                          selectedTime === t
+                            ? "border-primary gold-gradient text-primary-foreground"
+                            : "border-border bg-card text-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
             <div className="flex gap-3">
@@ -233,6 +366,10 @@ const PublicBooking = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Serviço</span>
                 <span className="font-medium">{selectedService?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Duração</span>
+                <span className="font-medium">{selectedService?.duration}min</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Data</span>
