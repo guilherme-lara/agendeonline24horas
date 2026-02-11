@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DollarSign, CalendarDays, Loader2, ExternalLink, TrendingUp,
-  Search, Clock, Users,
+  Search, Clock, Users, LayoutGrid, List, Crown, MessageSquare,
+  QrCode, BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, subDays, isToday, isFuture, compareAsc } from "date-fns";
+import { format, subDays, compareAsc } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import DashboardSkeleton from "@/components/DashboardSkeleton";
+import CalendarView from "@/components/CalendarView";
+import UpgradeModal from "@/components/UpgradeModal";
 
 interface Appointment {
   id: string;
@@ -45,39 +49,37 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [planName, setPlanName] = useState("essential");
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; plan: string; feature: string }>({
+    open: false, plan: "", feature: "",
+  });
 
   useEffect(() => {
     if (shopLoading) return;
     if (!user) { navigate("/auth"); return; }
     if (!barbershop) { navigate("/onboarding"); return; }
 
-    supabase
-      .from("appointments")
-      .select("*")
-      .eq("barbershop_id", barbershop.id)
-      .order("scheduled_at", { ascending: false })
-      .then(({ data }) => {
-        setAppointments((data as Appointment[]) || []);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      const [apptRes, planRes] = await Promise.all([
+        supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false }),
+        supabase.from("saas_plans").select("plan_name").eq("barbershop_id", barbershop.id).eq("status", "active").maybeSingle(),
+      ]);
+      setAppointments((apptRes.data as Appointment[]) || []);
+      if (planRes.data) setPlanName(planRes.data.plan_name);
+      setLoading(false);
+    };
+    fetchData();
   }, [barbershop, shopLoading, user, navigate]);
 
-  if (shopLoading || loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  if (shopLoading || loading) return <DashboardSkeleton />;
   if (!barbershop) return null;
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
+  const now = new Date();
   const activeAppointments = appointments.filter((a) => a.status !== "cancelled");
   const todayAppointments = activeAppointments.filter((a) => a.scheduled_at.startsWith(todayStr));
 
-  // Next clients: today's upcoming appointments sorted chronologically
-  const now = new Date();
   const nextClients = todayAppointments
     .filter((a) => new Date(a.scheduled_at) >= now)
     .sort((a, b) => compareAsc(new Date(a.scheduled_at), new Date(b.scheduled_at)))
@@ -90,38 +92,24 @@ const Dashboard = () => {
     })
     .reduce((sum, a) => sum + Number(a.price), 0);
 
-  // Weekly comparative chart: this week vs last week
   const chartData = Array.from({ length: 7 }).map((_, i) => {
     const thisDay = subDays(new Date(), 6 - i);
     const lastDay = subDays(thisDay, 7);
     const thisDayStr = format(thisDay, "yyyy-MM-dd");
     const lastDayStr = format(lastDay, "yyyy-MM-dd");
-
-    const thisRevenue = activeAppointments
-      .filter((a) => a.scheduled_at.startsWith(thisDayStr))
-      .reduce((s, a) => s + Number(a.price), 0);
-    const lastRevenue = activeAppointments
-      .filter((a) => a.scheduled_at.startsWith(lastDayStr))
-      .reduce((s, a) => s + Number(a.price), 0);
-
     return {
       day: format(thisDay, "EEE", { locale: ptBR }),
-      "Esta semana": thisRevenue,
-      "Semana anterior": lastRevenue,
+      "Esta semana": activeAppointments.filter((a) => a.scheduled_at.startsWith(thisDayStr)).reduce((s, a) => s + Number(a.price), 0),
+      "Semana anterior": activeAppointments.filter((a) => a.scheduled_at.startsWith(lastDayStr)).reduce((s, a) => s + Number(a.price), 0),
     };
   });
 
-  // Search & filter
   const filteredAppointments = appointments
     .filter((a) => filter === "all" || a.status === filter)
     .filter((a) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return (
-        a.client_name.toLowerCase().includes(q) ||
-        (a.client_phone && a.client_phone.includes(q)) ||
-        a.service_name.toLowerCase().includes(q)
-      );
+      return a.client_name.toLowerCase().includes(q) || (a.client_phone && a.client_phone.includes(q)) || a.service_name.toLowerCase().includes(q);
     });
 
   const stats = [
@@ -131,8 +119,17 @@ const Dashboard = () => {
     { label: "Total Geral", value: activeAppointments.length, icon: TrendingUp, color: "text-primary" },
   ];
 
+  const openUpgrade = (plan: string, feature: string) => setUpgradeModal({ open: true, plan, feature });
+
   return (
     <div className="container max-w-5xl py-8 animate-fade-in">
+      <UpgradeModal
+        open={upgradeModal.open}
+        onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })}
+        requiredPlan={upgradeModal.plan}
+        featureName={upgradeModal.feature}
+      />
+
       <div className="flex items-center justify-between mb-1">
         <div>
           <h1 className="font-display text-2xl font-bold">{barbershop.name}</h1>
@@ -140,11 +137,7 @@ const Dashboard = () => {
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.open(`/book/${barbershop.slug}`, "_blank")}
-        >
+        <Button variant="outline" size="sm" onClick={() => window.open(`/book/${barbershop.slug}`, "_blank")}>
           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Meu Link
         </Button>
       </div>
@@ -158,6 +151,37 @@ const Dashboard = () => {
             <p className="text-xs text-muted-foreground">{stat.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Plan Feature Buttons (Growth/Pro) */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => planName === "essential" ? openUpgrade("Growth", "Lembrete WhatsApp") : null}
+          className={planName === "essential" ? "opacity-60" : ""}
+        >
+          <MessageSquare className="h-3.5 w-3.5 mr-1" /> Lembrete WhatsApp
+          {planName === "essential" && <Crown className="h-3 w-3 ml-1 text-primary" />}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => planName === "essential" ? openUpgrade("Growth", "QR Code Pix") : null}
+          className={planName === "essential" ? "opacity-60" : ""}
+        >
+          <QrCode className="h-3.5 w-3.5 mr-1" /> QR Code Pix
+          {planName === "essential" && <Crown className="h-3 w-3 ml-1 text-primary" />}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => !["pro"].includes(planName) ? openUpgrade("Pro", "Relatórios Analíticos") : null}
+          className={!["pro"].includes(planName) ? "opacity-60" : ""}
+        >
+          <BarChart3 className="h-3.5 w-3.5 mr-1" /> Relatórios
+          {!["pro"].includes(planName) && <Crown className="h-3 w-3 ml-1 text-primary" />}
+        </Button>
       </div>
 
       {/* Next Clients */}
@@ -174,12 +198,8 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground">{a.service_name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-primary">
-                    {format(new Date(a.scheduled_at), "HH:mm")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    R$ {Number(a.price).toFixed(2).replace(".", ",")}
-                  </p>
+                  <p className="text-sm font-bold text-primary">{format(new Date(a.scheduled_at), "HH:mm")}</p>
+                  <p className="text-xs text-muted-foreground">R$ {Number(a.price).toFixed(2).replace(".", ",")}</p>
                 </div>
               </div>
             ))}
@@ -187,7 +207,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Weekly Comparative Chart */}
+      {/* Weekly Chart */}
       <div className="rounded-lg border border-border bg-card p-6 mb-8">
         <h2 className="font-display text-lg font-bold mb-4">Faturamento Semanal Comparativo</h2>
         <ResponsiveContainer width="100%" height={220}>
@@ -195,91 +215,91 @@ const Dashboard = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 20%)" />
             <XAxis dataKey="day" tick={{ fill: "hsl(220 10% 55%)", fontSize: 12 }} />
             <YAxis tick={{ fill: "hsl(220 10% 55%)", fontSize: 12 }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(220 18% 11%)",
-                border: "1px solid hsl(220 12% 20%)",
-                borderRadius: "8px",
-                color: "hsl(40 10% 95%)",
-              }}
-            />
+            <Tooltip contentStyle={{ backgroundColor: "hsl(220 18% 11%)", border: "1px solid hsl(220 12% 20%)", borderRadius: "8px", color: "hsl(40 10% 95%)" }} />
             <Bar dataKey="Esta semana" fill="hsl(40 92% 52%)" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Semana anterior" fill="hsl(220 15% 30%)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Appointments List */}
+      {/* View Toggle + Title */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg font-bold">Agendamentos</h2>
-      </div>
-
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, telefone ou serviço..."
-          className="bg-card border-border pl-10"
-        />
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-1 mb-4 p-1 rounded-lg bg-secondary overflow-x-auto">
-        {["all", "pending", "confirmed", "completed", "cancelled"].map((s) => (
+        <div className="flex gap-1 p-1 rounded-lg bg-secondary">
           <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
-              filter === s
-                ? "gold-gradient text-primary-foreground shadow-gold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            onClick={() => setViewMode("list")}
+            className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "gold-gradient text-primary-foreground" : "text-muted-foreground"}`}
           >
-            {s === "all" ? "Todos" : statusLabels[s] || s}
+            <List className="h-4 w-4" />
           </button>
-        ))}
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`p-1.5 rounded-md transition-all ${viewMode === "calendar" ? "gold-gradient text-primary-foreground" : "text-muted-foreground"}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {filteredAppointments.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-10">Nenhum agendamento encontrado.</p>
+      {viewMode === "calendar" ? (
+        <CalendarView appointments={appointments} />
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Cliente</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Serviço</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data/Hora</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAppointments.map((a) => (
-                  <tr key={a.id} className="border-t border-border">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{a.client_name}</p>
-                      <p className="text-xs text-muted-foreground">{a.client_phone}</p>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{a.service_name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {format(new Date(a.scheduled_at), "dd/MM HH:mm")}
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
-                      R$ {Number(a.price).toFixed(2).replace(".", ",")}
-                    </td>
-                    <td className={`px-4 py-3 font-medium ${statusColors[a.status] || ""}`}>
-                      {statusLabels[a.status] || a.status}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, telefone ou serviço..." className="bg-card border-border pl-10" />
           </div>
-        </div>
+
+          {/* Filter tabs */}
+          <div className="flex gap-1 mb-4 p-1 rounded-lg bg-secondary overflow-x-auto">
+            {["all", "pending", "confirmed", "completed", "cancelled"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
+                  filter === s ? "gold-gradient text-primary-foreground shadow-gold" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s === "all" ? "Todos" : statusLabels[s] || s}
+              </button>
+            ))}
+          </div>
+
+          {filteredAppointments.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-10">Nenhum agendamento encontrado.</p>
+          ) : (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-secondary">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Serviço</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data/Hora</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAppointments.map((a) => (
+                      <tr key={a.id} className="border-t border-border">
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{a.client_name}</p>
+                          <p className="text-xs text-muted-foreground">{a.client_phone}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{a.service_name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{format(new Date(a.scheduled_at), "dd/MM HH:mm")}</td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">R$ {Number(a.price).toFixed(2).replace(".", ",")}</td>
+                        <td className={`px-4 py-3 font-medium ${statusColors[a.status] || ""}`}>{statusLabels[a.status] || a.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
