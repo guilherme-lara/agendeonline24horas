@@ -1,14 +1,8 @@
-import { Scissors, Menu, X, LogIn, LogOut, Shield } from "lucide-react";
+import { Scissors, Menu, X, LogIn, LogOut, Shield, LayoutDashboard } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { label: "Início", path: "/" },
-  { label: "Agendar", path: "/booking" },
-  { label: "Meus Agendamentos", path: "/appointments" },
-];
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -16,13 +10,22 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
 
+  // Hide header on public booking pages
+  if (pathname.startsWith("/book/")) return null;
+
+  const navItems = [
+    { label: "Início", path: "/" },
+    ...(user ? [{ label: "Dashboard", path: "/dashboard" }] : []),
+    ...(user ? [{ label: "Agendar", path: "/booking" }] : []),
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Scissors className="h-6 w-6 text-primary" />
           <span className="font-display text-xl font-bold tracking-tight">
-            Barba <span className="text-primary">&</span> Estilo
+            Tech<span className="text-primary">Barber</span>
           </span>
         </Link>
 
@@ -54,7 +57,11 @@ const Header = () => {
               <LogOut className="h-4 w-4 mr-1" /> Sair
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground">
+            <Button
+              size="sm"
+              onClick={() => navigate("/login")}
+              className="gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+            >
               <LogIn className="h-4 w-4 mr-1" /> Entrar
             </Button>
           )}
