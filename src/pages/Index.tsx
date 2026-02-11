@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Star, ArrowRight } from "lucide-react";
 import HeroBanner from "@/components/HeroBanner";
+import SubscriptionPlans from "@/components/SubscriptionPlans";
 import { services, barbers } from "@/data/mock-data";
 import { Button } from "@/components/ui/button";
 
@@ -41,6 +42,9 @@ const Index = () => {
           ))}
         </div>
       </section>
+
+      {/* Subscription Plans */}
+      <SubscriptionPlans />
 
       {/* Featured Barbers */}
       <section className="container pb-20">
