@@ -43,7 +43,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (shopLoading) return;
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate("/auth"); return; }
     if (!barbershop) { navigate("/onboarding"); return; }
 
     supabase

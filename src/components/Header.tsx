@@ -59,7 +59,7 @@ const Header = () => {
           ) : (
             <Button
               size="sm"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/auth")}
               className="gold-gradient text-primary-foreground font-semibold hover:opacity-90"
             >
               <LogIn className="h-4 w-4 mr-1" /> Entrar
@@ -108,7 +108,7 @@ const Header = () => {
             </button>
           ) : (
             <Link
-              to="/login"
+              to="/auth"
               onClick={() => setOpen(false)}
               className="block px-6 py-3 text-sm font-medium text-primary hover:bg-secondary"
             >
