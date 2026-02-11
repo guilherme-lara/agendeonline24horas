@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, CalendarDays, Loader2, LogOut, Plus, ExternalLink, TrendingUp } from "lucide-react";
+import {
+  DollarSign, CalendarDays, Loader2, ExternalLink, TrendingUp,
+  Search, Clock, Users,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
-import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { format, subDays, isToday, isFuture, compareAsc } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -40,6 +44,7 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (shopLoading) return;
@@ -68,34 +73,62 @@ const Dashboard = () => {
   if (!barbershop) return null;
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
-  const todayAppointments = appointments.filter((a) => a.scheduled_at.startsWith(todayStr));
   const activeAppointments = appointments.filter((a) => a.status !== "cancelled");
+  const todayAppointments = activeAppointments.filter((a) => a.scheduled_at.startsWith(todayStr));
+
+  // Next clients: today's upcoming appointments sorted chronologically
+  const now = new Date();
+  const nextClients = todayAppointments
+    .filter((a) => new Date(a.scheduled_at) >= now)
+    .sort((a, b) => compareAsc(new Date(a.scheduled_at), new Date(b.scheduled_at)))
+    .slice(0, 5);
+
   const monthRevenue = activeAppointments
     .filter((a) => {
       const d = new Date(a.scheduled_at);
-      const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     })
     .reduce((sum, a) => sum + Number(a.price), 0);
 
-  // Chart data: last 7 days
+  // Weekly comparative chart: this week vs last week
   const chartData = Array.from({ length: 7 }).map((_, i) => {
-    const date = subDays(new Date(), 6 - i);
-    const dateStr = format(date, "yyyy-MM-dd");
-    const dayAppts = activeAppointments.filter((a) => a.scheduled_at.startsWith(dateStr));
+    const thisDay = subDays(new Date(), 6 - i);
+    const lastDay = subDays(thisDay, 7);
+    const thisDayStr = format(thisDay, "yyyy-MM-dd");
+    const lastDayStr = format(lastDay, "yyyy-MM-dd");
+
+    const thisRevenue = activeAppointments
+      .filter((a) => a.scheduled_at.startsWith(thisDayStr))
+      .reduce((s, a) => s + Number(a.price), 0);
+    const lastRevenue = activeAppointments
+      .filter((a) => a.scheduled_at.startsWith(lastDayStr))
+      .reduce((s, a) => s + Number(a.price), 0);
+
     return {
-      day: format(date, "dd/MM"),
-      cortes: dayAppts.length,
-      receita: dayAppts.reduce((s, a) => s + Number(a.price), 0),
+      day: format(thisDay, "EEE", { locale: ptBR }),
+      "Esta semana": thisRevenue,
+      "Semana anterior": lastRevenue,
     };
   });
 
-  const filteredAppointments = filter === "all" ? appointments : appointments.filter((a) => a.status === filter);
+  // Search & filter
+  const filteredAppointments = appointments
+    .filter((a) => filter === "all" || a.status === filter)
+    .filter((a) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        a.client_name.toLowerCase().includes(q) ||
+        (a.client_phone && a.client_phone.includes(q)) ||
+        a.service_name.toLowerCase().includes(q)
+      );
+    });
 
   const stats = [
-    { label: "Hoje", value: todayAppointments.length, icon: CalendarDays, color: "text-primary" },
+    { label: "Próximos Hoje", value: nextClients.length, icon: Clock, color: "text-primary" },
     { label: "Receita do Mês", value: `R$ ${monthRevenue.toFixed(2).replace(".", ",")}`, icon: DollarSign, color: "text-green-400" },
-    { label: "Total Agendamentos", value: activeAppointments.length, icon: TrendingUp, color: "text-primary" },
+    { label: "Clientes Hoje", value: todayAppointments.length, icon: Users, color: "text-primary" },
+    { label: "Total Geral", value: activeAppointments.length, icon: TrendingUp, color: "text-primary" },
   ];
 
   return (
@@ -107,19 +140,17 @@ const Dashboard = () => {
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(`/book/${barbershop.slug}`, "_blank")}
-          >
-            <ExternalLink className="h-3.5 w-3.5 mr-1" /> Meu Link
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open(`/book/${barbershop.slug}`, "_blank")}
+        >
+          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Meu Link
+        </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 mb-8">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 mb-8">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
             <stat.icon className={`h-5 w-5 ${stat.color} mb-2`} />
@@ -129,9 +160,36 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Chart */}
+      {/* Next Clients */}
+      {nextClients.length > 0 && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 mb-8">
+          <h2 className="font-display text-lg font-bold mb-3 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" /> Próximos Clientes
+          </h2>
+          <div className="space-y-2">
+            {nextClients.map((a) => (
+              <div key={a.id} className="flex items-center justify-between rounded-md bg-card border border-border px-4 py-3">
+                <div>
+                  <p className="font-medium text-sm">{a.client_name}</p>
+                  <p className="text-xs text-muted-foreground">{a.service_name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-primary">
+                    {format(new Date(a.scheduled_at), "HH:mm")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    R$ {Number(a.price).toFixed(2).replace(".", ",")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Weekly Comparative Chart */}
       <div className="rounded-lg border border-border bg-card p-6 mb-8">
-        <h2 className="font-display text-lg font-bold mb-4">Últimos 7 dias</h2>
+        <h2 className="font-display text-lg font-bold mb-4">Faturamento Semanal Comparativo</h2>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 20%)" />
@@ -145,16 +203,29 @@ const Dashboard = () => {
                 color: "hsl(40 10% 95%)",
               }}
             />
-            <Bar dataKey="receita" fill="hsl(40 92% 52%)" radius={[4, 4, 0, 0]} name="Receita (R$)" />
+            <Bar dataKey="Esta semana" fill="hsl(40 92% 52%)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Semana anterior" fill="hsl(220 15% 30%)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Appointments */}
+      {/* Appointments List */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg font-bold">Agendamentos</h2>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome, telefone ou serviço..."
+          className="bg-card border-border pl-10"
+        />
+      </div>
+
+      {/* Filter tabs */}
       <div className="flex gap-1 mb-4 p-1 rounded-lg bg-secondary overflow-x-auto">
         {["all", "pending", "confirmed", "completed", "cancelled"].map((s) => (
           <button
@@ -191,7 +262,7 @@ const Dashboard = () => {
                   <tr key={a.id} className="border-t border-border">
                     <td className="px-4 py-3">
                       <p className="font-medium">{a.client_name}</p>
-                      <p className="text-xs text-muted-foreground sm:hidden">{a.service_name}</p>
+                      <p className="text-xs text-muted-foreground">{a.client_phone}</p>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{a.service_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">
