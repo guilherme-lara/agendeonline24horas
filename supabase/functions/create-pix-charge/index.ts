@@ -147,14 +147,15 @@ Deno.serve(async (req) => {
       // Non-blocking: we still have the billing URL as fallback
     }
 
-    // Persist payment data in the appointment
+    // Persist payment data in the appointment (including pix_code for recovery)
     await supabase
       .from("appointments")
       .update({
-        payment_id: paymentId,
-        payment_url: paymentUrl,
+        payment_id: paymentId || null,
+        payment_url: paymentUrl || null,
         payment_status: "awaiting",
         payment_method: "pix_online",
+        pix_code: brCode || null,
       })
       .eq("id", appointment_id);
 

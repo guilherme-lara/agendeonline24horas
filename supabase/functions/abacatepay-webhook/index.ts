@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Also cancel expired Pix appointments atomically
+    // Auto-cancel expired Pix appointments
     try {
       await supabase.rpc("cancel_expired_pix_appointments");
     } catch (e) {
@@ -27,15 +27,22 @@ Deno.serve(async (req) => {
     }
 
     const event = body.event || "";
-    const billing = body.data?.billing || body.data || body;
+    const data = body.data || {};
+
+    // AbacatePay DevMode nests data differently:
+    // - data.pixQrCode contains metadata and payment info
+    // - data.billing may or may not exist
+    const billing = data.billing || data || {};
+    const pixQrCode = data.pixQrCode || {};
     const billingId = billing.id || "";
-    const billingStatus = billing.status || "";
+    const billingStatus = billing.status || pixQrCode.status || "";
 
     console.log(`Event: ${event}, Billing ID: ${billingId}, Status: ${billingStatus}`);
 
-    // Strategy 1: Find by payment_id
+    // === Find appointment_id using multiple strategies ===
     let appointmentId: string | null = null;
 
+    // Strategy 1: Find by payment_id stored in appointments
     if (billingId) {
       const { data: appt } = await supabase
         .from("appointments")
@@ -64,12 +71,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Strategy 3: metadata
+    // Strategy 3: metadata — check ALL possible locations
     if (!appointmentId) {
-      const metaId = billing.metadata?.appointment_id || body.metadata?.appointment_id || body.data?.metadata?.appointment_id;
+      const metaId =
+        billing.metadata?.appointment_id ||
+        pixQrCode.metadata?.appointment_id ||
+        data.metadata?.appointment_id ||
+        body.metadata?.appointment_id;
       if (metaId) {
-        appointmentId = metaId;
-        console.log(`Found appointment by metadata: ${appointmentId}`);
+        // Verify the appointment exists
+        const { data: appt } = await supabase
+          .from("appointments")
+          .select("id")
+          .eq("id", metaId)
+          .maybeSingle();
+        if (appt) {
+          appointmentId = appt.id;
+          console.log(`Found appointment by metadata: ${appointmentId}`);
+        } else {
+          console.log(`Metadata appointment_id ${metaId} not found in DB`);
+        }
       }
     }
 
@@ -81,6 +102,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Determine payment status from event and status fields
     const isPaid =
       event === "billing.paid" ||
       event === "PAYMENT.RECEIVED" ||
@@ -96,7 +118,11 @@ Deno.serve(async (req) => {
         status: "confirmed",
         payment_confirmed_at: new Date().toISOString(),
       };
-    } else if (billingStatus === "EXPIRED" || billingStatus === "CANCELLED" || event === "billing.expired") {
+    } else if (
+      billingStatus === "EXPIRED" ||
+      billingStatus === "CANCELLED" ||
+      event === "billing.expired"
+    ) {
       updateData = {
         payment_status: "failed",
         status: "cancelled",

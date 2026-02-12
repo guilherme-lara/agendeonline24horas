@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -50,24 +51,26 @@ const PixPaymentModal = ({
     }
   };
 
-  // Supabase Realtime: listen for payment confirmation
+  // Supabase Realtime + fallback polling
   useEffect(() => {
     if (!open || !appointmentId || paymentConfirmed) return;
 
-    // Initial check
-    supabase
-      .from("appointments")
-      .select("payment_status, status")
-      .eq("id", appointmentId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
-          setPaymentConfirmed(true);
-          onPaymentConfirmed?.();
-        }
-      });
+    const checkStatus = async () => {
+      const { data } = await supabase
+        .from("appointments")
+        .select("payment_status, status")
+        .eq("id", appointmentId)
+        .maybeSingle();
+      if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
+        setPaymentConfirmed(true);
+        onPaymentConfirmed?.();
+      }
+    };
 
-    // Subscribe to realtime changes
+    // Initial check
+    checkStatus();
+
+    // Realtime subscription
     const channel = supabase
       .channel(`pix-payment-${appointmentId}`)
       .on(
@@ -88,18 +91,8 @@ const PixPaymentModal = ({
       )
       .subscribe();
 
-    // Fallback polling every 8s in case realtime misses
-    const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from("appointments")
-        .select("payment_status, status")
-        .eq("id", appointmentId)
-        .maybeSingle();
-      if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
-        setPaymentConfirmed(true);
-        onPaymentConfirmed?.();
-      }
-    }, 8000);
+    // Fallback polling every 5s
+    const interval = setInterval(checkStatus, 5000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -108,12 +101,15 @@ const PixPaymentModal = ({
   }, [open, appointmentId, paymentConfirmed, onPaymentConfirmed]);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && paymentConfirmed) onClose(); }}>
-      <DialogContent className="max-w-[360px] border-border bg-card p-5 sm:max-w-sm">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent className="max-w-[360px] border-border bg-card p-5 sm:max-w-sm overflow-hidden max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-lg">
             {paymentConfirmed ? "Pagamento Confirmado!" : "Pagamento Pix"}
           </DialogTitle>
+          <DialogDescription className="text-center text-xs text-muted-foreground">
+            {paymentConfirmed ? "Seu agendamento foi reservado." : `Escaneie o QR Code ou copie o código Pix.`}
+          </DialogDescription>
         </DialogHeader>
 
         {paymentConfirmed ? (
@@ -124,7 +120,6 @@ const PixPaymentModal = ({
             <p className="text-sm text-muted-foreground">
               Pagamento de <span className="font-bold text-primary">R$ {price.toFixed(2)}</span> confirmado!
             </p>
-            <p className="text-xs text-muted-foreground">Seu agendamento está reservado.</p>
             <Button onClick={onClose} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 mt-2">
               Fechar
             </Button>
@@ -136,8 +131,8 @@ const PixPaymentModal = ({
               <span className="font-bold text-primary">R$ {price.toFixed(2)}</span>
             </p>
 
-            {/* QR Code */}
-            <div className="mx-auto flex aspect-square w-48 max-w-[80vw] items-center justify-center rounded-xl border border-border bg-white p-2">
+            {/* QR Code - fixed aspect ratio, centered, white bg */}
+            <div className="mx-auto flex w-48 h-48 items-center justify-center rounded-xl border border-border bg-white p-2">
               {pixQrCodeImage ? (
                 <img
                   src={
@@ -149,16 +144,16 @@ const PixPaymentModal = ({
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <QrCode className="h-20 w-20 text-muted-foreground/30" />
+                <QrCode className="h-16 w-16 text-muted-foreground/30" />
               )}
             </div>
 
-            {/* Pix Copia e Cola */}
+            {/* Pix Copia e Cola - truncated with copy button */}
             {(pixCode || paymentUrl) && (
               <div className="space-y-2.5">
                 <p className="text-xs font-medium text-muted-foreground">Pix Copia e Cola</p>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-2.5">
-                  <code className="flex-1 truncate text-xs text-foreground/90 select-all">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-2.5 min-w-0">
+                  <code className="flex-1 truncate text-xs text-foreground/90 select-all min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                     {pixCode || paymentUrl}
                   </code>
                   <button
