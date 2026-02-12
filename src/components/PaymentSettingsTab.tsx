@@ -110,7 +110,25 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
           </p>
         </div>
 
-        <div className="border-t border-border pt-4">
+        <div className="border-t border-border pt-4 space-y-3">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">URL do Webhook (cole no painel do AbacatePay)</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground break-all">
+                https://whtlqimtclodchfdljcg.supabase.co/functions/v1/abacatepay-webhook
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText("https://whtlqimtclodchfdljcg.supabase.co/functions/v1/abacatepay-webhook");
+                  toast({ title: "Copiado!", description: "URL do webhook copiada." });
+                }}
+                className="text-xs text-primary hover:underline shrink-0"
+              >
+                Copiar
+              </button>
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground">
             Não tem uma conta?{" "}
             <a

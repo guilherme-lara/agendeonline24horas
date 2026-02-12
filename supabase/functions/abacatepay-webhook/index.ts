@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     // Find appointment by payment_id
     const { data: appt } = await supabase
       .from("appointments")
-      .select("id, status")
+      .select("id, status, barbershop_id")
       .eq("payment_id", billingId)
       .maybeSingle();
 
@@ -43,6 +43,21 @@ Deno.serve(async (req) => {
       console.log(`No appointment found for payment_id: ${billingId}`);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate that the webhook is legitimate by checking the barbershop has AbacatePay configured
+    const { data: shop } = await supabase
+      .from("barbershops")
+      .select("settings")
+      .eq("id", appt.barbershop_id)
+      .single();
+
+    if (!shop?.settings || !(shop.settings as Record<string, any>).abacate_pay_api_key) {
+      console.log("Barbershop does not have AbacatePay configured, rejecting webhook");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
