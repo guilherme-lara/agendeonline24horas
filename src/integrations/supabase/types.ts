@@ -47,6 +47,7 @@ export type Database = {
           client_phone: string | null
           created_at: string | null
           id: string
+          payment_confirmed_at: string | null
           payment_id: string | null
           payment_method: string | null
           payment_status: string | null
@@ -66,6 +67,7 @@ export type Database = {
           client_phone?: string | null
           created_at?: string | null
           id?: string
+          payment_confirmed_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
@@ -85,6 +87,7 @@ export type Database = {
           client_phone?: string | null
           created_at?: string | null
           id?: string
+          payment_confirmed_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
@@ -172,6 +175,7 @@ export type Database = {
           owner_id: string
           phone: string | null
           settings: Json | null
+          setup_completed: boolean
           slug: string
           updated_at: string | null
         }
@@ -185,6 +189,7 @@ export type Database = {
           owner_id: string
           phone?: string | null
           settings?: Json | null
+          setup_completed?: boolean
           slug: string
           updated_at?: string | null
         }
@@ -198,6 +203,7 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           settings?: Json | null
+          setup_completed?: boolean
           slug?: string
           updated_at?: string | null
         }
@@ -605,6 +611,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      cancel_expired_pix_appointments: { Args: never; Returns: number }
       create_public_appointment:
         | {
             Args: {

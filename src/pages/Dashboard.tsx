@@ -101,6 +101,7 @@ const Dashboard = () => {
     if (shopLoading) return;
     if (!user) { navigate("/auth"); return; }
     if (!barbershop) { navigate("/onboarding"); return; }
+    if (!(barbershop as any).setup_completed) { navigate("/onboarding"); return; }
 
     const fetchData = async () => {
       const [apptRes, planRes, svcRes, annRes] = await Promise.all([
