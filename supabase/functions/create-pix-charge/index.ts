@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const abacatePayKey = shop.settings?.abacate_pay_api_key;
+    const abacatePayKey = (shop.settings as Record<string, any>)?.abacate_pay_api_key;
     if (!abacatePayKey) {
       return new Response(
-        JSON.stringify({ error: "Chave AbacatePay não configurada para esta barbearia" }),
+        JSON.stringify({ error: "Chave AbacatePay não configurada para esta barbearia", no_key: true }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Webhook URL for AbacatePay callbacks
+    const webhookUrl = `${supabaseUrl}/functions/v1/abacatepay-webhook`;
 
     // Create billing on AbacatePay
     const abacateRes = await fetch("https://api.abacatepay.com/v1/billing/create", {
@@ -79,7 +82,11 @@ Deno.serve(async (req) => {
             price: Math.round(Number(appt.price) * 100), // cents
           },
         ],
-        returnUrl: `${supabaseUrl.replace('.supabase.co', '.supabase.co')}/functions/v1/abacatepay-webhook`,
+        metadata: {
+          appointment_id: appointment_id,
+          barbershop_id: barbershop_id,
+        },
+        returnUrl: webhookUrl,
         completionUrl: `${req.headers.get("origin") || "https://agendeonline24horas.lovable.app"}/agendamentos/sucesso`,
       }),
     });
@@ -94,9 +101,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update appointment with payment info
+    // Extract payment info
     const paymentUrl = abacateData.data?.url || abacateData.url || "";
     const paymentId = abacateData.data?.id || abacateData.id || "";
+    const pixCode = abacateData.data?.pixQrCode || abacateData.data?.pix_qr_code || abacateData.data?.brcode || "";
+    const pixQrCodeImage = abacateData.data?.pixQrCodeBase64 || abacateData.data?.qr_code_base64 || "";
 
     await supabase
       .from("appointments")
@@ -112,6 +121,8 @@ Deno.serve(async (req) => {
         success: true,
         payment_url: paymentUrl,
         payment_id: paymentId,
+        pix_code: pixCode,
+        pix_qr_code_image: pixQrCodeImage,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import PixPaymentModal from "@/components/PixPaymentModal";
 
 interface BarbershopPublic {
   id: string;
@@ -57,6 +58,14 @@ const PublicBooking = () => {
   const [success, setSuccess] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
+  // Pix payment state
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixData, setPixData] = useState<{
+    paymentUrl: string;
+    pixCode: string;
+    pixQrCodeImage: string;
+  } | null>(null);
+
   // Load shop, services, and business hours
   useEffect(() => {
     if (!slug) return;
@@ -76,7 +85,6 @@ const PublicBooking = () => {
             const srvData = (servRes.data || []) as Service[];
             setServices(srvData);
             setBusinessHours((hoursRes.data || []) as BusinessHour[]);
-            // If no custom services, use defaults
             if (srvData.length === 0) {
               setServices([
                 { id: "d1", name: "Corte Degradê", price: 50, duration: 40 },
@@ -120,7 +128,7 @@ const PublicBooking = () => {
   const isDayClosed = (date: Date): boolean => {
     const bh = getHoursForDay(date.getDay());
     if (bh) return bh.is_closed;
-    return date.getDay() === 0; // Default: Sunday closed
+    return date.getDay() === 0;
   };
 
   const generateTimeSlots = (): string[] => {
@@ -139,19 +147,16 @@ const PublicBooking = () => {
         if (h === closeH && m >= closeM) break;
         const slotTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-        // If today, skip past times
         if (isToday(selectedDate)) {
           const slotDate = new Date(selectedDate);
           slotDate.setHours(h, m, 0, 0);
           if (isBefore(slotDate, now)) continue;
         }
 
-        // Check if the slot + service duration + buffer overlaps with existing appointments
         const slotStart = new Date(selectedDate);
         slotStart.setHours(h, m, 0, 0);
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
 
-        // Check service end time doesn't exceed closing time
         const closeDate = new Date(selectedDate);
         closeDate.setHours(closeH, closeM, 0, 0);
         if (isBefore(closeDate, addMinutes(slotStart, selectedService.duration))) continue;
@@ -161,7 +166,6 @@ const PublicBooking = () => {
           const apptService = services.find((s) => s.name === appt.service_name);
           const apptDuration = apptService?.duration || 30;
           const apptEnd = addMinutes(apptStart, apptDuration + BUFFER_MINUTES);
-
           return slotStart < apptEnd && slotEnd > apptStart;
         });
 
@@ -211,7 +215,7 @@ const PublicBooking = () => {
       const [h, m] = selectedTime.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
 
-      const { error } = await supabase.rpc("create_public_appointment", {
+      const { data: appointmentId, error } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop.id,
         _client_name: clientName.trim(),
         _client_phone: clientPhone.trim(),
@@ -221,12 +225,43 @@ const PublicBooking = () => {
       });
 
       if (error) throw error;
+
+      // Try to create Pix charge if barbershop has AbacatePay configured
+      if (appointmentId) {
+        try {
+          const pixRes = await supabase.functions.invoke("create-pix-charge", {
+            body: {
+              appointment_id: appointmentId,
+              barbershop_id: shop.id,
+            },
+          });
+
+          if (pixRes.data?.success && pixRes.data?.payment_url) {
+            setPixData({
+              paymentUrl: pixRes.data.payment_url,
+              pixCode: pixRes.data.pix_code || "",
+              pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
+            });
+            setPixModalOpen(true);
+            return; // Don't show success yet, show Pix modal
+          }
+          // If no_key error or no payment config, just show success
+        } catch (pixErr) {
+          console.log("Pix charge skipped (no API key or error):", pixErr);
+        }
+      }
+
       setSuccess(true);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handlePixModalClose = () => {
+    setPixModalOpen(false);
+    setSuccess(true);
   };
 
   const availableSlots = generateTimeSlots();
@@ -403,6 +438,19 @@ const PublicBooking = () => {
           </div>
         )}
       </div>
+
+      {/* Pix Payment Modal */}
+      {pixData && (
+        <PixPaymentModal
+          open={pixModalOpen}
+          onClose={handlePixModalClose}
+          paymentUrl={pixData.paymentUrl}
+          pixCode={pixData.pixCode}
+          pixQrCodeImage={pixData.pixQrCodeImage}
+          price={selectedService?.price || 0}
+          serviceName={selectedService?.name || ""}
+        />
+      )}
     </div>
   );
 };
