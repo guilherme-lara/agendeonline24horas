@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DollarSign, CalendarDays, Loader2, ExternalLink, TrendingUp,
   Search, Clock, Users, LayoutGrid, List, Crown, MessageSquare,
-  QrCode, BarChart3, Package, Wallet, CalendarPlus,
+  QrCode, BarChart3, Package, Wallet, CalendarPlus, AlertTriangle, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -58,7 +58,7 @@ type DashTab = "overview" | "team" | "financial" | "inventory" | "settings";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { barbershop, loading: shopLoading, user } = useBarbershop();
+  const { barbershop, loading: shopLoading, user, clearImpersonation } = useBarbershop();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +72,8 @@ const Dashboard = () => {
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; plan: string; feature: string }>({
     open: false, plan: "", feature: "",
   });
+  const [systemAnnouncement, setSystemAnnouncement] = useState("");
+  const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   useEffect(() => {
     if (shopLoading) return;
@@ -79,14 +81,16 @@ const Dashboard = () => {
     if (!barbershop) { navigate("/onboarding"); return; }
 
     const fetchData = async () => {
-      const [apptRes, planRes, svcRes] = await Promise.all([
+      const [apptRes, planRes, svcRes, annRes] = await Promise.all([
         supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false }),
         supabase.from("saas_plans").select("plan_name").eq("barbershop_id", barbershop.id).eq("status", "active").maybeSingle(),
         supabase.from("services").select("id, name, price, duration").eq("barbershop_id", barbershop.id).eq("active", true).order("sort_order"),
+        supabase.from("system_settings").select("value").eq("key", "announcement").maybeSingle(),
       ]);
       setAppointments((apptRes.data as Appointment[]) || []);
       setServices((svcRes.data as Service[]) || []);
       if (planRes.data) setPlanName(planRes.data.plan_name);
+      if (annRes.data) setSystemAnnouncement((annRes.data as any).value || "");
       setLoading(false);
     };
     fetchData();
@@ -204,6 +208,34 @@ const Dashboard = () => {
         requiredPlan={upgradeModal.plan}
         featureName={upgradeModal.feature}
       />
+
+      {/* Impersonation Banner */}
+      {isImpersonating && (
+        <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-cyan-400" />
+            <p className="text-sm text-cyan-300">
+              <span className="font-semibold">Modo Suporte:</span> Visualizando como {barbershop.name}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { clearImpersonation(); navigate("/super-admin"); }}
+            className="text-cyan-400 hover:text-white hover:bg-cyan-500/20 h-7 px-2"
+          >
+            <X className="h-3.5 w-3.5 mr-1" /> Sair
+          </Button>
+        </div>
+      )}
+
+      {/* System Announcement */}
+      {systemAnnouncement && (
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-primary flex-shrink-0" />
+          <p className="text-sm text-primary">{systemAnnouncement}</p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">

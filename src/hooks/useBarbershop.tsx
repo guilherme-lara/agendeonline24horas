@@ -14,9 +14,13 @@ interface Barbershop {
 }
 
 export const useBarbershop = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const [barbershop, setBarbershop] = useState<Barbershop | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const clearImpersonation = useCallback(() => {
+    localStorage.removeItem("impersonate_barbershop_id");
+  }, []);
 
   const refetch = useCallback(async () => {
     if (!user) {
@@ -24,6 +28,22 @@ export const useBarbershop = () => {
       setLoading(false);
       return;
     }
+
+    // Check for impersonation mode (admin only)
+    const impersonateId = localStorage.getItem("impersonate_barbershop_id");
+    if (impersonateId && isAdmin) {
+      const { data } = await supabase
+        .from("barbershops")
+        .select("*")
+        .eq("id", impersonateId)
+        .maybeSingle();
+      if (data) {
+        setBarbershop(data as Barbershop);
+        setLoading(false);
+        return;
+      }
+    }
+
     const { data } = await supabase
       .from("barbershops")
       .select("*")
@@ -31,7 +51,7 @@ export const useBarbershop = () => {
       .maybeSingle();
     setBarbershop(data as Barbershop | null);
     setLoading(false);
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -43,5 +63,5 @@ export const useBarbershop = () => {
     refetch();
   }, [user, authLoading, refetch]);
 
-  return { barbershop, loading: loading || authLoading, user, refetch };
+  return { barbershop, loading: loading || authLoading, user, refetch, clearImpersonation };
 };
