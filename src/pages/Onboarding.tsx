@@ -139,8 +139,9 @@ const Onboarding = () => {
       await refetch();
       toast({ title: "Barbearia criada!", description: "Tudo configurado. Bem-vindo ao TechBarber." });
       navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

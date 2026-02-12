@@ -42,6 +42,7 @@ const App = () => (
               <Route path="/booking/success" element={<BookingSuccess />} />
               <Route path="/appointments" element={<MyAppointments />} />
               <Route path="/subscribe/:planId" element={<Subscribe />} />
+              <Route path="/agendamentos/:slug" element={<PublicBooking />} />
               <Route path="/book/:slug" element={<PublicBooking />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

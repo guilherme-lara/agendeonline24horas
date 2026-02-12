@@ -15,6 +15,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import CalendarView from "@/components/CalendarView";
 import UpgradeModal from "@/components/UpgradeModal";
+import TeamTab from "@/components/TeamTab";
+import LogoUpload from "@/components/LogoUpload";
 
 interface Appointment {
   id: string;
@@ -137,7 +139,7 @@ const Dashboard = () => {
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.open(`/book/${barbershop.slug}`, "_blank")}>
+        <Button variant="outline" size="sm" onClick={() => window.open(`/agendamentos/${barbershop.slug}`, "_blank")}>
           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Meu Link
         </Button>
       </div>
@@ -301,6 +303,20 @@ const Dashboard = () => {
           )}
         </>
       )}
+
+      {/* Team Tab */}
+      <div className="mt-10">
+        <TeamTab barbershopId={barbershop.id} planName={planName} />
+      </div>
+
+      {/* Logo Upload */}
+      <div className="mt-8 rounded-lg border border-border bg-card p-6">
+        <LogoUpload
+          barbershopId={barbershop.id}
+          currentUrl={(barbershop as any).logo_url || ""}
+          onUploaded={() => {}}
+        />
+      </div>
     </div>
   );
 };
