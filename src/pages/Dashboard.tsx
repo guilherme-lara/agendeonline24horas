@@ -4,14 +4,17 @@ import {
   DollarSign, CalendarDays, Loader2, ExternalLink, TrendingUp,
   Search, Clock, Users, LayoutGrid, List, Crown, MessageSquare,
   QrCode, BarChart3, Package, Wallet, CalendarPlus, AlertTriangle, X,
+  Check, XCircle, Play, Maximize, Minimize, Phone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { format, subDays, compareAsc, differenceInDays } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { format, subDays, compareAsc, differenceInDays, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import CalendarView from "@/components/CalendarView";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -20,6 +23,11 @@ import LogoUpload from "@/components/LogoUpload";
 import InventoryTab from "@/components/InventoryTab";
 import FinancialTab from "@/components/FinancialTab";
 import QuickBooking from "@/components/QuickBooking";
+import PaymentSettingsTab from "@/components/PaymentSettingsTab";
+import CompletionModal from "@/components/CompletionModal";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface Appointment {
   id: string;
@@ -40,11 +48,11 @@ interface Service {
   duration: number;
 }
 
-const statusColors: Record<string, string> = {
-  pending: "text-yellow-400",
-  confirmed: "text-primary",
-  completed: "text-green-400",
-  cancelled: "text-destructive",
+const statusBadgeConfig: Record<string, { label: string; className: string }> = {
+  pending: { label: "Pendente", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  confirmed: { label: "Confirmado", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  completed: { label: "Concluído", className: "bg-green-500/15 text-green-400 border-green-500/30" },
+  cancelled: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -54,11 +62,12 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-type DashTab = "overview" | "team" | "financial" | "inventory" | "settings";
+type DashTab = "overview" | "team" | "financial" | "inventory" | "payments" | "settings";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { barbershop, loading: shopLoading, user, clearImpersonation } = useBarbershop();
+  const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +82,8 @@ const Dashboard = () => {
     open: false, plan: "", feature: "",
   });
   const [systemAnnouncement, setSystemAnnouncement] = useState("");
+  const [kioskMode, setKioskMode] = useState(false);
+  const [completionModal, setCompletionModal] = useState<{ open: boolean; appointmentId: string }>({ open: false, appointmentId: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   useEffect(() => {
@@ -112,7 +123,7 @@ const Dashboard = () => {
   const monthRevenue = activeAppointments
     .filter((a) => {
       const d = new Date(a.scheduled_at);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && a.status === "completed";
     })
     .reduce((sum, a) => sum + Number(a.price), 0);
 
@@ -123,12 +134,12 @@ const Dashboard = () => {
     const lastDayStr = format(lastDay, "yyyy-MM-dd");
     return {
       day: format(thisDay, "EEE", { locale: ptBR }),
-      "Esta semana": activeAppointments.filter((a) => a.scheduled_at.startsWith(thisDayStr)).reduce((s, a) => s + Number(a.price), 0),
-      "Semana anterior": activeAppointments.filter((a) => a.scheduled_at.startsWith(lastDayStr)).reduce((s, a) => s + Number(a.price), 0),
+      "Esta semana": activeAppointments.filter((a) => a.scheduled_at.startsWith(thisDayStr) && a.status === "completed").reduce((s, a) => s + Number(a.price), 0),
+      "Semana anterior": activeAppointments.filter((a) => a.scheduled_at.startsWith(lastDayStr) && a.status === "completed").reduce((s, a) => s + Number(a.price), 0),
     };
   });
 
-  // Return prediction: clients who haven't visited in their usual frequency
+  // Return prediction
   const clientVisits = new Map<string, Date[]>();
   activeAppointments.forEach((a) => {
     const dates = clientVisits.get(a.client_name) || [];
@@ -151,14 +162,8 @@ const Dashboard = () => {
 
   const filteredAppointments = appointments
     .filter((a) => filter === "all" || a.status === filter)
-    .filter((a) => {
-      if (dateFilter) return a.scheduled_at.startsWith(dateFilter);
-      return true;
-    })
-    .filter((a) => {
-      if (barberFilter) return (a.barber_name || "").toLowerCase().includes(barberFilter.toLowerCase());
-      return true;
-    })
+    .filter((a) => !dateFilter || a.scheduled_at.startsWith(dateFilter))
+    .filter((a) => !barberFilter || (a.barber_name || "").toLowerCase().includes(barberFilter.toLowerCase()))
     .filter((a) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -178,10 +183,43 @@ const Dashboard = () => {
     setAppointments((data as Appointment[]) || []);
   };
 
+  const handleStatusChange = async (apptId: string, newStatus: string) => {
+    if (newStatus === "completed") {
+      // Open completion modal for stock deduction
+      setCompletionModal({ open: true, appointmentId: apptId });
+      return;
+    }
+    const { error } = await supabase.from("appointments").update({ status: newStatus }).eq("id", apptId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Status: ${statusLabels[newStatus]}` });
+      refreshAppts();
+    }
+  };
+
+  const openWhatsApp = (phone: string, clientName: string) => {
+    const msg = encodeURIComponent(`Olá ${clientName}! 😊 Obrigado por agendar na ${barbershop.name}. Até breve!`);
+    const cleanPhone = phone.replace(/\D/g, "");
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
+  };
+
+  const handleReschedule = (clientName: string, days: number) => {
+    const futureDate = addDays(new Date(), days);
+    const slug = barbershop.slug;
+    toast({
+      title: "Reagendamento sugerido",
+      description: `Sugerido para ${format(futureDate, "dd/MM/yyyy")}. Envie o link ao cliente.`,
+    });
+    navigator.clipboard.writeText(`${window.location.origin}/agendamentos/${slug}`);
+  };
+
   const tabs: { id: DashTab; label: string; icon: any; minPlan?: string }[] = [
     { id: "overview", label: "Visão Geral", icon: LayoutGrid },
     { id: "team", label: "Equipe", icon: Users },
     { id: "financial", label: "Financeiro", icon: Wallet, minPlan: "growth" },
+    { id: "payments", label: "Pagamentos", icon: QrCode, minPlan: "growth" },
     { id: "inventory", label: "Estoque", icon: Package, minPlan: "pro" },
     { id: "settings", label: "Config", icon: CalendarDays },
   ];
@@ -201,12 +239,20 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container max-w-5xl py-8 animate-fade-in">
+    <div className={`${kioskMode ? "fixed inset-0 z-50 bg-background overflow-auto" : "container max-w-5xl py-8"} animate-fade-in`}>
       <UpgradeModal
         open={upgradeModal.open}
         onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })}
         requiredPlan={upgradeModal.plan}
         featureName={upgradeModal.feature}
+      />
+
+      <CompletionModal
+        open={completionModal.open}
+        onClose={() => setCompletionModal({ open: false, appointmentId: "" })}
+        barbershopId={barbershop.id}
+        appointmentId={completionModal.appointmentId}
+        onCompleted={refreshAppts}
       />
 
       {/* Impersonation Banner */}
@@ -250,6 +296,14 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setKioskMode(!kioskMode)}
+            title={kioskMode ? "Sair do Modo Quiosque" : "Modo Quiosque"}
+          >
+            {kioskMode ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
+          </Button>
           <QuickBooking barbershopId={barbershop.id} services={services} onBooked={refreshAppts} />
           <Button variant="outline" size="sm" onClick={() => window.open(`/agendamentos/${barbershop.slug}`, "_blank")}>
             <ExternalLink className="h-3.5 w-3.5 mr-1" /> Link
@@ -286,22 +340,6 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             ))}
-          </div>
-
-          {/* Plan Feature Buttons */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            <Button variant="outline" size="sm" onClick={() => planName === "essential" ? openUpgrade("Growth", "Lembrete WhatsApp") : null} className={planName === "essential" ? "opacity-60" : ""}>
-              <MessageSquare className="h-3.5 w-3.5 mr-1" /> WhatsApp
-              {planName === "essential" && <Crown className="h-3 w-3 ml-1 text-primary" />}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => planName === "essential" ? openUpgrade("Growth", "QR Code Pix") : null} className={planName === "essential" ? "opacity-60" : ""}>
-              <QrCode className="h-3.5 w-3.5 mr-1" /> Pix
-              {planName === "essential" && <Crown className="h-3 w-3 ml-1 text-primary" />}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => !["pro"].includes(planName) ? openUpgrade("Pro", "Relatórios") : null} className={!["pro"].includes(planName) ? "opacity-60" : ""}>
-              <BarChart3 className="h-3.5 w-3.5 mr-1" /> Relatórios
-              {!["pro"].includes(planName) && <Crown className="h-3 w-3 ml-1 text-primary" />}
-            </Button>
           </div>
 
           {/* Next Clients */}
@@ -348,7 +386,7 @@ const Dashboard = () => {
 
           {/* Weekly Chart */}
           <div className="rounded-lg border border-border bg-card p-6 mb-8">
-            <h2 className="font-display text-lg font-bold mb-4">Faturamento Semanal</h2>
+            <h2 className="font-display text-lg font-bold mb-4">Faturamento Semanal (Concluídos)</h2>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 12% 20%)" />
@@ -416,22 +454,70 @@ const Dashboard = () => {
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data/Hora</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredAppointments.map((a) => (
-                          <tr key={a.id} className="border-t border-border">
-                            <td className="px-4 py-3">
-                              <p className="font-medium">{a.client_name}</p>
-                              <p className="text-xs text-muted-foreground">{a.client_phone}</p>
-                            </td>
-                            <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{a.service_name}</td>
-                            <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{a.barber_name || "—"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{format(new Date(a.scheduled_at), "dd/MM HH:mm")}</td>
-                            <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">R$ {Number(a.price).toFixed(2).replace(".", ",")}</td>
-                            <td className={`px-4 py-3 font-medium ${statusColors[a.status] || ""}`}>{statusLabels[a.status] || a.status}</td>
-                          </tr>
-                        ))}
+                        {filteredAppointments.map((a) => {
+                          const badge = statusBadgeConfig[a.status] || statusBadgeConfig.pending;
+                          return (
+                            <tr key={a.id} className="border-t border-border">
+                              <td className="px-4 py-3">
+                                <p className="font-medium">{a.client_name}</p>
+                                <p className="text-xs text-muted-foreground">{a.client_phone}</p>
+                              </td>
+                              <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{a.service_name}</td>
+                              <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{a.barber_name || "—"}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{format(new Date(a.scheduled_at), "dd/MM HH:mm")}</td>
+                              <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">R$ {Number(a.price).toFixed(2).replace(".", ",")}</td>
+                              <td className="px-4 py-3">
+                                <Badge className={`${badge.className} text-xs`}>{badge.label}</Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                                      Ações
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-card border-border">
+                                    {a.status === "pending" && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(a.id, "confirmed")}>
+                                        <Check className="h-3.5 w-3.5 mr-2 text-blue-400" /> Confirmar
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(a.status === "pending" || a.status === "confirmed") && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(a.id, "completed")}>
+                                        <Play className="h-3.5 w-3.5 mr-2 text-green-400" /> Concluir
+                                      </DropdownMenuItem>
+                                    )}
+                                    {a.status !== "cancelled" && a.status !== "completed" && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(a.id, "cancelled")} className="text-destructive">
+                                        <XCircle className="h-3.5 w-3.5 mr-2" /> Cancelar
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    {a.client_phone && (
+                                      <DropdownMenuItem onClick={() => openWhatsApp(a.client_phone, a.client_name)}>
+                                        <Phone className="h-3.5 w-3.5 mr-2 text-green-500" /> WhatsApp
+                                      </DropdownMenuItem>
+                                    )}
+                                    {a.status === "completed" && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => handleReschedule(a.client_name, 15)}>
+                                          <CalendarPlus className="h-3.5 w-3.5 mr-2 text-primary" /> Agendar em 15 dias
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleReschedule(a.client_name, 30)}>
+                                          <CalendarPlus className="h-3.5 w-3.5 mr-2 text-primary" /> Agendar em 30 dias
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -450,6 +536,11 @@ const Dashboard = () => {
       {/* === FINANCIAL TAB === */}
       {activeTab === "financial" && canAccess("growth") && (
         <FinancialTab barbershopId={barbershop.id} />
+      )}
+
+      {/* === PAYMENTS TAB === */}
+      {activeTab === "payments" && canAccess("growth") && (
+        <PaymentSettingsTab barbershopId={barbershop.id} />
       )}
 
       {/* === INVENTORY TAB === */}
