@@ -241,21 +241,13 @@ const PublicBooking = () => {
         _service_name: selectedService.name,
         _price: selectedService.price,
         _scheduled_at: scheduledAt.toISOString(),
+        _payment_method: paymentMethod === "local" ? "local" : "pix_online",
       });
 
       if (error) throw error;
 
-      // If local payment, update payment_method and status
+      // If local payment, go straight to success
       if (paymentMethod === "local") {
-        if (appointmentId) {
-          await supabase
-            .from("appointments")
-            .update({
-              payment_method: "local",
-              payment_status: "pending_local",
-            })
-            .eq("id", appointmentId);
-        }
         setSuccess(true);
         return;
       }
