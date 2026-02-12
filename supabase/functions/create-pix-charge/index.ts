@@ -61,15 +61,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Webhook URL for AbacatePay callbacks
-    const webhookUrl = `${supabaseUrl}/functions/v1/abacatepay-webhook`;
+    const priceInCents = Math.round(Number(appt.price) * 100);
 
     // Build the completion URL using the barbershop slug
     const origin = req.headers.get("origin") || "https://agendeonline24horas.lovable.app";
     const completionUrl = `${origin}/agendamentos/${shop.slug}?success=true`;
 
-    // Create billing on AbacatePay
-    const abacateRes = await fetch("https://api.abacatepay.com/v1/billing/create", {
+    // Step 1: Create billing on AbacatePay
+    console.log("Creating billing on AbacatePay...");
+    const billingRes = await fetch("https://api.abacatepay.com/v1/billing/create", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${abacatePayKey}`,
@@ -83,34 +83,68 @@ Deno.serve(async (req) => {
             externalId: appointment_id,
             name: `${appt.service_name} - ${shop.name}`,
             quantity: 1,
-            price: Math.round(Number(appt.price) * 100), // cents
+            price: priceInCents,
           },
         ],
         metadata: {
           appointment_id: appointment_id,
           barbershop_id: barbershop_id,
         },
-        returnUrl: webhookUrl,
         completionUrl: completionUrl,
       }),
     });
 
-    const abacateData = await abacateRes.json();
+    const billingData = await billingRes.json();
+    console.log("AbacatePay billing response:", JSON.stringify(billingData));
 
-    if (!abacateRes.ok) {
-      console.error("AbacatePay error:", abacateData);
+    if (!billingRes.ok) {
+      console.error("AbacatePay billing error:", billingData);
       return new Response(
-        JSON.stringify({ error: "Erro ao criar cobrança no AbacatePay", details: abacateData }),
+        JSON.stringify({ error: "Erro ao criar cobrança no AbacatePay", details: billingData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Extract payment info
-    const paymentUrl = abacateData.data?.url || abacateData.url || "";
-    const paymentId = abacateData.data?.id || abacateData.id || "";
-    const pixCode = abacateData.data?.pixQrCode || abacateData.data?.pix_qr_code || abacateData.data?.brcode || "";
-    const pixQrCodeImage = abacateData.data?.pixQrCodeBase64 || abacateData.data?.qr_code_base64 || "";
+    // Extract payment URL from billing response: data.url
+    const paymentUrl = billingData?.data?.url || "";
+    const paymentId = billingData?.data?.id || "";
 
+    // Step 2: Create a Pix QR Code to get brCode and brCodeBase64
+    let brCode = "";
+    let brCodeBase64 = "";
+
+    console.log("Creating Pix QR Code...");
+    try {
+      const pixRes = await fetch("https://api.abacatepay.com/v1/pixQrCode/create", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${abacatePayKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: priceInCents,
+          description: `${appt.service_name} - ${shop.name}`,
+          expiresIn: 3600,
+          metadata: {
+            appointment_id: appointment_id,
+            barbershop_id: barbershop_id,
+          },
+        }),
+      });
+
+      const pixData = await pixRes.json();
+      console.log("AbacatePay pixQrCode response:", JSON.stringify(pixData));
+
+      if (pixRes.ok && pixData?.data) {
+        brCode = pixData.data.brCode || pixData.data.brcode || "";
+        brCodeBase64 = pixData.data.brCodeBase64 || pixData.data.brcode_base64 || "";
+      }
+    } catch (pixErr) {
+      console.error("Pix QR Code creation failed (non-blocking):", pixErr);
+      // Non-blocking: we still have the billing URL as fallback
+    }
+
+    // Persist payment data in the appointment
     await supabase
       .from("appointments")
       .update({
@@ -126,8 +160,8 @@ Deno.serve(async (req) => {
         success: true,
         payment_url: paymentUrl,
         payment_id: paymentId,
-        pix_code: pixCode,
-        pix_qr_code_image: pixQrCodeImage,
+        pix_code: brCode,
+        pix_qr_code_image: brCodeBase64,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

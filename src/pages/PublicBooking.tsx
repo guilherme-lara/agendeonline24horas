@@ -68,6 +68,8 @@ const PublicBooking = () => {
     pixCode: string;
     pixQrCodeImage: string;
   } | null>(null);
+  const [pixError, setPixError] = useState(false);
+  const [lastAppointmentId, setLastAppointmentId] = useState<string | null>(null);
 
   // Check if redirected from payment success
   useEffect(() => {
@@ -260,26 +262,9 @@ const PublicBooking = () => {
 
       // Try to create Pix charge if barbershop has AbacatePay configured
       if (appointmentId && hasPixConfig) {
-        try {
-          const pixRes = await supabase.functions.invoke("create-pix-charge", {
-            body: {
-              appointment_id: appointmentId,
-              barbershop_id: shop.id,
-            },
-          });
-
-          if (pixRes.data?.success && pixRes.data?.payment_url) {
-            setPixData({
-              paymentUrl: pixRes.data.payment_url,
-              pixCode: pixRes.data.pix_code || "",
-              pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
-            });
-            setPixModalOpen(true);
-            return; // Don't show success yet, show Pix modal
-          }
-        } catch (pixErr) {
-          console.log("Pix charge skipped (no API key or error):", pixErr);
-        }
+        setLastAppointmentId(appointmentId);
+        await attemptPixCharge(appointmentId);
+        return;
       }
 
       setSuccess(true);
@@ -287,6 +272,56 @@ const PublicBooking = () => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const attemptPixCharge = async (appointmentId: string) => {
+    setPixError(false);
+    setSubmitting(true);
+    try {
+      const pixRes = await supabase.functions.invoke("create-pix-charge", {
+        body: {
+          appointment_id: appointmentId,
+          barbershop_id: shop!.id,
+        },
+      });
+
+      console.log("Pix charge response:", pixRes.data);
+
+      if (pixRes.data?.success && pixRes.data?.payment_url) {
+        setPixData({
+          paymentUrl: pixRes.data.payment_url,
+          pixCode: pixRes.data.pix_code || "",
+          pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
+        });
+        setPixModalOpen(true);
+        return;
+      }
+      // If no payment_url returned, show error
+      console.error("Pix charge returned no payment_url:", pixRes.data);
+      setPixError(true);
+    } catch (pixErr) {
+      console.error("Pix charge error:", pixErr);
+      setPixError(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRetryPix = () => {
+    if (lastAppointmentId) {
+      attemptPixCharge(lastAppointmentId);
+    }
+  };
+
+  const handleFallbackToLocal = async () => {
+    if (lastAppointmentId) {
+      await supabase
+        .from("appointments")
+        .update({ payment_method: "local", payment_status: "pending_local" })
+        .eq("id", lastAppointmentId);
+      setPixError(false);
+      setSuccess(true);
     }
   };
 
@@ -510,6 +545,27 @@ const PublicBooking = () => {
           </div>
         )}
       </div>
+
+      {/* Pix Error - Retry / Fallback */}
+      {pixError && (
+        <div className="container max-w-md py-12 text-center animate-fade-in">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+            <QrCode className="h-7 w-7 text-destructive" />
+          </div>
+          <h2 className="font-display text-xl font-bold mb-2">Erro ao gerar o Pix</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Não foi possível gerar o QR Code de pagamento. Você pode tentar novamente ou optar por pagar na barbearia.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button onClick={handleRetryPix} disabled={submitting} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+              {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Tentando...</> : "Tentar Novamente"}
+            </Button>
+            <Button variant="outline" onClick={handleFallbackToLocal}>
+              <Wallet className="mr-2 h-4 w-4" /> Pagar na Barbearia
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Pix Payment Modal */}
       {pixData && (
