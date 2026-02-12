@@ -568,6 +568,7 @@ const PublicBooking = () => {
           pixQrCodeImage={pixData.pixQrCodeImage}
           price={selectedService?.price || 0}
           serviceName={selectedService?.name || ""}
+          appointmentId={lastAppointmentId || undefined}
         />
       )}
     </div>

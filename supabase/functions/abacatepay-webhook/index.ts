@@ -19,12 +19,18 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // AbacatePay sends: { event: "billing.paid", data: { billing: { id, products: [{ externalId }], ... }, payment: { ... } } }
-    const event = body.event;
+    // AbacatePay webhook formats:
+    // Format 1: { event: "billing.paid", data: { billing: { id, products: [...], status }, payment: {...} } }
+    // Format 2: { event: "billing.paid", data: { id, products: [...], status } }
+    // Format 3: Direct billing object
+    const event = body.event || "";
     const billing = body.data?.billing || body.data || body;
-    const billingId = billing.id;
+    const billingId = billing.id || "";
+    const billingStatus = billing.status || "";
 
-    // Try to find appointment by payment_id (billing ID)
+    console.log(`Event: ${event}, Billing ID: ${billingId}, Status: ${billingStatus}`);
+
+    // Strategy 1: Find appointment by payment_id (billing ID stored during charge creation)
     let appointmentId: string | null = null;
 
     if (billingId) {
@@ -33,10 +39,13 @@ Deno.serve(async (req) => {
         .select("id")
         .eq("payment_id", billingId)
         .maybeSingle();
-      if (appt) appointmentId = appt.id;
+      if (appt) {
+        appointmentId = appt.id;
+        console.log(`Found appointment by payment_id: ${appointmentId}`);
+      }
     }
 
-    // Fallback: find via externalId in products (which is the appointment_id)
+    // Strategy 2: Find via externalId in products (which is the appointment_id we set)
     if (!appointmentId && billing.products?.length > 0) {
       const externalId = billing.products[0].externalId;
       if (externalId) {
@@ -45,16 +54,20 @@ Deno.serve(async (req) => {
           .select("id")
           .eq("id", externalId)
           .maybeSingle();
-        if (appt) appointmentId = appt.id;
+        if (appt) {
+          appointmentId = appt.id;
+          console.log(`Found appointment by externalId: ${appointmentId}`);
+        }
       }
     }
 
-    // Fallback: metadata
-    if (!appointmentId && billing.metadata?.appointment_id) {
-      appointmentId = billing.metadata.appointment_id;
-    }
-    if (!appointmentId && body.metadata?.appointment_id) {
-      appointmentId = body.metadata.appointment_id;
+    // Strategy 3: metadata
+    if (!appointmentId) {
+      const metaId = billing.metadata?.appointment_id || body.metadata?.appointment_id || body.data?.metadata?.appointment_id;
+      if (metaId) {
+        appointmentId = metaId;
+        console.log(`Found appointment by metadata: ${appointmentId}`);
+      }
     }
 
     if (!appointmentId) {
@@ -65,9 +78,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Map status
-    const billingStatus = billing.status || "";
-    const isPaid = event === "billing.paid" || billingStatus === "PAID" || billingStatus === "COMPLETED";
+    // Determine new status based on event and billing status
+    const isPaid =
+      event === "billing.paid" ||
+      event === "PAYMENT.RECEIVED" ||
+      billingStatus === "PAID" ||
+      billingStatus === "COMPLETED" ||
+      billingStatus === "APPROVED";
 
     let newPaymentStatus = "pending";
     let newAppointmentStatus = "pending";
@@ -75,13 +92,15 @@ Deno.serve(async (req) => {
     if (isPaid) {
       newPaymentStatus = "paid";
       newAppointmentStatus = "confirmed";
-    } else if (billingStatus === "EXPIRED" || billingStatus === "CANCELLED") {
+    } else if (billingStatus === "EXPIRED" || billingStatus === "CANCELLED" || event === "billing.expired") {
       newPaymentStatus = "failed";
-    } else if (billingStatus === "PENDING") {
+      newAppointmentStatus = "pending";
+    } else if (billingStatus === "PENDING" || billingStatus === "WAITING") {
       newPaymentStatus = "awaiting";
+      newAppointmentStatus = "pending";
     }
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from("appointments")
       .update({
         payment_status: newPaymentStatus,
@@ -89,7 +108,11 @@ Deno.serve(async (req) => {
       })
       .eq("id", appointmentId);
 
-    console.log(`Appointment ${appointmentId} updated: payment=${newPaymentStatus}, status=${newAppointmentStatus}`);
+    if (updateErr) {
+      console.error(`Failed to update appointment ${appointmentId}:`, updateErr);
+    } else {
+      console.log(`Appointment ${appointmentId} updated: payment=${newPaymentStatus}, status=${newAppointmentStatus}`);
+    }
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
