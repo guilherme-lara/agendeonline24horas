@@ -348,7 +348,7 @@ const SuperAdmin = () => {
               </div>
               <div>
                 <p className="text-xs text-slate-400 mb-1">Slug</p>
-                <p className="text-sm text-slate-200">/book/{detailShop.slug}</p>
+                <p className="text-sm text-slate-200">/agendamentos/{detailShop.slug}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 mb-1">Criada em</p>

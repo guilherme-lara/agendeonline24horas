@@ -11,7 +11,7 @@ const Header = () => {
   const { user, isAdmin, signOut } = useAuth();
 
   // Hide header on public booking pages
-  if (pathname.startsWith("/book/")) return null;
+  if (pathname.startsWith("/book/") || pathname.startsWith("/agendamentos/")) return null;
 
   const navItems = [
     { label: "Início", path: "/" },
