@@ -52,6 +52,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           payment_url: string | null
+          pix_code: string | null
           price: number
           scheduled_at: string
           service_name: string
@@ -72,6 +73,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           payment_url?: string | null
+          pix_code?: string | null
           price?: number
           scheduled_at: string
           service_name: string
@@ -92,6 +94,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           payment_url?: string | null
+          pix_code?: string | null
           price?: number
           scheduled_at?: string
           service_name?: string
