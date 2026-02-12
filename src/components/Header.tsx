@@ -44,12 +44,12 @@ const Header = () => {
           ))}
           {isAdmin && (
             <Link
-              to="/admin"
+              to="/super-admin"
               className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 ${
-                pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+                pathname === "/super-admin" ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Shield className="h-3.5 w-3.5" /> Admin
+              <Shield className="h-3.5 w-3.5" /> Master
             </Link>
           )}
           {user ? (
@@ -90,13 +90,13 @@ const Header = () => {
           ))}
           {isAdmin && (
             <Link
-              to="/admin"
+              to="/super-admin"
               onClick={() => setOpen(false)}
               className={`block px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary ${
-                pathname === "/admin" ? "text-primary" : "text-muted-foreground"
+                pathname === "/super-admin" ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              🛡️ Painel Admin
+              🛡️ Painel Master
             </Link>
           )}
           {user ? (
