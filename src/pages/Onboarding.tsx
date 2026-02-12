@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scissors, Loader2, ArrowRight, ArrowLeft, Clock, Plus, Trash2, Check } from "lucide-react";
+import { Scissors, Loader2, ArrowRight, ArrowLeft, Clock, Plus, Trash2, Check, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -46,9 +46,11 @@ const Onboarding = () => {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [phone, setPhone] = useState("");
+  const [defaultCommission, setDefaultCommission] = useState("30");
   const [hours, setHours] = useState<HourDraft[]>(defaultHours);
   const [services, setServices] = useState<ServiceDraft[]>(defaultServices);
   const [loading, setLoading] = useState(false);
+  const [firstBarberName, setFirstBarberName] = useState("");
 
   useEffect(() => {
     if (authLoading || shopLoading) return;
@@ -106,7 +108,7 @@ const Onboarding = () => {
       // 1. Create barbershop
       const { data: shop, error } = await supabase
         .from("barbershops")
-        .insert({ owner_id: user.id, name: name.trim(), slug: finalSlug, phone: phone.trim() })
+        .insert({ owner_id: user.id, name: name.trim(), slug: finalSlug, phone: phone.trim(), default_commission: parseFloat(defaultCommission) || 0 })
         .select().single();
       if (error) throw error;
 
@@ -136,6 +138,15 @@ const Onboarding = () => {
       }));
       await supabase.from("services").insert(servicesPayload);
 
+      // 6. Insert first barber if provided
+      if (firstBarberName.trim()) {
+        await supabase.from("barbers").insert({
+          barbershop_id: shop.id,
+          name: firstBarberName.trim(),
+          commission_pct: parseFloat(defaultCommission) || 0,
+        });
+      }
+
       await refetch();
       toast({ title: "Barbearia criada!", description: "Tudo configurado. Bem-vindo ao TechBarber." });
       navigate("/dashboard", { replace: true });
@@ -155,7 +166,7 @@ const Onboarding = () => {
     );
   }
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
@@ -200,7 +211,7 @@ const Onboarding = () => {
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">URL do Agendamento</label>
               <div className="flex items-center rounded-md border border-border bg-card overflow-hidden">
-                <span className="px-3 text-xs text-muted-foreground bg-secondary border-r border-border py-2.5">/book/</span>
+                <span className="px-3 text-xs text-muted-foreground bg-secondary border-r border-border py-2.5">/agendamentos/</span>
                 <input
                   value={slug}
                   onChange={(e) => setSlug(generateSlug(e.target.value))}
@@ -219,6 +230,19 @@ const Onboarding = () => {
                 className="bg-card border-border"
                 maxLength={20}
               />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Comissão Padrão (%)</label>
+              <Input
+                type="number"
+                value={defaultCommission}
+                onChange={(e) => setDefaultCommission(e.target.value)}
+                placeholder="30"
+                className="bg-card border-border"
+                min="0"
+                max="100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Aplicada aos novos barbeiros cadastrados</p>
             </div>
             <Button
               onClick={() => setStep(2)}
@@ -289,8 +313,37 @@ const Onboarding = () => {
           </div>
         )}
 
-        {/* Step 3: Services */}
+        {/* Step 3: First Barber */}
         {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-lg font-bold">Primeiro Barbeiro</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">Opcional — você pode adicionar depois no Dashboard.</p>
+            <Input
+              value={firstBarberName}
+              onChange={(e) => setFirstBarberName(e.target.value)}
+              placeholder="Nome do barbeiro principal"
+              className="bg-card border-border"
+              maxLength={100}
+            />
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+              </Button>
+              <Button
+                onClick={() => setStep(4)}
+                className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+              >
+                Próximo <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Services */}
+        {step === 4 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-display text-lg font-bold">Seus Serviços</h2>
@@ -342,7 +395,7 @@ const Onboarding = () => {
               ))}
             </div>
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
               </Button>
               <Button
