@@ -19,59 +19,65 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // AbacatePay sends billing data with status
-    const billing = body.data || body;
-    const billingId = billing.id || billing.billing_id;
-    const status = billing.status;
+    // AbacatePay sends: { event: "billing.paid", data: { billing: { id, products: [{ externalId }], ... }, payment: { ... } } }
+    const event = body.event;
+    const billing = body.data?.billing || body.data || body;
+    const billingId = billing.id;
 
-    if (!billingId) {
-      console.log("No billing ID found in webhook payload");
+    // Try to find appointment by payment_id (billing ID)
+    let appointmentId: string | null = null;
+
+    if (billingId) {
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("payment_id", billingId)
+        .maybeSingle();
+      if (appt) appointmentId = appt.id;
+    }
+
+    // Fallback: find via externalId in products (which is the appointment_id)
+    if (!appointmentId && billing.products?.length > 0) {
+      const externalId = billing.products[0].externalId;
+      if (externalId) {
+        const { data: appt } = await supabase
+          .from("appointments")
+          .select("id")
+          .eq("id", externalId)
+          .maybeSingle();
+        if (appt) appointmentId = appt.id;
+      }
+    }
+
+    // Fallback: metadata
+    if (!appointmentId && billing.metadata?.appointment_id) {
+      appointmentId = billing.metadata.appointment_id;
+    }
+    if (!appointmentId && body.metadata?.appointment_id) {
+      appointmentId = body.metadata.appointment_id;
+    }
+
+    if (!appointmentId) {
+      console.log("No appointment found from webhook payload");
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Find appointment by payment_id
-    const { data: appt } = await supabase
-      .from("appointments")
-      .select("id, status, barbershop_id")
-      .eq("payment_id", billingId)
-      .maybeSingle();
+    // Map status
+    const billingStatus = billing.status || "";
+    const isPaid = event === "billing.paid" || billingStatus === "PAID" || billingStatus === "COMPLETED";
 
-    if (!appt) {
-      console.log(`No appointment found for payment_id: ${billingId}`);
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Validate that the webhook is legitimate by checking the barbershop has AbacatePay configured
-    const { data: shop } = await supabase
-      .from("barbershops")
-      .select("settings")
-      .eq("id", appt.barbershop_id)
-      .single();
-
-    if (!shop?.settings || !(shop.settings as Record<string, any>).abacate_pay_api_key) {
-      console.log("Barbershop does not have AbacatePay configured, rejecting webhook");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Map AbacatePay status to our status
     let newPaymentStatus = "pending";
-    let newAppointmentStatus = appt.status;
+    let newAppointmentStatus = "pending";
 
-    if (status === "PAID" || status === "COMPLETED") {
+    if (isPaid) {
       newPaymentStatus = "paid";
       newAppointmentStatus = "confirmed";
-    } else if (status === "EXPIRED" || status === "CANCELLED") {
+    } else if (billingStatus === "EXPIRED" || billingStatus === "CANCELLED") {
       newPaymentStatus = "failed";
-    } else if (status === "PENDING") {
+    } else if (billingStatus === "PENDING") {
       newPaymentStatus = "awaiting";
     }
 
@@ -81,9 +87,9 @@ Deno.serve(async (req) => {
         payment_status: newPaymentStatus,
         status: newAppointmentStatus,
       })
-      .eq("id", appt.id);
+      .eq("id", appointmentId);
 
-    console.log(`Appointment ${appt.id} updated: payment=${newPaymentStatus}, status=${newAppointmentStatus}`);
+    console.log(`Appointment ${appointmentId} updated: payment=${newPaymentStatus}, status=${newAppointmentStatus}`);
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
