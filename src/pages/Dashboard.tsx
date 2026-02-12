@@ -4,7 +4,7 @@ import {
   DollarSign, CalendarDays, Loader2, ExternalLink, TrendingUp,
   Search, Clock, Users, LayoutGrid, List, Crown, MessageSquare,
   QrCode, BarChart3, Package, Wallet, CalendarPlus, AlertTriangle, X,
-  Check, XCircle, Play, Maximize, Minimize, Phone,
+  Check, XCircle, Play, Maximize, Minimize, Phone, CreditCard, Banknote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -25,6 +25,7 @@ import FinancialTab from "@/components/FinancialTab";
 import QuickBooking from "@/components/QuickBooking";
 import PaymentSettingsTab from "@/components/PaymentSettingsTab";
 import CompletionModal from "@/components/CompletionModal";
+import PixPaymentModal from "@/components/PixPaymentModal";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -39,6 +40,7 @@ interface Appointment {
   scheduled_at: string;
   status: string;
   payment_status: string;
+  payment_method: string;
 }
 
 interface Service {
@@ -53,6 +55,14 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   confirmed: { label: "Confirmado", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
   completed: { label: "Concluído", className: "bg-green-500/15 text-green-400 border-green-500/30" },
   cancelled: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
+};
+
+const paymentBadgeConfig: Record<string, { label: string; className: string }> = {
+  pending: { label: "Aguardando", className: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+  pending_local: { label: "Pagar no Local", className: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
+  awaiting: { label: "Pix Enviado", className: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  paid: { label: "Pago", className: "bg-green-500/15 text-green-400 border-green-500/30" },
+  failed: { label: "Falhou", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -84,6 +94,7 @@ const Dashboard = () => {
   const [systemAnnouncement, setSystemAnnouncement] = useState("");
   const [kioskMode, setKioskMode] = useState(false);
   const [completionModal, setCompletionModal] = useState<{ open: boolean; appointmentId: string }>({ open: false, appointmentId: "" });
+  const [pixModal, setPixModal] = useState<{ open: boolean; data: { paymentUrl: string; pixCode: string; pixQrCodeImage: string } | null; price: number; serviceName: string }>({ open: false, data: null, price: 0, serviceName: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   useEffect(() => {
@@ -198,6 +209,47 @@ const Dashboard = () => {
     }
   };
 
+  const handleMarkAsPaid = async (apptId: string) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ payment_status: "paid", status: "confirmed" })
+      .eq("id", apptId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Marcado como Pago!", description: "Pagamento confirmado manualmente." });
+      refreshAppts();
+    }
+  };
+
+  const handleGeneratePix = async (appt: Appointment) => {
+    toast({ title: "Gerando Pix...", description: "Aguarde a geração do QR Code." });
+    try {
+      const pixRes = await supabase.functions.invoke("create-pix-charge", {
+        body: {
+          appointment_id: appt.id,
+          barbershop_id: barbershop.id,
+        },
+      });
+      if (pixRes.data?.success && pixRes.data?.payment_url) {
+        setPixModal({
+          open: true,
+          data: {
+            paymentUrl: pixRes.data.payment_url,
+            pixCode: pixRes.data.pix_code || "",
+            pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
+          },
+          price: Number(appt.price),
+          serviceName: appt.service_name,
+        });
+      } else {
+        toast({ title: "Erro", description: pixRes.data?.error || "Não foi possível gerar o Pix. Verifique a chave AbacatePay.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message || "Erro ao gerar Pix", variant: "destructive" });
+    }
+  };
+
   const openWhatsApp = (phone: string, clientName: string) => {
     const msg = encodeURIComponent(`Olá ${clientName}! 😊 Obrigado por agendar na ${barbershop.name}. Até breve!`);
     const cleanPhone = phone.replace(/\D/g, "");
@@ -254,6 +306,19 @@ const Dashboard = () => {
         appointmentId={completionModal.appointmentId}
         onCompleted={refreshAppts}
       />
+
+      {/* Pix Modal for Dashboard */}
+      {pixModal.data && (
+        <PixPaymentModal
+          open={pixModal.open}
+          onClose={() => setPixModal({ open: false, data: null, price: 0, serviceName: "" })}
+          paymentUrl={pixModal.data.paymentUrl}
+          pixCode={pixModal.data.pixCode}
+          pixQrCodeImage={pixModal.data.pixQrCodeImage}
+          price={pixModal.price}
+          serviceName={pixModal.serviceName}
+        />
+      )}
 
       {/* Impersonation Banner */}
       {isImpersonating && (
@@ -454,12 +519,14 @@ const Dashboard = () => {
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data/Hora</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Pagamento</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredAppointments.map((a) => {
                           const badge = statusBadgeConfig[a.status] || statusBadgeConfig.pending;
+                          const payBadge = paymentBadgeConfig[a.payment_status] || paymentBadgeConfig.pending;
                           return (
                             <tr key={a.id} className="border-t border-border">
                               <td className="px-4 py-3">
@@ -472,6 +539,9 @@ const Dashboard = () => {
                               <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">R$ {Number(a.price).toFixed(2).replace(".", ",")}</td>
                               <td className="px-4 py-3">
                                 <Badge className={`${badge.className} text-xs`}>{badge.label}</Badge>
+                              </td>
+                              <td className="px-4 py-3 hidden md:table-cell">
+                                <Badge className={`${payBadge.className} text-xs`}>{payBadge.label}</Badge>
                               </td>
                               <td className="px-4 py-3">
                                 <DropdownMenu>
@@ -494,6 +564,18 @@ const Dashboard = () => {
                                     {a.status !== "cancelled" && a.status !== "completed" && (
                                       <DropdownMenuItem onClick={() => handleStatusChange(a.id, "cancelled")} className="text-destructive">
                                         <XCircle className="h-3.5 w-3.5 mr-2" /> Cancelar
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    {/* Payment actions */}
+                                    {a.payment_status !== "paid" && a.status !== "cancelled" && (
+                                      <DropdownMenuItem onClick={() => handleMarkAsPaid(a.id)}>
+                                        <Banknote className="h-3.5 w-3.5 mr-2 text-green-400" /> Marcar como Pago
+                                      </DropdownMenuItem>
+                                    )}
+                                    {a.payment_status !== "paid" && a.status !== "cancelled" && (
+                                      <DropdownMenuItem onClick={() => handleGeneratePix(a)}>
+                                        <QrCode className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar Pix Agora
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator />

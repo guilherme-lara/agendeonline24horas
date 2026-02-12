@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     // Get barbershop settings (API key)
     const { data: shop, error: shopErr } = await supabase
       .from("barbershops")
-      .select("settings, name")
+      .select("settings, name, slug")
       .eq("id", barbershop_id)
       .single();
 
@@ -64,6 +64,10 @@ Deno.serve(async (req) => {
     // Webhook URL for AbacatePay callbacks
     const webhookUrl = `${supabaseUrl}/functions/v1/abacatepay-webhook`;
 
+    // Build the completion URL using the barbershop slug
+    const origin = req.headers.get("origin") || "https://agendeonline24horas.lovable.app";
+    const completionUrl = `${origin}/agendamentos/${shop.slug}?success=true`;
+
     // Create billing on AbacatePay
     const abacateRes = await fetch("https://api.abacatepay.com/v1/billing/create", {
       method: "POST",
@@ -87,7 +91,7 @@ Deno.serve(async (req) => {
           barbershop_id: barbershop_id,
         },
         returnUrl: webhookUrl,
-        completionUrl: `${req.headers.get("origin") || "https://agendeonline24horas.lovable.app"}/agendamentos/sucesso`,
+        completionUrl: completionUrl,
       }),
     });
 
@@ -113,6 +117,7 @@ Deno.serve(async (req) => {
         payment_id: paymentId,
         payment_url: paymentUrl,
         payment_status: "awaiting",
+        payment_method: "pix_online",
       })
       .eq("id", appointment_id);
 

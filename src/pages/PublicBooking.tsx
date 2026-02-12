@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Scissors, Loader2, Check } from "lucide-react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { Scissors, Loader2, Check, Wallet, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ const BUFFER_MINUTES = 10;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [shop, setShop] = useState<BarbershopPublic | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -54,6 +55,8 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"pix_online" | "local">("pix_online");
+  const [hasPixConfig, setHasPixConfig] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -66,18 +69,32 @@ const PublicBooking = () => {
     pixQrCodeImage: string;
   } | null>(null);
 
+  // Check if redirected from payment success
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      setSuccess(true);
+    }
+  }, [searchParams]);
+
   // Load shop, services, and business hours
   useEffect(() => {
     if (!slug) return;
     supabase
       .from("barbershops")
-      .select("id, name, slug, address, logo_url")
+      .select("id, name, slug, address, logo_url, settings")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
-        const shopData = data as BarbershopPublic | null;
+        const shopData = data as (BarbershopPublic & { settings?: any }) | null;
         setShop(shopData);
         if (shopData) {
+          // Check if barbershop has AbacatePay configured
+          const hasKey = !!(shopData.settings as Record<string, any>)?.abacate_pay_api_key;
+          setHasPixConfig(hasKey);
+          if (!hasKey) {
+            setPaymentMethod("local");
+          }
+
           Promise.all([
             supabase.from("services").select("*").eq("barbershop_id", shopData.id).eq("active", true).order("sort_order"),
             supabase.from("business_hours").select("*").eq("barbershop_id", shopData.id),
@@ -226,8 +243,23 @@ const PublicBooking = () => {
 
       if (error) throw error;
 
+      // If local payment, update payment_method and status
+      if (paymentMethod === "local") {
+        if (appointmentId) {
+          await supabase
+            .from("appointments")
+            .update({
+              payment_method: "local",
+              payment_status: "pending_local",
+            })
+            .eq("id", appointmentId);
+        }
+        setSuccess(true);
+        return;
+      }
+
       // Try to create Pix charge if barbershop has AbacatePay configured
-      if (appointmentId) {
+      if (appointmentId && hasPixConfig) {
         try {
           const pixRes = await supabase.functions.invoke("create-pix-charge", {
             body: {
@@ -245,7 +277,6 @@ const PublicBooking = () => {
             setPixModalOpen(true);
             return; // Don't show success yet, show Pix modal
           }
-          // If no_key error or no payment config, just show success
         } catch (pixErr) {
           console.log("Pix charge skipped (no API key or error):", pixErr);
         }
@@ -384,7 +415,7 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {/* Step 3: Client Info & Confirm */}
+        {/* Step 3: Client Info & Payment Method & Confirm */}
         {step === 3 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Seus Dados</h2>
@@ -398,6 +429,43 @@ const PublicBooking = () => {
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">WhatsApp (opcional)</label>
                 <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="(11) 99999-9999" className="bg-card border-border" maxLength={20} />
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="mb-6">
+              <label className="text-xs text-muted-foreground mb-2 block">Forma de Pagamento</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {hasPixConfig && (
+                  <button
+                    onClick={() => setPaymentMethod("pix_online")}
+                    className={`flex items-center gap-3 rounded-lg border p-4 transition-all text-left ${
+                      paymentMethod === "pix_online"
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:border-primary/40"
+                    }`}
+                  >
+                    <QrCode className={`h-5 w-5 ${paymentMethod === "pix_online" ? "text-primary" : "text-muted-foreground"}`} />
+                    <div>
+                      <p className="font-semibold text-sm">Pix Online</p>
+                      <p className="text-xs text-muted-foreground">Pague agora via QR Code</p>
+                    </div>
+                  </button>
+                )}
+                <button
+                  onClick={() => setPaymentMethod("local")}
+                  className={`flex items-center gap-3 rounded-lg border p-4 transition-all text-left ${
+                    paymentMethod === "local"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card hover:border-primary/40"
+                  }`}
+                >
+                  <Wallet className={`h-5 w-5 ${paymentMethod === "local" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <p className="font-semibold text-sm">Pagar na Barbearia</p>
+                    <p className="text-xs text-muted-foreground">Pix, dinheiro ou cartão no local</p>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -418,6 +486,10 @@ const PublicBooking = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Horário</span>
                 <span className="font-medium text-primary">{selectedTime}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Pagamento</span>
+                <span className="font-medium">{paymentMethod === "pix_online" ? "Pix Online" : "Na Barbearia"}</span>
               </div>
               <div className="flex justify-between text-sm border-t border-border pt-2">
                 <span className="text-muted-foreground">Total</span>
