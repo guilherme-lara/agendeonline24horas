@@ -47,11 +47,14 @@ export type Database = {
           client_phone: string | null
           created_at: string | null
           id: string
+          payment_id: string | null
           payment_status: string | null
+          payment_url: string | null
           price: number
           scheduled_at: string
           service_name: string
           status: string | null
+          total_price: number | null
           updated_at: string | null
         }
         Insert: {
@@ -62,11 +65,14 @@ export type Database = {
           client_phone?: string | null
           created_at?: string | null
           id?: string
+          payment_id?: string | null
           payment_status?: string | null
+          payment_url?: string | null
           price?: number
           scheduled_at: string
           service_name: string
           status?: string | null
+          total_price?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -77,11 +83,14 @@ export type Database = {
           client_phone?: string | null
           created_at?: string | null
           id?: string
+          payment_id?: string | null
           payment_status?: string | null
+          payment_url?: string | null
           price?: number
           scheduled_at?: string
           service_name?: string
           status?: string | null
+          total_price?: number | null
           updated_at?: string | null
         }
         Relationships: [
