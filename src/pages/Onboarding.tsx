@@ -108,7 +108,7 @@ const Onboarding = () => {
       // 1. Create barbershop
       const { data: shop, error } = await supabase
         .from("barbershops")
-        .insert({ owner_id: user.id, name: name.trim(), slug: finalSlug, phone: phone.trim(), default_commission: parseFloat(defaultCommission) || 0 })
+        .insert({ owner_id: user.id, name: name.trim(), slug: finalSlug, phone: phone.trim(), default_commission: parseFloat(defaultCommission) || 0, setup_completed: true })
         .select().single();
       if (error) throw error;
 

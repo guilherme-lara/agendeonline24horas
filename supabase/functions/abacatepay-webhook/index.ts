@@ -19,10 +19,13 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // AbacatePay webhook formats:
-    // Format 1: { event: "billing.paid", data: { billing: { id, products: [...], status }, payment: {...} } }
-    // Format 2: { event: "billing.paid", data: { id, products: [...], status } }
-    // Format 3: Direct billing object
+    // Also cancel expired Pix appointments atomically
+    try {
+      await supabase.rpc("cancel_expired_pix_appointments");
+    } catch (e) {
+      console.log("Auto-cancel check (non-blocking):", e);
+    }
+
     const event = body.event || "";
     const billing = body.data?.billing || body.data || body;
     const billingId = billing.id || "";
@@ -30,7 +33,7 @@ Deno.serve(async (req) => {
 
     console.log(`Event: ${event}, Billing ID: ${billingId}, Status: ${billingStatus}`);
 
-    // Strategy 1: Find appointment by payment_id (billing ID stored during charge creation)
+    // Strategy 1: Find by payment_id
     let appointmentId: string | null = null;
 
     if (billingId) {
@@ -45,7 +48,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Strategy 2: Find via externalId in products (which is the appointment_id we set)
+    // Strategy 2: externalId in products
     if (!appointmentId && billing.products?.length > 0) {
       const externalId = billing.products[0].externalId;
       if (externalId) {
@@ -78,7 +81,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determine new status based on event and billing status
     const isPaid =
       event === "billing.paid" ||
       event === "PAYMENT.RECEIVED" ||
@@ -86,32 +88,36 @@ Deno.serve(async (req) => {
       billingStatus === "COMPLETED" ||
       billingStatus === "APPROVED";
 
-    let newPaymentStatus = "pending";
-    let newAppointmentStatus = "pending";
+    let updateData: Record<string, unknown> = {};
 
     if (isPaid) {
-      newPaymentStatus = "paid";
-      newAppointmentStatus = "confirmed";
+      updateData = {
+        payment_status: "paid",
+        status: "confirmed",
+        payment_confirmed_at: new Date().toISOString(),
+      };
     } else if (billingStatus === "EXPIRED" || billingStatus === "CANCELLED" || event === "billing.expired") {
-      newPaymentStatus = "failed";
-      newAppointmentStatus = "pending";
+      updateData = {
+        payment_status: "failed",
+        status: "cancelled",
+      };
     } else if (billingStatus === "PENDING" || billingStatus === "WAITING") {
-      newPaymentStatus = "awaiting";
-      newAppointmentStatus = "pending";
+      updateData = {
+        payment_status: "awaiting",
+      };
     }
 
-    const { error: updateErr } = await supabase
-      .from("appointments")
-      .update({
-        payment_status: newPaymentStatus,
-        status: newAppointmentStatus,
-      })
-      .eq("id", appointmentId);
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateErr } = await supabase
+        .from("appointments")
+        .update(updateData)
+        .eq("id", appointmentId);
 
-    if (updateErr) {
-      console.error(`Failed to update appointment ${appointmentId}:`, updateErr);
-    } else {
-      console.log(`Appointment ${appointmentId} updated: payment=${newPaymentStatus}, status=${newAppointmentStatus}`);
+      if (updateErr) {
+        console.error(`Failed to update appointment ${appointmentId}:`, updateErr);
+      } else {
+        console.log(`Appointment ${appointmentId} updated:`, JSON.stringify(updateData));
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
