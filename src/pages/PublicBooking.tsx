@@ -14,6 +14,7 @@ interface BarbershopPublic {
   name: string;
   slug: string;
   address: string;
+  logo_url?: string;
 }
 
 interface Service {
@@ -61,7 +62,7 @@ const PublicBooking = () => {
     if (!slug) return;
     supabase
       .from("barbershops")
-      .select("id, name, slug, address")
+      .select("id, name, slug, address, logo_url")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
@@ -235,9 +236,13 @@ const PublicBooking = () => {
       {/* Shop Header */}
       <div className="border-b border-border bg-card py-6">
         <div className="container max-w-2xl flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full gold-gradient flex items-center justify-center">
-            <Scissors className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {shop.logo_url ? (
+            <img src={shop.logo_url} alt={shop.name} className="h-11 w-11 rounded-full object-cover border border-border" />
+          ) : (
+            <div className="h-11 w-11 rounded-full gold-gradient flex items-center justify-center">
+              <Scissors className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           <div>
             <h1 className="font-display text-lg font-bold">{shop.name}</h1>
             <p className="text-xs text-muted-foreground">Agendamento online</p>

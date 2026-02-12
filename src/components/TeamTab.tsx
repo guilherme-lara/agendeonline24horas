@@ -11,6 +11,7 @@ interface Barber {
   name: string;
   phone: string;
   email: string;
+  commission_pct: number;
   active: boolean;
 }
 
@@ -33,6 +34,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [commission, setCommission] = useState("30");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const limit = PLAN_LIMITS[planName] ?? 2;
@@ -47,9 +49,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchBarbers();
-  }, [barbershopId]);
+  useEffect(() => { fetchBarbers(); }, [barbershopId]);
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -64,14 +64,13 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
+      commission_pct: parseFloat(commission) || 0,
     });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Barbeiro adicionado!" });
-      setName("");
-      setPhone("");
-      setEmail("");
+      setName(""); setPhone(""); setEmail(""); setCommission("30");
       fetchBarbers();
     }
     setAdding(false);
@@ -111,34 +110,15 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       {/* Add form */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
         <p className="text-sm font-medium">Adicionar Barbeiro</p>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nome do barbeiro"
-          className="bg-secondary border-border"
-          maxLength={100}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Telefone (opcional)"
-            className="bg-secondary border-border"
-            maxLength={20}
-          />
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="E-mail (opcional)"
-            className="bg-secondary border-border"
-            maxLength={100}
-          />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do barbeiro" className="bg-secondary border-border" maxLength={100} />
+        <div className="grid grid-cols-3 gap-3">
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-secondary border-border" maxLength={20} />
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-secondary border-border" maxLength={100} />
+          <div>
+            <Input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} placeholder="% Comissão" className="bg-secondary border-border" min="0" max="100" />
+          </div>
         </div>
-        <Button
-          onClick={handleAdd}
-          disabled={adding || !name.trim()}
-          className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90"
-        >
+        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90">
           {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
           Adicionar
           {activeCount >= limit && <Crown className="h-3 w-3 ml-2" />}
@@ -159,7 +139,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
               <div>
                 <p className="font-medium text-sm">{b.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {b.phone || b.email || "Sem contato"}
+                  {b.phone || b.email || "Sem contato"} • {b.commission_pct}% comissão
                 </p>
               </div>
               <button onClick={() => handleRemove(b.id)} className="text-muted-foreground hover:text-destructive">
