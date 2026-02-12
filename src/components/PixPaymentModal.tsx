@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Copy, Check, ExternalLink, QrCode, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ interface PixPaymentModalProps {
   price: number;
   serviceName: string;
   appointmentId?: string;
+  onPaymentConfirmed?: () => void;
 }
 
 const PixPaymentModal = ({
@@ -30,6 +31,7 @@ const PixPaymentModal = ({
   price,
   serviceName,
   appointmentId,
+  onPaymentConfirmed,
 }: PixPaymentModalProps) => {
   const [copied, setCopied] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -48,31 +50,66 @@ const PixPaymentModal = ({
     }
   };
 
-  // Polling: check payment status every 5 seconds
-  const checkPaymentStatus = useCallback(async () => {
-    if (!appointmentId) return;
-    const { data } = await supabase
+  // Supabase Realtime: listen for payment confirmation
+  useEffect(() => {
+    if (!open || !appointmentId || paymentConfirmed) return;
+
+    // Initial check
+    supabase
       .from("appointments")
       .select("payment_status, status")
       .eq("id", appointmentId)
-      .maybeSingle();
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
+          setPaymentConfirmed(true);
+          onPaymentConfirmed?.();
+        }
+      });
 
-    if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
-      setPaymentConfirmed(true);
-    }
-  }, [appointmentId]);
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel(`pix-payment-${appointmentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "appointments",
+          filter: `id=eq.${appointmentId}`,
+        },
+        (payload) => {
+          const row = payload.new as { payment_status?: string; status?: string };
+          if (row.payment_status === "paid" || row.status === "confirmed") {
+            setPaymentConfirmed(true);
+            onPaymentConfirmed?.();
+          }
+        }
+      )
+      .subscribe();
 
-  useEffect(() => {
-    if (!open || !appointmentId || paymentConfirmed) return;
-    const interval = setInterval(checkPaymentStatus, 5000);
-    // Also check immediately
-    checkPaymentStatus();
-    return () => clearInterval(interval);
-  }, [open, appointmentId, paymentConfirmed, checkPaymentStatus]);
+    // Fallback polling every 8s in case realtime misses
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("appointments")
+        .select("payment_status, status")
+        .eq("id", appointmentId)
+        .maybeSingle();
+      if (data && (data.payment_status === "paid" || data.status === "confirmed")) {
+        setPaymentConfirmed(true);
+        onPaymentConfirmed?.();
+      }
+    }, 8000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [open, appointmentId, paymentConfirmed, onPaymentConfirmed]);
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm border-border bg-card">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && paymentConfirmed) onClose(); }}>
+      <DialogContent className="max-w-[360px] border-border bg-card p-5 sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-lg">
             {paymentConfirmed ? "Pagamento Confirmado!" : "Pagamento Pix"}
@@ -80,14 +117,14 @@ const PixPaymentModal = ({
         </DialogHeader>
 
         {paymentConfirmed ? (
-          <div className="flex flex-col items-center gap-4 py-6 text-center animate-fade-in">
+          <div className="flex flex-col items-center gap-4 py-4 text-center animate-fade-in">
             <div className="flex h-16 w-16 items-center justify-center rounded-full gold-gradient shadow-gold">
               <CheckCircle2 className="h-8 w-8 text-primary-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Seu pagamento de <span className="font-bold text-primary">R$ {price.toFixed(2)}</span> foi confirmado.
+              Pagamento de <span className="font-bold text-primary">R$ {price.toFixed(2)}</span> confirmado!
             </p>
-            <p className="text-xs text-muted-foreground">Seu agendamento está confirmado!</p>
+            <p className="text-xs text-muted-foreground">Seu agendamento está reservado.</p>
             <Button onClick={onClose} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 mt-2">
               Fechar
             </Button>
@@ -99,8 +136,8 @@ const PixPaymentModal = ({
               <span className="font-bold text-primary">R$ {price.toFixed(2)}</span>
             </p>
 
-            {/* QR Code - centered and responsive */}
-            <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-xl border border-border bg-white p-2">
+            {/* QR Code */}
+            <div className="mx-auto flex aspect-square w-48 max-w-[80vw] items-center justify-center rounded-xl border border-border bg-white p-2">
               {pixQrCodeImage ? (
                 <img
                   src={
@@ -112,20 +149,29 @@ const PixPaymentModal = ({
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <QrCode className="h-24 w-24 text-muted-foreground/40" />
+                <QrCode className="h-20 w-20 text-muted-foreground/30" />
               )}
             </div>
 
             {/* Pix Copia e Cola */}
             {(pixCode || paymentUrl) && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Pix Copia e Cola
-                </p>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary p-2.5">
-                  <code className="flex-1 truncate text-xs text-foreground select-all">
+              <div className="space-y-2.5">
+                <p className="text-xs font-medium text-muted-foreground">Pix Copia e Cola</p>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-2.5">
+                  <code className="flex-1 truncate text-xs text-foreground/90 select-all">
                     {pixCode || paymentUrl}
                   </code>
+                  <button
+                    onClick={handleCopy}
+                    className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-primary/10"
+                    aria-label="Copiar código Pix"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
                 </div>
                 <Button
                   onClick={handleCopy}
@@ -133,40 +179,33 @@ const PixPaymentModal = ({
                   size="sm"
                 >
                   {copied ? (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Copiado!
-                    </>
+                    <><Check className="mr-2 h-4 w-4" /> Copiado!</>
                   ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copiar Código Pix
-                    </>
+                    <><Copy className="mr-2 h-4 w-4" /> Copiar Código Pix</>
                   )}
                 </Button>
               </div>
             )}
 
             {paymentUrl && (
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-primary/30 hover:bg-primary/5"
-              >
+              <Button asChild variant="outline" size="sm" className="w-full border-primary/20 hover:bg-primary/5">
                 <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Abrir link de pagamento
+                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir link de pagamento
                 </a>
               </Button>
             )}
 
-            {/* Polling indicator */}
+            {/* Waiting indicator */}
             <div className="flex items-center justify-center gap-2 pt-1">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
               <p className="text-[11px] text-muted-foreground">
                 Aguardando confirmação do pagamento...
               </p>
             </div>
+
+            <p className="text-[10px] text-muted-foreground/60">
+              O horário será reservado automaticamente após a confirmação.
+            </p>
           </div>
         )}
       </DialogContent>

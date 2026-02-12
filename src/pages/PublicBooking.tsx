@@ -36,6 +36,8 @@ interface ExistingAppointment {
   scheduled_at: string;
   service_name: string;
   status: string;
+  payment_status: string | null;
+  created_at: string | null;
 }
 
 const BUFFER_MINUTES = 10;
@@ -70,6 +72,7 @@ const PublicBooking = () => {
   } | null>(null);
   const [pixError, setPixError] = useState(false);
   const [lastAppointmentId, setLastAppointmentId] = useState<string | null>(null);
+  const [paymentConfirmedRef, setPaymentConfirmedRef] = useState(false);
 
   // Check if redirected from payment success
   useEffect(() => {
@@ -129,13 +132,28 @@ const PublicBooking = () => {
 
     supabase
       .from("appointments")
-      .select("scheduled_at, service_name, status")
+      .select("scheduled_at, service_name, status, payment_status, created_at")
       .eq("barbershop_id", shop.id)
       .gte("scheduled_at", dayStart)
       .lte("scheduled_at", dayEnd.toISOString())
       .neq("status", "cancelled")
       .then(({ data }) => {
-        setExistingAppts((data || []) as ExistingAppointment[]);
+        const now = new Date();
+        const HOLD_MINUTES = 10;
+        // Filter out pending Pix appointments older than 10 minutes (expired holds)
+        const validAppts = (data || []).filter((appt: any) => {
+          if (appt.status === "confirmed" || appt.status === "completed" || appt.payment_status === "paid" || appt.payment_status === "pending_local") {
+            return true; // Always block for confirmed/completed/local
+          }
+          // Pending pix: only block if created less than 10 min ago
+          if (appt.created_at) {
+            const createdAt = new Date(appt.created_at);
+            const diffMs = now.getTime() - createdAt.getTime();
+            return diffMs < HOLD_MINUTES * 60 * 1000;
+          }
+          return true;
+        });
+        setExistingAppts(validAppts as ExistingAppointment[]);
         setSlotsLoading(false);
       });
   }, [shop, selectedDate]);
@@ -318,7 +336,19 @@ const PublicBooking = () => {
 
   const handlePixModalClose = () => {
     setPixModalOpen(false);
-    setSuccess(true);
+    // Only show success if payment was actually confirmed
+    if (paymentConfirmedRef) {
+      setSuccess(true);
+    }
+  };
+
+  const handlePaymentConfirmed = () => {
+    setPaymentConfirmedRef(true);
+    // Auto-close modal and show success after a brief delay
+    setTimeout(() => {
+      setPixModalOpen(false);
+      setSuccess(true);
+    }, 2500);
   };
 
   const availableSlots = generateTimeSlots();
@@ -569,6 +599,7 @@ const PublicBooking = () => {
           price={selectedService?.price || 0}
           serviceName={selectedService?.name || ""}
           appointmentId={lastAppointmentId || undefined}
+          onPaymentConfirmed={handlePaymentConfirmed}
         />
       )}
     </div>
