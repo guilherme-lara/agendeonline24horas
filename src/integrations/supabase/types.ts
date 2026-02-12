@@ -605,17 +605,30 @@ export type Database = {
           user_id: string
         }[]
       }
-      create_public_appointment: {
-        Args: {
-          _barbershop_id: string
-          _client_name: string
-          _client_phone: string
-          _price: number
-          _scheduled_at: string
-          _service_name: string
-        }
-        Returns: string
-      }
+      create_public_appointment:
+        | {
+            Args: {
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _payment_method?: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
