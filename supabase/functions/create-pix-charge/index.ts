@@ -65,7 +65,9 @@ Deno.serve(async (req) => {
 
     // Build the completion URL using the barbershop slug
     const origin = req.headers.get("origin") || "https://agendeonline24horas.lovable.app";
+    const webhookUrl = `${supabaseUrl}/functions/v1/abacatepay-webhook`;
     const completionUrl = `${origin}/agendamentos/${shop.slug}?success=true`;
+    const returnUrl = webhookUrl;
 
     // Step 1: Create billing on AbacatePay
     console.log("Creating billing on AbacatePay...");
@@ -90,6 +92,7 @@ Deno.serve(async (req) => {
           appointment_id: appointment_id,
           barbershop_id: barbershop_id,
         },
+        returnUrl: returnUrl,
         completionUrl: completionUrl,
       }),
     });
