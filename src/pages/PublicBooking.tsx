@@ -280,17 +280,16 @@ const PublicBooking = () => {
 
       console.log("Pix charge response:", pixRes.data);
 
-      if (pixRes.data?.success && pixRes.data?.payment_url) {
+      if (pixRes.data?.success && (pixRes.data?.payment_url || pixRes.data?.pix_code)) {
         setPixData({
-          paymentUrl: pixRes.data.payment_url,
+          paymentUrl: pixRes.data.payment_url || "",
           pixCode: pixRes.data.pix_code || "",
           pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
         });
         setPixModalOpen(true);
         return;
       }
-      // If no payment_url returned, show error
-      console.error("Pix charge returned no payment_url:", pixRes.data);
+      console.error("Pix charge failed:", pixRes.data);
       setPixError(true);
     } catch (pixErr) {
       console.error("Pix charge error:", pixErr);
