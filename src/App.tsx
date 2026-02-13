@@ -18,6 +18,7 @@ import Onboarding from "./pages/Onboarding";
 import Subscribe from "./pages/Subscribe";
 import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
+import Footer from "@/components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/book/:slug" element={<PublicBooking />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Footer />
           </BookingProvider>
         </BrowserRouter>
       </TooltipProvider>

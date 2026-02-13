@@ -68,7 +68,6 @@ const PublicBooking = () => {
   const [pixData, setPixData] = useState<{
     paymentUrl: string;
     pixCode: string;
-    pixQrCodeImage: string;
   } | null>(null);
   const [pixError, setPixError] = useState(false);
   const [lastAppointmentId, setLastAppointmentId] = useState<string | null>(null);
@@ -302,7 +301,6 @@ const PublicBooking = () => {
         setPixData({
           paymentUrl: pixRes.data.payment_url || "",
           pixCode: pixRes.data.pix_code || "",
-          pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
         });
         setPixModalOpen(true);
         return;
@@ -595,7 +593,6 @@ const PublicBooking = () => {
           onClose={handlePixModalClose}
           paymentUrl={pixData.paymentUrl}
           pixCode={pixData.pixCode}
-          pixQrCodeImage={pixData.pixQrCodeImage}
           price={selectedService?.price || 0}
           serviceName={selectedService?.name || ""}
           appointmentId={lastAppointmentId || undefined}

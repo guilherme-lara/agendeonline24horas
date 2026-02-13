@@ -94,7 +94,7 @@ const Dashboard = () => {
   const [systemAnnouncement, setSystemAnnouncement] = useState("");
   const [kioskMode, setKioskMode] = useState(false);
   const [completionModal, setCompletionModal] = useState<{ open: boolean; appointmentId: string }>({ open: false, appointmentId: "" });
-  const [pixModal, setPixModal] = useState<{ open: boolean; data: { paymentUrl: string; pixCode: string; pixQrCodeImage: string } | null; price: number; serviceName: string }>({ open: false, data: null, price: 0, serviceName: "" });
+  const [pixModal, setPixModal] = useState<{ open: boolean; data: { paymentUrl: string; pixCode: string } | null; price: number; serviceName: string }>({ open: false, data: null, price: 0, serviceName: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   useEffect(() => {
@@ -238,7 +238,6 @@ const Dashboard = () => {
           data: {
             paymentUrl: pixRes.data.payment_url,
             pixCode: pixRes.data.pix_code || "",
-            pixQrCodeImage: pixRes.data.pix_qr_code_image || "",
           },
           price: Number(appt.price),
           serviceName: appt.service_name,
@@ -315,7 +314,6 @@ const Dashboard = () => {
           onClose={() => setPixModal({ open: false, data: null, price: 0, serviceName: "" })}
           paymentUrl={pixModal.data.paymentUrl}
           pixCode={pixModal.data.pixCode}
-          pixQrCodeImage={pixModal.data.pixQrCodeImage}
           price={pixModal.price}
           serviceName={pixModal.serviceName}
         />
