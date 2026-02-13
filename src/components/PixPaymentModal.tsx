@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Check, ExternalLink, QrCode, Loader2, CheckCircle2 } from "lucide-react";
+import { Copy, Check, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +16,6 @@ interface PixPaymentModalProps {
   onClose: () => void;
   paymentUrl: string;
   pixCode: string;
-  pixQrCodeImage: string;
   price: number;
   serviceName: string;
   appointmentId?: string;
@@ -28,7 +27,6 @@ const PixPaymentModal = ({
   onClose,
   paymentUrl,
   pixCode,
-  pixQrCodeImage,
   price,
   serviceName,
   appointmentId,
@@ -67,10 +65,8 @@ const PixPaymentModal = ({
       }
     };
 
-    // Initial check
     checkStatus();
 
-    // Realtime subscription
     const channel = supabase
       .channel(`pix-payment-${appointmentId}`)
       .on(
@@ -91,7 +87,6 @@ const PixPaymentModal = ({
       )
       .subscribe();
 
-    // Fallback polling every 5s
     const interval = setInterval(checkStatus, 5000);
 
     return () => {
@@ -108,7 +103,7 @@ const PixPaymentModal = ({
             {paymentConfirmed ? "Pagamento Confirmado!" : "Pagamento Pix"}
           </DialogTitle>
           <DialogDescription className="text-center text-xs text-muted-foreground">
-            {paymentConfirmed ? "Seu agendamento foi reservado." : `Escaneie o QR Code ou copie o código Pix.`}
+            {paymentConfirmed ? "Seu agendamento foi reservado." : "Copie o código Pix abaixo para pagar."}
           </DialogDescription>
         </DialogHeader>
 
@@ -131,24 +126,6 @@ const PixPaymentModal = ({
               <span className="font-bold text-primary">R$ {price.toFixed(2)}</span>
             </p>
 
-            {/* QR Code - fixed aspect ratio, centered, white bg */}
-            <div className="mx-auto flex w-48 h-48 items-center justify-center rounded-xl border border-border bg-white p-2">
-              {pixQrCodeImage ? (
-                <img
-                  src={
-                    pixQrCodeImage.startsWith("data:")
-                      ? pixQrCodeImage
-                      : `data:image/png;base64,${pixQrCodeImage}`
-                  }
-                  alt="QR Code Pix"
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <QrCode className="h-16 w-16 text-muted-foreground/30" />
-              )}
-            </div>
-
-            {/* Pix Copia e Cola - truncated with copy button */}
             {(pixCode || paymentUrl) && (
               <div className="space-y-2.5">
                 <p className="text-xs font-medium text-muted-foreground">Pix Copia e Cola</p>
@@ -180,14 +157,6 @@ const PixPaymentModal = ({
                   )}
                 </Button>
               </div>
-            )}
-
-            {paymentUrl && (
-              <Button asChild variant="outline" size="sm" className="w-full border-primary/20 hover:bg-primary/5">
-                <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir link de pagamento
-                </a>
-              </Button>
             )}
 
             {/* Waiting indicator */}
