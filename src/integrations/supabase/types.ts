@@ -122,6 +122,7 @@ export type Database = {
       barbers: {
         Row: {
           active: boolean
+          avatar_url: string | null
           barbershop_id: string
           commission_pct: number
           created_at: string
@@ -132,6 +133,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          avatar_url?: string | null
           barbershop_id: string
           commission_pct?: number
           created_at?: string
@@ -142,6 +144,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          avatar_url?: string | null
           barbershop_id?: string
           commission_pct?: number
           created_at?: string
