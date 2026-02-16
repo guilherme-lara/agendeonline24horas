@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Scissors, Loader2, Check, Wallet, QrCode } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"pix_online" | "local">("pix_online");
+  const [paymentMethod, setPaymentMethod] = useState<"pix_online" | "local">("local");
   const [hasPixConfig, setHasPixConfig] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -244,7 +245,8 @@ const PublicBooking = () => {
   }
 
   const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime || !clientName.trim()) return;
+    const phoneDigits = clientPhone.replace(/\D/g, "");
+    if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || phoneDigits.length < 10) return;
     setSubmitting(true);
     try {
       const scheduledAt = new Date(selectedDate);
@@ -481,8 +483,20 @@ const PublicBooking = () => {
                 <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Seu nome" className="bg-card border-border" required maxLength={100} />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">WhatsApp (opcional)</label>
-                <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="(11) 99999-9999" className="bg-card border-border" maxLength={20} />
+                <label className="text-xs text-muted-foreground mb-1 block">Celular / WhatsApp <span className="text-destructive">*</span></label>
+                <Input
+                  value={clientPhone}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    let formatted = digits;
+                    if (digits.length > 2) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                    if (digits.length > 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+                    setClientPhone(formatted);
+                  }}
+                  placeholder="(11) 99999-9999"
+                  className="bg-card border-border"
+                  maxLength={15}
+                />
               </div>
             </div>
 
@@ -490,31 +504,25 @@ const PublicBooking = () => {
             <div className="mb-6">
               <label className="text-xs text-muted-foreground mb-2 block">Forma de Pagamento</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {hasPixConfig && (
+                {/* Pix disabled for MVP */}
+                <div className="relative">
                   <button
-                    onClick={() => setPaymentMethod("pix_online")}
-                    className={`flex items-center gap-3 rounded-lg border p-4 transition-all text-left ${
-                      paymentMethod === "pix_online"
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card hover:border-primary/40"
-                    }`}
+                    disabled
+                    className="w-full flex items-center gap-3 rounded-lg border border-border bg-card/50 p-4 text-left opacity-50 cursor-not-allowed"
                   >
-                    <QrCode className={`h-5 w-5 ${paymentMethod === "pix_online" ? "text-primary" : "text-muted-foreground"}`} />
+                    <QrCode className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-semibold text-sm">Pix Online</p>
-                      <p className="text-xs text-muted-foreground">Pague agora via QR Code</p>
+                      <p className="text-xs text-muted-foreground">Pagamento instantâneo</p>
                     </div>
                   </button>
-                )}
+                  <Badge className="absolute -top-2 -right-2 text-[10px] bg-primary/20 text-primary border-primary/30">Em Breve</Badge>
+                </div>
                 <button
                   onClick={() => setPaymentMethod("local")}
-                  className={`flex items-center gap-3 rounded-lg border p-4 transition-all text-left ${
-                    paymentMethod === "local"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-primary/40"
-                  }`}
+                  className="flex items-center gap-3 rounded-lg border p-4 transition-all text-left border-primary bg-primary/5"
                 >
-                  <Wallet className={`h-5 w-5 ${paymentMethod === "local" ? "text-primary" : "text-muted-foreground"}`} />
+                  <Wallet className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-semibold text-sm">Pagar na Barbearia</p>
                     <p className="text-xs text-muted-foreground">Pix, dinheiro ou cartão no local</p>
@@ -555,7 +563,7 @@ const PublicBooking = () => {
               <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Voltar</Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !clientName.trim()}
+                disabled={submitting || !clientName.trim() || clientPhone.replace(/\D/g, "").length < 10}
                 className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
               >
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agendando...</> : "Confirmar"}

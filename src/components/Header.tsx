@@ -17,6 +17,7 @@ const Header = () => {
     { label: "Início", path: "/" },
     ...(user ? [{ label: "Dashboard", path: "/dashboard" }] : []),
     ...(user ? [{ label: "Agendar", path: "/booking" }] : []),
+    { label: "Meus Agendamentos", path: "/appointments" },
   ];
 
   return (

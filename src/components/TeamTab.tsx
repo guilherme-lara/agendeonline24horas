@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Loader2, Users, Crown } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Crown, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UpgradeModal from "@/components/UpgradeModal";
 
 interface Barber {
@@ -13,6 +14,7 @@ interface Barber {
   email: string;
   commission_pct: number;
   active: boolean;
+  avatar_url?: string;
 }
 
 const PLAN_LIMITS: Record<string, number> = {
@@ -86,6 +88,34 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     }
   };
 
+  const handlePhotoUpload = async (barberId: string, file: File) => {
+    const ext = file.name.split(".").pop();
+    const filePath = `barbers/${barberId}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("logos")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Erro no upload", description: uploadError.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(filePath);
+
+    const { error: updateError } = await supabase
+      .from("barbers")
+      .update({ avatar_url: urlData.publicUrl })
+      .eq("id", barberId);
+
+    if (updateError) {
+      toast({ title: "Erro", description: updateError.message, variant: "destructive" });
+    } else {
+      toast({ title: "Foto atualizada!" });
+      fetchBarbers();
+    }
+  };
+
   const activeCount = barbers.filter((b) => b.active).length;
 
   return (
@@ -135,14 +165,36 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       ) : (
         <div className="space-y-2">
           {barbers.map((b) => (
-            <div key={b.id} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
-              <div>
+            <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+              <div className="relative group">
+                <Avatar className="h-10 w-10">
+                  {b.avatar_url ? (
+                    <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="bg-secondary text-xs font-bold">
+                    {b.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  <Upload className="h-3.5 w-3.5 text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePhotoUpload(b.id, file);
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">{b.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {b.phone || b.email || "Sem contato"} • {b.commission_pct}% comissão
                 </p>
               </div>
-              <button onClick={() => handleRemove(b.id)} className="text-muted-foreground hover:text-destructive">
+              <button onClick={() => handleRemove(b.id)} className="text-muted-foreground hover:text-destructive shrink-0">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
