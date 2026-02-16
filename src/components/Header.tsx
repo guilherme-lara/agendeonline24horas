@@ -1,4 +1,4 @@
-import { Scissors, Menu, X, LogIn, LogOut, Shield, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,7 +24,8 @@ const Header = () => {
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <Scissors className="h-6 w-6 text-primary" />
+          {/* Substituído Scissors pelo logo PNG */}
+          <img src="/logo-agenda.png" alt="Logo AgendeOnline24horas" className="h-8 w-auto" />
           <span className="font-display text-xl font-bold tracking-tight">
             AgendeOnline24horas
           </span>
