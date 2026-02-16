@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Phone, Search, Loader2, Calendar, Clock, User } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Phone, Search, Loader2, Calendar, Clock, User, CalendarX2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,8 @@ interface AppointmentResult {
   price: number;
   payment_method: string | null;
 }
+
+const STORAGE_KEY = "techbarber_client_phone";
 
 const formatPhone = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -31,28 +34,88 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
   cancelled: { label: "Cancelado", variant: "destructive" },
 };
 
+const SkeletonCard = () => (
+  <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+    <div className="flex justify-between">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-5 w-20 rounded-full" />
+    </div>
+    <div className="flex gap-4">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="h-3 w-16" />
+    </div>
+  </div>
+);
+
+const AppointmentCard = ({ a, dimmed }: { a: AppointmentResult; dimmed?: boolean }) => {
+  const st = statusMap[a.status || "pending"];
+  return (
+    <div className={`rounded-lg border border-border bg-card p-4 ${dimmed ? "opacity-70" : ""}`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-semibold text-sm">{a.service_name}</p>
+        <Badge variant={st.variant}>{st.label}</Badge>
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Calendar className="h-3 w-3" />
+          {format(new Date(a.scheduled_at), "dd/MM/yyyy", { locale: ptBR })}
+        </span>
+        <span className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {format(new Date(a.scheduled_at), "HH:mm")}
+        </span>
+        {a.barber_name && (
+          <span className="flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {a.barber_name}
+          </span>
+        )}
+      </div>
+      {!dimmed && (
+        <p className="text-xs text-primary font-bold mt-2">R$ {Number(a.price).toFixed(2).replace(".", ",")}</p>
+      )}
+    </div>
+  );
+};
+
 const MyAppointments = () => {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [appointments, setAppointments] = useState<AppointmentResult[]>([]);
 
-  const handleSearch = async () => {
-    const digits = phone.replace(/\D/g, "");
+  const handleSearch = useCallback(async (phoneValue?: string) => {
+    const searchPhone = phoneValue || phone;
+    const digits = searchPhone.replace(/\D/g, "");
     if (digits.length < 10) return;
     setLoading(true);
     setSearched(true);
 
+    try {
+      localStorage.setItem(STORAGE_KEY, searchPhone.trim());
+    } catch {}
+
     const { data } = await supabase
       .from("appointments")
       .select("id, service_name, barber_name, scheduled_at, status, price, payment_method")
-      .eq("client_phone", phone.trim())
+      .eq("client_phone", searchPhone.trim())
       .order("scheduled_at", { ascending: false })
       .limit(50);
 
     setAppointments((data as AppointmentResult[]) || []);
     setLoading(false);
-  };
+  }, [phone]);
+
+  // Auto-load from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && saved.replace(/\D/g, "").length >= 10) {
+        setPhone(saved);
+        handleSearch(saved);
+      }
+    } catch {}
+  }, []);
 
   const now = new Date();
   const upcoming = appointments.filter((a) => new Date(a.scheduled_at) >= now && a.status !== "cancelled");
@@ -78,7 +141,7 @@ const MyAppointments = () => {
           />
         </div>
         <Button
-          onClick={handleSearch}
+          onClick={() => handleSearch()}
           disabled={loading || phone.replace(/\D/g, "").length < 10}
           className="gold-gradient text-primary-foreground font-semibold hover:opacity-90"
         >
@@ -86,87 +149,45 @@ const MyAppointments = () => {
         </Button>
       </div>
 
+      {/* Skeleton loading */}
       {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <div className="space-y-3 animate-fade-in">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       )}
 
+      {/* Empty state */}
       {searched && !loading && appointments.length === 0 && (
-        <p className="text-center text-muted-foreground py-12">
-          Nenhum agendamento encontrado para este número.
-        </p>
+        <div className="text-center py-16 animate-fade-in">
+          <CalendarX2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="font-display text-lg font-bold mb-1">Nenhum agendamento</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Não encontramos agendamentos para este número.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Verifique se o número está correto ou agende seu primeiro horário!
+          </p>
+        </div>
       )}
 
       {!loading && appointments.length > 0 && (
         <div className="space-y-6 animate-fade-in">
           {upcoming.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-primary mb-3">Próximos</h2>
+              <h2 className="text-sm font-semibold text-primary mb-3">Próximos ({upcoming.length})</h2>
               <div className="space-y-2">
-                {upcoming.map((a) => {
-                  const st = statusMap[a.status || "pending"];
-                  return (
-                    <div key={a.id} className="rounded-lg border border-border bg-card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-sm">{a.service_name}</p>
-                        <Badge variant={st.variant}>{st.label}</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(a.scheduled_at), "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(a.scheduled_at), "HH:mm")}
-                        </span>
-                        {a.barber_name && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {a.barber_name}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-primary font-bold mt-2">R$ {Number(a.price).toFixed(2).replace(".", ",")}</p>
-                    </div>
-                  );
-                })}
+                {upcoming.map((a) => <AppointmentCard key={a.id} a={a} />)}
               </div>
             </div>
           )}
 
           {past.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">Histórico</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">Histórico ({past.length})</h2>
               <div className="space-y-2">
-                {past.map((a) => {
-                  const st = statusMap[a.status || "pending"];
-                  return (
-                    <div key={a.id} className="rounded-lg border border-border bg-card/50 p-4 opacity-80">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-sm">{a.service_name}</p>
-                        <Badge variant={st.variant}>{st.label}</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(a.scheduled_at), "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(a.scheduled_at), "HH:mm")}
-                        </span>
-                        {a.barber_name && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {a.barber_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {past.map((a) => <AppointmentCard key={a.id} a={a} dimmed />)}
               </div>
             </div>
           )}

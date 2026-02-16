@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Loader2, Users, Crown, Upload } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,13 +78,16 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     setAdding(false);
   };
 
-  const handleRemove = async (id: string) => {
-    const { error } = await supabase.from("barbers").delete().eq("id", id);
+  const handleArchive = async (id: string, currentActive: boolean) => {
+    const { error } = await supabase
+      .from("barbers")
+      .update({ active: !currentActive })
+      .eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Barbeiro removido" });
-      setBarbers((prev) => prev.filter((b) => b.id !== id));
+      toast({ title: currentActive ? "Barbeiro arquivado" : "Barbeiro reativado" });
+      fetchBarbers();
     }
   };
 
@@ -163,42 +166,83 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       ) : barbers.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">Nenhum barbeiro cadastrado.</p>
       ) : (
-        <div className="space-y-2">
-          {barbers.map((b) => (
-            <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-              <div className="relative group">
-                <Avatar className="h-10 w-10">
-                  {b.avatar_url ? (
-                    <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" />
-                  ) : null}
-                  <AvatarFallback className="bg-secondary text-xs font-bold">
-                    {b.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  <Upload className="h-3.5 w-3.5 text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handlePhotoUpload(b.id, file);
-                    }}
-                  />
-                </label>
+        <div className="space-y-4">
+          {/* Active barbers */}
+          <div className="space-y-2">
+            {barbers.filter((b) => b.active).map((b) => (
+              <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+                <div className="relative group">
+                  <Avatar className="h-10 w-10">
+                    {b.avatar_url ? (
+                      <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" />
+                    ) : null}
+                    <AvatarFallback className="bg-secondary text-xs font-bold">
+                      {b.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    <Upload className="h-3.5 w-3.5 text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload(b.id, file);
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{b.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {b.phone || b.email || "Sem contato"} • {b.commission_pct}% comissão
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleArchive(b.id, true)}
+                  className="text-muted-foreground hover:text-yellow-400 shrink-0"
+                  title="Arquivar barbeiro"
+                >
+                  <Archive className="h-4 w-4" />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{b.name}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {b.phone || b.email || "Sem contato"} • {b.commission_pct}% comissão
-                </p>
+            ))}
+          </div>
+
+          {/* Archived barbers */}
+          {barbers.some((b) => !b.active) && (
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-2">Arquivados</p>
+              <div className="space-y-2">
+                {barbers.filter((b) => !b.active).map((b) => (
+                  <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 opacity-60">
+                    <Avatar className="h-10 w-10">
+                      {b.avatar_url ? (
+                        <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="bg-secondary text-xs font-bold">
+                        {b.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{b.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {b.commission_pct}% comissão • Arquivado
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleArchive(b.id, false)}
+                      className="text-muted-foreground hover:text-green-400 shrink-0"
+                      title="Reativar barbeiro"
+                    >
+                      <ArchiveRestore className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => handleRemove(b.id)} className="text-muted-foreground hover:text-destructive shrink-0">
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
