@@ -5,6 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 
+// 1. IMPORTAÇÃO OBRIGATÓRIA DA IMAGEM
+import logoAgenda from "@/assets/logo-agenda.png"; 
+
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -25,8 +28,8 @@ const Header = () => {
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          {/* Substituído Scissors pelo logo PNG */}
-          <img src="/logo-agenda.png" alt="Logo AgendeOnline24horas" className="h-8 w-auto" />
+          {/* 2. USANDO A VARIÁVEL IMPORTADA AQUI */}
+          <img src={logoAgenda} alt="Logo AgendeOnline24horas" className="h-8 w-auto" />
           <span className="font-display text-xl font-bold tracking-tight">
             AgendeOnline24horas
           </span>
