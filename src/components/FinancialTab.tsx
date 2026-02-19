@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 
 type DateFilter = "today" | "week" | "month" | "custom";
 
@@ -29,6 +30,7 @@ interface FinancialTabProps {
 
 const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,17 +38,44 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
-  useEffect(() => {
-    Promise.all([
+  const fetchData = async () => {
+    const [barbersRes, apptsRes] = await Promise.all([
       supabase.from("barbers").select("id, name, commission_pct, avatar_url").eq("barbershop_id", barbershopId),
       supabase.from("appointments").select("id, barber_name, price, status, scheduled_at")
         .eq("barbershop_id", barbershopId)
         .eq("status", "completed"),
-    ]).then(([barbersRes, apptsRes]) => {
-      setBarbers((barbersRes.data as Barber[]) || []);
-      setAppointments((apptsRes.data as Appointment[]) || []);
-      setLoading(false);
-    });
+    ]);
+    setBarbers((barbersRes.data as Barber[]) || []);
+    setAppointments((apptsRes.data as Appointment[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [barbershopId]);
+
+  // Realtime: listen for appointment status changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("financial-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "appointments",
+          filter: `barbershop_id=eq.${barbershopId}`,
+        },
+        () => {
+          fetchData();
+          toast({ title: "Atualização", description: "Dados financeiros atualizados em tempo real." });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [barbershopId]);
 
   const dateRange = useMemo(() => {

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BookingProvider } from "@/contexts/BookingContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Header from "@/components/Header";
 import SaaSLanding from "./pages/SaaSLanding";
@@ -24,13 +25,14 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <BookingProvider>
-            <Header />
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <BookingProvider>
+              <Header />
             <Routes>
               <Route path="/" element={<SaaSLanding />} />
               <Route path="/auth" element={<Login />} />
@@ -48,11 +50,12 @@ const App = () => (
               <Route path="/book/:slug" element={<PublicBooking />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <Footer />
-          </BookingProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+              <Footer />
+            </BookingProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </ErrorBoundary>
 );
 
