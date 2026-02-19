@@ -30,9 +30,6 @@ const Header = () => {
         <Link to="/" className="flex items-center gap-2">
           {/* 2. USANDO A VARIÁVEL IMPORTADA AQUI */}
           <img src={logoAgenda} alt="Logo AgendeOnline24horas" className="h-8 w-auto" />
-          <span className="font-display text-xl font-bold tracking-tight">
-            AgendeOnline24horas
-          </span>
         </Link>
 
         {/* Desktop nav */}
