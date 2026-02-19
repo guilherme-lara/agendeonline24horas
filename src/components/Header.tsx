@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -54,6 +55,7 @@ const Header = () => {
               <Shield className="h-3.5 w-3.5" /> Master
             </Link>
           )}
+          <ThemeToggle />
           {user ? (
             <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
               <LogOut className="h-4 w-4 mr-1" /> Sair
