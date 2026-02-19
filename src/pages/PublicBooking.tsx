@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Scissors, Loader2, Check, Wallet, QrCode } from "lucide-react";
+import { Scissors, Loader2, Check, Wallet, QrCode, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,6 +27,12 @@ interface Service {
   duration: number;
 }
 
+interface BarberPublic {
+  id: string;
+  name: string;
+  avatar_url?: string;
+}
+
 interface BusinessHour {
   day_of_week: number;
   open_time: string;
@@ -42,6 +49,8 @@ interface ExistingAppointment {
 }
 
 const BUFFER_MINUTES = 10;
+// Steps: 1=Service, 2=Barber, 3=Date/Time, 4=Client Info & Confirm
+const TOTAL_STEPS = 4;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -49,11 +58,13 @@ const PublicBooking = () => {
   const { toast } = useToast();
   const [shop, setShop] = useState<BarbershopPublic | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [barbers, setBarbers] = useState<BarberPublic[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
   const [existingAppts, setExistingAppts] = useState<ExistingAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedBarber, setSelectedBarber] = useState<BarberPublic | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -66,22 +77,16 @@ const PublicBooking = () => {
 
   // Pix payment state
   const [pixModalOpen, setPixModalOpen] = useState(false);
-  const [pixData, setPixData] = useState<{
-    paymentUrl: string;
-    pixCode: string;
-  } | null>(null);
+  const [pixData, setPixData] = useState<{ paymentUrl: string; pixCode: string } | null>(null);
   const [pixError, setPixError] = useState(false);
   const [lastAppointmentId, setLastAppointmentId] = useState<string | null>(null);
   const [paymentConfirmedRef, setPaymentConfirmedRef] = useState(false);
 
-  // Check if redirected from payment success
   useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      setSuccess(true);
-    }
+    if (searchParams.get("success") === "true") setSuccess(true);
   }, [searchParams]);
 
-  // Load shop, services, and business hours
+  // Load shop, services, barbers, and business hours
   useEffect(() => {
     if (!slug) return;
     supabase
@@ -93,20 +98,19 @@ const PublicBooking = () => {
         const shopData = data as (BarbershopPublic & { settings?: any }) | null;
         setShop(shopData);
         if (shopData) {
-          // Check if barbershop has AbacatePay configured
           const hasKey = !!(shopData.settings as Record<string, any>)?.abacate_pay_api_key;
           setHasPixConfig(hasKey);
-          if (!hasKey) {
-            setPaymentMethod("local");
-          }
+          if (!hasKey) setPaymentMethod("local");
 
           Promise.all([
             supabase.from("services").select("*").eq("barbershop_id", shopData.id).eq("active", true).order("sort_order"),
             supabase.from("business_hours").select("*").eq("barbershop_id", shopData.id),
-          ]).then(([servRes, hoursRes]) => {
+            supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shopData.id).eq("active", true),
+          ]).then(([servRes, hoursRes, barbersRes]) => {
             const srvData = (servRes.data || []) as Service[];
             setServices(srvData);
             setBusinessHours((hoursRes.data || []) as BusinessHour[]);
+            setBarbers((barbersRes.data || []) as BarberPublic[]);
             if (srvData.length === 0) {
               setServices([
                 { id: "d1", name: "Corte Degradê", price: 50, duration: 40 },
@@ -140,16 +144,11 @@ const PublicBooking = () => {
       .then(({ data }) => {
         const now = new Date();
         const HOLD_MINUTES = 10;
-        // Filter out pending Pix appointments older than 10 minutes (expired holds)
         const validAppts = (data || []).filter((appt: any) => {
-          if (appt.status === "confirmed" || appt.status === "completed" || appt.payment_status === "paid" || appt.payment_status === "pending_local") {
-            return true; // Always block for confirmed/completed/local
-          }
-          // Pending pix: only block if created less than 10 min ago
+          if (appt.status === "confirmed" || appt.status === "completed" || appt.payment_status === "paid" || appt.payment_status === "pending_local") return true;
           if (appt.created_at) {
             const createdAt = new Date(appt.created_at);
-            const diffMs = now.getTime() - createdAt.getTime();
-            return diffMs < HOLD_MINUTES * 60 * 1000;
+            return now.getTime() - createdAt.getTime() < HOLD_MINUTES * 60 * 1000;
           }
           return true;
         });
@@ -158,9 +157,8 @@ const PublicBooking = () => {
       });
   }, [shop, selectedDate]);
 
-  const getHoursForDay = (dayOfWeek: number): BusinessHour | null => {
-    return businessHours.find((h) => h.day_of_week === dayOfWeek) || null;
-  };
+  const getHoursForDay = (dayOfWeek: number): BusinessHour | null =>
+    businessHours.find((h) => h.day_of_week === dayOfWeek) || null;
 
   const isDayClosed = (date: Date): boolean => {
     const bh = getHoursForDay(date.getDay());
@@ -173,7 +171,6 @@ const PublicBooking = () => {
     const bh = getHoursForDay(selectedDate.getDay());
     const openTime = bh ? bh.open_time : "09:00";
     const closeTime = bh ? bh.close_time : "19:00";
-
     const [openH, openM] = openTime.split(":").map(Number);
     const [closeH, closeM] = closeTime.split(":").map(Number);
     const slots: string[] = [];
@@ -183,17 +180,14 @@ const PublicBooking = () => {
       for (let m = h === openH ? openM : 0; m < 60; m += 30) {
         if (h === closeH && m >= closeM) break;
         const slotTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-
         if (isToday(selectedDate)) {
           const slotDate = new Date(selectedDate);
           slotDate.setHours(h, m, 0, 0);
           if (isBefore(slotDate, now)) continue;
         }
-
         const slotStart = new Date(selectedDate);
         slotStart.setHours(h, m, 0, 0);
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
-
         const closeDate = new Date(selectedDate);
         closeDate.setHours(closeH, closeM, 0, 0);
         if (isBefore(closeDate, addMinutes(slotStart, selectedService.duration))) continue;
@@ -205,7 +199,6 @@ const PublicBooking = () => {
           const apptEnd = addMinutes(apptStart, apptDuration + BUFFER_MINUTES);
           return slotStart < apptEnd && slotEnd > apptStart;
         });
-
         if (!hasConflict) slots.push(slotTime);
       }
     }
@@ -245,6 +238,12 @@ const PublicBooking = () => {
   }
 
   const handleSubmit = async () => {
+    // === BACKEND DOUBLE CHECK: Barber is mandatory ===
+    if (!selectedBarber) {
+      toast({ title: "Erro", description: "Por favor, selecione um profissional para continuar.", variant: "destructive" });
+      return;
+    }
+
     const phoneDigits = clientPhone.replace(/\D/g, "");
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || phoneDigits.length < 10) return;
     setSubmitting(true);
@@ -265,13 +264,19 @@ const PublicBooking = () => {
 
       if (error) throw error;
 
-      // If local payment, go straight to success
+      // Update barber_name on the created appointment
+      if (appointmentId) {
+        await supabase
+          .from("appointments")
+          .update({ barber_name: selectedBarber.name })
+          .eq("id", appointmentId);
+      }
+
       if (paymentMethod === "local") {
         setSuccess(true);
         return;
       }
 
-      // Try to create Pix charge if barbershop has AbacatePay configured
       if (appointmentId && hasPixConfig) {
         setLastAppointmentId(appointmentId);
         await attemptPixCharge(appointmentId);
@@ -291,26 +296,15 @@ const PublicBooking = () => {
     setSubmitting(true);
     try {
       const pixRes = await supabase.functions.invoke("create-pix-charge", {
-        body: {
-          appointment_id: appointmentId,
-          barbershop_id: shop!.id,
-        },
+        body: { appointment_id: appointmentId, barbershop_id: shop!.id },
       });
-
-      console.log("Pix charge response:", pixRes.data);
-
       if (pixRes.data?.success && (pixRes.data?.payment_url || pixRes.data?.pix_code)) {
-        setPixData({
-          paymentUrl: pixRes.data.payment_url || "",
-          pixCode: pixRes.data.pix_code || "",
-        });
+        setPixData({ paymentUrl: pixRes.data.payment_url || "", pixCode: pixRes.data.pix_code || "" });
         setPixModalOpen(true);
         return;
       }
-      console.error("Pix charge failed:", pixRes.data);
       setPixError(true);
-    } catch (pixErr) {
-      console.error("Pix charge error:", pixErr);
+    } catch {
       setPixError(true);
     } finally {
       setSubmitting(false);
@@ -318,17 +312,12 @@ const PublicBooking = () => {
   };
 
   const handleRetryPix = () => {
-    if (lastAppointmentId) {
-      attemptPixCharge(lastAppointmentId);
-    }
+    if (lastAppointmentId) attemptPixCharge(lastAppointmentId);
   };
 
   const handleFallbackToLocal = async () => {
     if (lastAppointmentId) {
-      await supabase
-        .from("appointments")
-        .update({ payment_method: "local", payment_status: "pending_local" })
-        .eq("id", lastAppointmentId);
+      await supabase.from("appointments").update({ payment_method: "local", payment_status: "pending_local" }).eq("id", lastAppointmentId);
       setPixError(false);
       setSuccess(true);
     }
@@ -336,19 +325,21 @@ const PublicBooking = () => {
 
   const handlePixModalClose = () => {
     setPixModalOpen(false);
-    // Only show success if payment was actually confirmed
-    if (paymentConfirmedRef) {
-      setSuccess(true);
-    }
+    if (paymentConfirmedRef) setSuccess(true);
   };
 
   const handlePaymentConfirmed = () => {
     setPaymentConfirmedRef(true);
-    // Auto-close modal and show success after a brief delay
-    setTimeout(() => {
-      setPixModalOpen(false);
-      setSuccess(true);
-    }, 2500);
+    setTimeout(() => { setPixModalOpen(false); setSuccess(true); }, 2500);
+  };
+
+  // Step navigation with barber validation
+  const handleNextFromBarber = () => {
+    if (!selectedBarber) {
+      toast({ title: "Seleção obrigatória", description: "Por favor, selecione um profissional para continuar.", variant: "destructive" });
+      return;
+    }
+    setStep(3);
   };
 
   const availableSlots = generateTimeSlots();
@@ -375,8 +366,8 @@ const PublicBooking = () => {
       {/* Step indicator */}
       <div className="container max-w-2xl pt-6">
         <div className="flex gap-2 mb-6">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= step ? "gold-gradient" : "bg-secondary"}`} />
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i + 1 <= step ? "gold-gradient" : "bg-secondary"}`} />
           ))}
         </div>
       </div>
@@ -409,13 +400,73 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {/* Step 2: Date & Time */}
+        {/* Step 2: Barber Selection (MANDATORY) */}
         {step === 2 && (
+          <div className="animate-fade-in">
+            <h2 className="font-display text-xl font-bold mb-1">Escolha o Profissional</h2>
+            <p className="text-sm text-muted-foreground mb-2">Selecione quem vai te atender</p>
+            {!selectedBarber && (
+              <div className="flex items-center gap-1.5 mb-4">
+                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                <p className="text-xs text-destructive font-medium">Escolha obrigatória</p>
+              </div>
+            )}
+
+            {barbers.length === 0 ? (
+              <div className="text-center py-10">
+                <Scissors className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Nenhum profissional disponível no momento.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                {barbers.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setSelectedBarber(b)}
+                    className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-all hover:border-primary/40 ${
+                      selectedBarber?.id === b.id
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    <Avatar className="h-14 w-14">
+                      {b.avatar_url ? (
+                        <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="bg-secondary text-sm font-bold">
+                        {b.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="font-medium text-sm text-center">{b.name}</p>
+                    {selectedBarber?.id === b.id && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Voltar</Button>
+              <Button
+                onClick={handleNextFromBarber}
+                disabled={!selectedBarber}
+                className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Date & Time */}
+        {step === 3 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Data e Horário</h2>
             <p className="text-sm text-muted-foreground mb-6">
               Escolha o melhor dia e horário
               {selectedService && <span className="text-primary"> • {selectedService.name} ({selectedService.duration}min)</span>}
+              {selectedBarber && <span className="text-muted-foreground"> • com {selectedBarber.name}</span>}
             </p>
             <div className="flex justify-center mb-6">
               <Calendar
@@ -459,9 +510,9 @@ const PublicBooking = () => {
               </>
             )}
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Voltar</Button>
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Voltar</Button>
               <Button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(4)}
                 disabled={!selectedDate || !selectedTime}
                 className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
               >
@@ -471,8 +522,8 @@ const PublicBooking = () => {
           </div>
         )}
 
-        {/* Step 3: Client Info & Payment Method & Confirm */}
-        {step === 3 && (
+        {/* Step 4: Client Info & Payment Method & Confirm */}
+        {step === 4 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Seus Dados</h2>
             <p className="text-sm text-muted-foreground mb-6">Preencha para confirmar o agendamento</p>
@@ -504,12 +555,8 @@ const PublicBooking = () => {
             <div className="mb-6">
               <label className="text-xs text-muted-foreground mb-2 block">Forma de Pagamento</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Pix disabled for MVP */}
                 <div className="relative">
-                  <button
-                    disabled
-                    className="w-full flex items-center gap-3 rounded-lg border border-border bg-card/50 p-4 text-left opacity-50 cursor-not-allowed"
-                  >
+                  <button disabled className="w-full flex items-center gap-3 rounded-lg border border-border bg-card/50 p-4 text-left opacity-50 cursor-not-allowed">
                     <QrCode className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-semibold text-sm">Pix Online</p>
@@ -538,6 +585,10 @@ const PublicBooking = () => {
                 <span className="font-medium">{selectedService?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Profissional</span>
+                <span className="font-medium">{selectedBarber?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Duração</span>
                 <span className="font-medium">{selectedService?.duration}min</span>
               </div>
@@ -560,10 +611,10 @@ const PublicBooking = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">Voltar</Button>
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">Voltar</Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !clientName.trim() || clientPhone.replace(/\D/g, "").length < 10}
+                disabled={submitting || !clientName.trim() || clientPhone.replace(/\D/g, "").length < 10 || !selectedBarber}
                 className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
               >
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Agendando...</> : "Confirmar"}
