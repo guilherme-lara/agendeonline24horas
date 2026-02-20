@@ -257,6 +257,102 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          barbershop_id: string
+          birth_date: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          barbershop_id: string
+          birth_date?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Update: {
+          barbershop_id?: string
+          birth_date?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          barbershop_id: string
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          barbershop_id: string
+          category?: string
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          barbershop_id?: string
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory: {
         Row: {
           active: boolean
@@ -310,6 +406,134 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          appointment_id: string | null
+          barber_name: string | null
+          barbershop_id: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          items: Json
+          notes: string | null
+          payment_method: string
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          barber_name?: string | null
+          barbershop_id: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_method?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          barber_name?: string | null
+          barbershop_id?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_method?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          active: boolean
+          barbershop_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          quantity: number
+          service_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          barbershop_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          quantity?: number
+          service_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          barbershop_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          quantity?: number
+          service_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]

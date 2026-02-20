@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Scissors, Loader2, Check, Wallet, QrCode, AlertCircle } from "lucide-react";
+import { Scissors, Loader2, Check, Wallet, QrCode, AlertCircle, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -348,18 +348,29 @@ const PublicBooking = () => {
     <div className="min-h-screen">
       {/* Shop Header */}
       <div className="border-b border-border bg-card py-6">
-        <div className="container max-w-2xl flex items-center gap-3">
-          {shop.logo_url ? (
-            <img src={shop.logo_url} alt={shop.name} className="h-11 w-11 rounded-full object-cover border border-border" />
-          ) : (
-            <div className="h-11 w-11 rounded-full gold-gradient flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-primary-foreground" />
+        <div className="container max-w-2xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {shop.logo_url ? (
+              <img src={shop.logo_url} alt={shop.name} className="h-11 w-11 rounded-full object-cover border border-border" />
+            ) : (
+              <div className="h-11 w-11 rounded-full gold-gradient flex items-center justify-center">
+                <Scissors className="h-5 w-5 text-primary-foreground" />
+              </div>
+            )}
+            <div>
+              <h1 className="font-display text-lg font-bold">{shop.name}</h1>
+              <p className="text-xs text-muted-foreground">Agendamento online</p>
             </div>
-          )}
-          <div>
-            <h1 className="font-display text-lg font-bold">{shop.name}</h1>
-            <p className="text-xs text-muted-foreground">Agendamento online</p>
           </div>
+          {/* My Appointments Button */}
+          <a
+            href="/meus-agendamentos"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors border border-border rounded-lg px-3 py-2 bg-card hover:border-primary/50"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Meus Agendamentos</span>
+            <span className="sm:hidden">Agenda</span>
+          </a>
         </div>
       </div>
 
