@@ -99,8 +99,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (shopLoading) return;
-    if (!user) { navigate("/auth"); return; }
-    if (!barbershop) { navigate("/onboarding"); return; }
+    if (!user || !barbershop) return; // handled by DashboardLayout
     if (!(barbershop as any).setup_completed) { navigate("/onboarding"); return; }
 
     const fetchData = async () => {

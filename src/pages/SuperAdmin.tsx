@@ -168,17 +168,8 @@ const SuperAdmin = () => {
   }
 
   if (!user || !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0f1a" }}>
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-white mb-3">Acesso Negado</h2>
-          <p className="text-sm text-slate-400 mb-6">Você não tem permissão para acessar este painel.</p>
-          <Button onClick={() => navigate("/")} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-            Voltar ao Início
-          </Button>
-        </div>
-      </div>
-    );
+    navigate("/auth");
+    return null;
   }
 
   const activePlans = plans.filter((p) => p.status === "active");
