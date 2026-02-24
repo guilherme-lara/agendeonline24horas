@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { Phone, Search, Loader2, Calendar, Clock, User, CalendarX2 } from "lucide-react";
+import { Phone, Search, Loader2, Calendar, Clock, User, CalendarX2, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Badge } from "@/components/ui/badge";
 
 interface AppointmentResult {
   id: string;
@@ -19,6 +20,7 @@ interface AppointmentResult {
 }
 
 const STORAGE_KEY = "techbarber_client_phone";
+const LOYALTY_GOAL = 10;
 
 const formatPhone = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -35,7 +37,7 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 };
 
 const SkeletonCard = () => (
-  <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+  <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3 shadow-sm">
     <div className="flex justify-between">
       <Skeleton className="h-4 w-32" />
       <Skeleton className="h-5 w-20 rounded-full" />
@@ -50,7 +52,7 @@ const SkeletonCard = () => (
 const AppointmentCard = ({ a, dimmed }: { a: AppointmentResult; dimmed?: boolean }) => {
   const st = statusMap[a.status || "pending"];
   return (
-    <div className={`rounded-lg border border-border bg-card p-4 ${dimmed ? "opacity-70" : ""}`}>
+    <div className={`rounded-xl border border-border/50 bg-card p-4 shadow-sm backdrop-blur-sm ${dimmed ? "opacity-70" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="font-semibold text-sm">{a.service_name}</p>
         <Badge variant={st.variant}>{st.label}</Badge>
@@ -91,9 +93,7 @@ const MyAppointments = () => {
     setLoading(true);
     setSearched(true);
 
-    try {
-      localStorage.setItem(STORAGE_KEY, searchPhone.trim());
-    } catch {}
+    try { localStorage.setItem(STORAGE_KEY, searchPhone.trim()); } catch {}
 
     const { data } = await supabase
       .from("appointments")
@@ -106,7 +106,6 @@ const MyAppointments = () => {
     setLoading(false);
   }, [phone]);
 
-  // Auto-load from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -120,6 +119,12 @@ const MyAppointments = () => {
   const now = new Date();
   const upcoming = appointments.filter((a) => new Date(a.scheduled_at) >= now && a.status !== "cancelled");
   const past = appointments.filter((a) => new Date(a.scheduled_at) < now || a.status === "cancelled");
+
+  // Loyalty card
+  const completedCount = appointments.filter((a) => a.status === "completed").length;
+  const loyaltyProgress = Math.min(completedCount, LOYALTY_GOAL);
+  const loyaltyPercent = (loyaltyProgress / LOYALTY_GOAL) * 100;
+  const hasEarnedReward = completedCount >= LOYALTY_GOAL;
 
   return (
     <div className="container max-w-lg py-8">
@@ -149,16 +154,12 @@ const MyAppointments = () => {
         </Button>
       </div>
 
-      {/* Skeleton loading */}
       {loading && (
         <div className="space-y-3 animate-fade-in">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
+          <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
       )}
 
-      {/* Empty state */}
       {searched && !loading && appointments.length === 0 && (
         <div className="text-center py-16 animate-fade-in">
           <CalendarX2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
@@ -174,6 +175,22 @@ const MyAppointments = () => {
 
       {!loading && appointments.length > 0 && (
         <div className="space-y-6 animate-fade-in">
+          {/* Loyalty Card */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 backdrop-blur-sm shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-sm font-bold">Cartão Fidelidade</h2>
+            </div>
+            <Progress value={loyaltyPercent} className="h-3 mb-2" />
+            <p className="text-xs text-muted-foreground">
+              {hasEarnedReward ? (
+                <span className="text-primary font-bold">🎉 Parabéns! Você ganhou um brinde! Avise na barbearia.</span>
+              ) : (
+                <>{loyaltyProgress} de {LOYALTY_GOAL} cortes — falta{LOYALTY_GOAL - loyaltyProgress > 1 ? "m" : ""} {LOYALTY_GOAL - loyaltyProgress}!</>
+              )}
+            </p>
+          </div>
+
           {upcoming.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-primary mb-3">Próximos ({upcoming.length})</h2>

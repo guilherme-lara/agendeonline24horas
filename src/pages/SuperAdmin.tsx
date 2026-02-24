@@ -61,6 +61,15 @@ interface ActivityLog {
   created_at: string;
 }
 
+interface UpgradeRequest {
+  id: string;
+  barbershop_id: string;
+  requested_plan: string;
+  whatsapp: string;
+  status: string;
+  created_at: string;
+}
+
 const planPrices: Record<string, number> = {
   essential: 97,
   growth: 197,
@@ -117,6 +126,7 @@ const SuperAdmin = () => {
   const [announcement, setAnnouncement] = useState("");
   const [announcementSaving, setAnnouncementSaving] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [upgradeRequests, setUpgradeRequests] = useState<UpgradeRequest[]>([]);
 
   const addLog = async (action: string, details: string) => {
     const { data } = await supabase.from("activity_logs").insert({
@@ -136,13 +146,14 @@ const SuperAdmin = () => {
       supabase.rpc("admin_get_user_emails"),
       supabase.from("system_settings").select("*").eq("key", "announcement").maybeSingle(),
       supabase.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(50),
-    ]).then(([shopsRes, plansRes, apptsRes, emailsRes, announcementRes, logsRes]) => {
+      supabase.from("upgrade_requests").select("*").order("created_at", { ascending: false }),
+    ]).then(([shopsRes, plansRes, apptsRes, emailsRes, announcementRes, logsRes, upgradeRes]) => {
       setShops((shopsRes.data as BarbershopRow[]) || []);
       setPlans((plansRes.data as SaasPlan[]) || []);
       setAppointments((apptsRes.data as Appointment[]) || []);
       setLogs((logsRes.data as ActivityLog[]) || []);
+      setUpgradeRequests((upgradeRes.data as UpgradeRequest[]) || []);
 
-      // Map emails
       const emailMap: Record<string, string> = {};
       if (emailsRes.data) {
         (emailsRes.data as { user_id: string; email: string }[]).forEach((e) => {
@@ -246,11 +257,35 @@ const SuperAdmin = () => {
     setAnnouncementSaving(false);
   };
 
+  const handleApproveUpgrade = async (req: UpgradeRequest) => {
+    const plan = plans.find((p) => p.barbershop_id === req.barbershop_id);
+    if (plan) {
+      await supabase.from("saas_plans").update({
+        plan_name: req.requested_plan,
+        price: planPrices[req.requested_plan] || 97,
+      }).eq("id", plan.id);
+      setPlans((prev) => prev.map((p) => p.id === plan.id ? { ...p, plan_name: req.requested_plan, price: planPrices[req.requested_plan] || 97 } : p));
+    }
+    await supabase.from("upgrade_requests").update({ status: "aprovado" }).eq("id", req.id);
+    setUpgradeRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "aprovado" } : r));
+    toast({ title: "Upgrade aprovado!" });
+    addLog("Upgrade Aprovado", `${req.requested_plan} para barbershop ${req.barbershop_id}`);
+  };
+
+  const handleRejectUpgrade = async (req: UpgradeRequest) => {
+    await supabase.from("upgrade_requests").update({ status: "rejeitado" }).eq("id", req.id);
+    setUpgradeRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejeitado" } : r));
+    toast({ title: "Solicitação rejeitada" });
+    addLog("Upgrade Rejeitado", `${req.requested_plan} para barbershop ${req.barbershop_id}`);
+  };
+
   const shopAppointments = (shopId: string) => appointments.filter((a) => a.barbershop_id === shopId);
   const shopRevenue = (shopId: string) =>
     shopAppointments(shopId)
       .filter((a) => a.status !== "cancelled")
       .reduce((s, a) => s + Number(a.price), 0);
+
+  const pendingUpgrades = upgradeRequests.filter((r) => r.status === "pendente");
 
   // Filtered shops
   const filteredShops = shops.filter((shop) => {
@@ -350,6 +385,41 @@ const SuperAdmin = () => {
                 Salvar Aviso
               </Button>
             </div>
+
+            {/* Upgrade Requests */}
+            {pendingUpgrades.length > 0 && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-5 mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-400">
+                    Solicitações de Upgrade ({pendingUpgrades.length})
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {pendingUpgrades.map((req) => {
+                    const shopName = shops.find((s) => s.id === req.barbershop_id)?.name || req.barbershop_id;
+                    return (
+                      <div key={req.id} className="flex items-center justify-between rounded-lg bg-slate-800/50 border border-slate-700/50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-white">{shopName}</p>
+                          <p className="text-xs text-slate-400">
+                            Plano: <span className="text-amber-400 font-medium">{req.requested_plan}</span> · WhatsApp: {req.whatsapp}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleApproveUpgrade(req)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 px-3 text-xs">
+                            Aprovar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleRejectUpgrade(req)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-3 text-xs">
+                            Rejeitar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className="flex items-center justify-between mb-4">

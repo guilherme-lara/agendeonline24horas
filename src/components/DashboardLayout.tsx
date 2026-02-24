@@ -33,7 +33,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] w-full">
+    <div className="flex min-h-screen w-full">
       {/* Sidebar */}
       <DashboardSidebar
         open={sidebarOpen}
@@ -44,7 +44,7 @@ const DashboardLayout = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top-bar with hamburger */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-16 z-30">
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-secondary"

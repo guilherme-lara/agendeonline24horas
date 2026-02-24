@@ -14,8 +14,8 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
 
-  // Hide header on public booking pages
-  if (pathname.startsWith("/book/") || pathname.startsWith("/agendamentos/")) return null;
+  // Hide header on public booking pages and dashboard (sidebar-only)
+  if (pathname.startsWith("/book/") || pathname.startsWith("/agendamentos/") || pathname.startsWith("/dashboard")) return null;
 
   const navItems = [
     { label: "Início", path: "/" },
