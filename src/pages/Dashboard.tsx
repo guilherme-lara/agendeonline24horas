@@ -97,9 +97,22 @@ const Dashboard = () => {
   const [pixModal, setPixModal] = useState<{ open: boolean; data: { paymentUrl: string; pixCode: string } | null; price: number; serviceName: string }>({ open: false, data: null, price: 0, serviceName: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
+  // Welcome toast (first login only)
+  useEffect(() => {
+    if (shopLoading || !barbershop) return;
+    const key = `agendeonline_welcome_${barbershop.id}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, "1");
+      // defer to next tick so toast renders
+      setTimeout(() => {
+        toast({ title: "Bem-vindo ao AgendeOnline24horas! 🎉", description: `Seu plano atual é: ${planName.charAt(0).toUpperCase() + planName.slice(1)}` });
+      }, 500);
+    }
+  }, [shopLoading, barbershop]);
+
   useEffect(() => {
     if (shopLoading) return;
-    if (!user || !barbershop) return; // handled by DashboardLayout
+    if (!user || !barbershop) return;
     if (!(barbershop as any).setup_completed) { navigate("/onboarding"); return; }
 
     const fetchData = async () => {
@@ -253,6 +266,16 @@ const Dashboard = () => {
     const msg = encodeURIComponent(`Olá ${clientName}! 😊 Obrigado por agendar na ${barbershop.name}. Até breve!`);
     const cleanPhone = phone.replace(/\D/g, "");
     const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
+  };
+
+  const sendWhatsAppReminder = (appt: Appointment) => {
+    const cleanPhone = (appt.client_phone || "").replace(/\D/g, "");
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const hora = format(new Date(appt.scheduled_at), "HH:mm");
+    const msg = encodeURIComponent(
+      `Olá ${appt.client_name}! Passando para confirmar seu agendamento hoje às ${hora} com ${appt.barber_name || "nosso profissional"} na ${barbershop.name}. Confirma? 😊`
+    );
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
   };
 
@@ -580,6 +603,11 @@ const Dashboard = () => {
                                     {a.client_phone && (
                                       <DropdownMenuItem onClick={() => openWhatsApp(a.client_phone, a.client_name)}>
                                         <Phone className="h-3.5 w-3.5 mr-2 text-green-500" /> WhatsApp
+                                      </DropdownMenuItem>
+                                    )}
+                                    {a.client_phone && a.status !== "cancelled" && a.status !== "completed" && (
+                                      <DropdownMenuItem onClick={() => sendWhatsAppReminder(a)}>
+                                        <MessageSquare className="h-3.5 w-3.5 mr-2 text-green-400" /> Lembrete WhatsApp
                                       </DropdownMenuItem>
                                     )}
                                     {a.status === "completed" && (

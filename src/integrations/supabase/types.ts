@@ -634,32 +634,38 @@ export type Database = {
       services: {
         Row: {
           active: boolean
+          advance_payment_value: number | null
           barbershop_id: string
           created_at: string | null
           duration: number
           id: string
           name: string
           price: number
+          requires_advance_payment: boolean | null
           sort_order: number
         }
         Insert: {
           active?: boolean
+          advance_payment_value?: number | null
           barbershop_id: string
           created_at?: string | null
           duration?: number
           id?: string
           name: string
           price?: number
+          requires_advance_payment?: boolean | null
           sort_order?: number
         }
         Update: {
           active?: boolean
+          advance_payment_value?: number | null
           barbershop_id?: string
           created_at?: string | null
           duration?: number
           id?: string
           name?: string
           price?: number
+          requires_advance_payment?: boolean | null
           sort_order?: number
         }
         Relationships: [
@@ -788,6 +794,33 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      upgrade_requests: {
+        Row: {
+          barbershop_id: string
+          created_at: string | null
+          id: string
+          requested_plan: string
+          status: string | null
+          whatsapp: string
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string | null
+          id?: string
+          requested_plan: string
+          status?: string | null
+          whatsapp: string
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string | null
+          id?: string
+          requested_plan?: string
+          status?: string | null
+          whatsapp?: string
         }
         Relationships: []
       }

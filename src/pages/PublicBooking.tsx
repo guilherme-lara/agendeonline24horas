@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Scissors, Loader2, Check, Wallet, QrCode, AlertCircle, CalendarDays } from "lucide-react";
+import { Scissors, Loader2, Check, Wallet, QrCode, AlertCircle, CalendarDays, AlertTriangle, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ interface BarbershopPublic {
   slug: string;
   address: string;
   logo_url?: string;
+  phone?: string;
 }
 
 interface Service {
@@ -25,6 +26,8 @@ interface Service {
   name: string;
   price: number;
   duration: number;
+  requires_advance_payment?: boolean;
+  advance_payment_value?: number;
 }
 
 interface BarberPublic {
@@ -273,6 +276,20 @@ const PublicBooking = () => {
       }
 
       if (paymentMethod === "local") {
+        // If advance payment required, set status to pendente_sinal and open WhatsApp
+        if (selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0) {
+          if (appointmentId) {
+            await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", appointmentId);
+          }
+          const cleanPhone = (shop.phone || "").replace(/\D/g, "");
+          const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+          const msg = encodeURIComponent(
+            `Olá, acabei de solicitar o agendamento de ${selectedService.name}. Segue o comprovante do PIX de R$ ${Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")} referente ao sinal para confirmar meu horário!`
+          );
+          if (cleanPhone.length >= 10) {
+            window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
+          }
+        }
         setSuccess(true);
         return;
       }
@@ -537,7 +554,20 @@ const PublicBooking = () => {
         {step === 4 && (
           <div className="animate-fade-in">
             <h2 className="font-display text-xl font-bold mb-1">Seus Dados</h2>
-            <p className="text-sm text-muted-foreground mb-6">Preencha para confirmar o agendamento</p>
+            <p className="text-sm text-muted-foreground mb-4">Preencha para confirmar o agendamento</p>
+
+            {/* Advance Payment Alert */}
+            {selectedService?.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0 && (
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 mb-6 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-yellow-400">Adiantamento Obrigatório</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Este serviço requer um adiantamento de <strong className="text-foreground">R$ {Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</strong> para confirmação da agenda.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4 mb-6">
               <div>

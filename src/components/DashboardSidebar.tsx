@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import ThemeToggle from "@/components/ThemeToggle";
 import logoAgenda from "@/assets/logo-agenda.png";
 
 interface SidebarProps {
@@ -123,13 +124,16 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
               Ver página pública
             </a>
           )}
-          <button
-            onClick={signOut}
-            className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sair
-          </button>
+          <div className="flex items-center justify-between px-3">
+            <ThemeToggle />
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 py-2 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sair
+            </button>
+          </div>
           <p className="px-3 text-[10px] text-muted-foreground/50 leading-tight">
             Desenvolvido por Guilherme Lara<br />Jotatechinfo · © 2026
           </p>
