@@ -3,6 +3,7 @@ import {
   MessageCircle, CalendarDays, Globe, Ticket, TrendingDown,
   BarChart3, Smile, Users, Scissors, ShoppingBag, PackageCheck,
   Cake, Settings, FileText, Shield, LogOut, X, ChevronRight,
+  CreditCard, LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -17,35 +18,36 @@ interface SidebarProps {
 
 const navItems = [
   { label: "Suporte", icon: MessageCircle, path: "/dashboard?tab=support", external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte+com+o+TechBarber!" },
-  { label: "Agenda", icon: CalendarDays, path: "/dashboard" },
-  { label: "Agendamento Online", icon: Globe, path: "/dashboard?tab=booking-link" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
+  { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
   { label: "Comandas", icon: Ticket, path: "/dashboard/comandas" },
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
-  { label: "Relatórios", icon: BarChart3, path: "/dashboard?tab=financial" },
+  { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
-  { label: "Profissionais", icon: Users, path: "/dashboard?tab=team" },
-  { label: "Serviços", icon: Scissors, path: "/dashboard?tab=settings" },
-  { label: "Produtos", icon: ShoppingBag, path: "/dashboard?tab=inventory" },
+  { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
+  { label: "Serviços", icon: Scissors, path: "/dashboard/configuracoes" },
+  { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
   { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
   { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
-  { label: "Configurações", icon: Settings, path: "/dashboard?tab=settings" },
+  { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
+  { label: "Configurações", icon: Settings, path: "/dashboard/configuracoes" },
   { label: "Termos de uso", icon: FileText, path: "/termos" },
   { label: "Política de privacidade", icon: Shield, path: "/privacidade" },
 ];
 
 const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   const { signOut } = useAuth();
-  const fullPath = pathname + search;
 
   const isActive = (itemPath: string) => {
-    if (itemPath === "/dashboard" && !search) return pathname === "/dashboard";
-    return fullPath.includes(itemPath.replace("/dashboard", "").replace("?tab=", "tab="));
+    if (itemPath === "/dashboard" && pathname === "/dashboard") return true;
+    if (itemPath !== "/dashboard" && pathname.startsWith(itemPath.split("?")[0])) return true;
+    return false;
   };
 
   return (
     <>
-      {/* Overlay (mobile) */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
@@ -53,7 +55,6 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
         />
       )}
 
-      {/* Sidebar panel */}
       <aside
         className={cn(
           "fixed top-0 left-0 z-50 h-full w-72 flex flex-col bg-card border-r border-border shadow-2xl transition-transform duration-300",
@@ -93,7 +94,7 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
             }
             return (
               <Link
-                key={item.label}
+                key={item.label + item.path}
                 to={item.path}
                 onClick={onClose}
                 className={cn(
