@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   CalendarDays, Loader2, Search, Clock, LayoutGrid, List,
   Check, XCircle, Play, Phone, MessageSquare, QrCode,
-  Banknote, CalendarPlus, Maximize, Minimize, ExternalLink,
+  Banknote, CalendarPlus, Maximize, Minimize, ExternalLink, Pencil,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -19,6 +19,12 @@ import PixPaymentModal from "@/components/PixPaymentModal";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface Appointment {
   id: string;
@@ -76,16 +82,22 @@ const Agenda = () => {
   const [kioskMode, setKioskMode] = useState(false);
   const [completionModal, setCompletionModal] = useState<{ open: boolean; appointmentId: string }>({ open: false, appointmentId: "" });
   const [pixModal, setPixModal] = useState<{ open: boolean; data: { paymentUrl: string; pixCode: string } | null; price: number; serviceName: string }>({ open: false, data: null, price: 0, serviceName: "" });
+  const [barbers, setBarbers] = useState<{ id: string; name: string }[]>([]);
+  const [editModal, setEditModal] = useState<{ open: boolean; appt: Appointment | null }>({ open: false, appt: null });
+  const [editForm, setEditForm] = useState({ client_name: "", client_phone: "", service_name: "", barber_name: "", scheduled_date: "", scheduled_time: "", price: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     if (!barbershop) return;
     const fetchData = async () => {
-      const [apptRes, svcRes] = await Promise.all([
-        supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false }),
+      const [apptRes, svcRes, barberRes] = await Promise.all([
+        supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).neq("status", "pendente_sinal").order("scheduled_at", { ascending: false }),
         supabase.from("services").select("id, name, price, duration").eq("barbershop_id", barbershop.id).eq("active", true).order("sort_order"),
+        supabase.from("barbers").select("id, name").eq("barbershop_id", barbershop.id).eq("active", true),
       ]);
       setAppointments((apptRes.data as Appointment[]) || []);
       setServices((svcRes.data as Service[]) || []);
+      setBarbers((barberRes.data as { id: string; name: string }[]) || []);
       setLoading(false);
     };
     fetchData();
@@ -104,8 +116,40 @@ const Agenda = () => {
     .slice(0, 5);
 
   const refreshAppts = async () => {
-    const { data } = await supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false });
+    const { data } = await supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).neq("status", "pendente_sinal").order("scheduled_at", { ascending: false });
     setAppointments((data as Appointment[]) || []);
+  };
+
+  const openEditModal = (appt: Appointment) => {
+    const dt = new Date(appt.scheduled_at);
+    setEditForm({
+      client_name: appt.client_name,
+      client_phone: appt.client_phone || "",
+      service_name: appt.service_name,
+      barber_name: appt.barber_name || "",
+      scheduled_date: format(dt, "yyyy-MM-dd"),
+      scheduled_time: format(dt, "HH:mm"),
+      price: String(appt.price),
+    });
+    setEditModal({ open: true, appt });
+  };
+
+  const handleEditSave = async () => {
+    if (!editModal.appt) return;
+    setEditSaving(true);
+    const scheduledAt = new Date(`${editForm.scheduled_date}T${editForm.scheduled_time}:00`);
+    const svc = services.find((s) => s.name === editForm.service_name);
+    const { error } = await supabase.from("appointments").update({
+      client_name: editForm.client_name,
+      client_phone: editForm.client_phone,
+      service_name: editForm.service_name,
+      barber_name: editForm.barber_name,
+      scheduled_at: scheduledAt.toISOString(),
+      price: svc ? svc.price : Number(editForm.price) || 0,
+    }).eq("id", editModal.appt.id);
+    setEditSaving(false);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else { toast({ title: "Agendamento atualizado!" }); setEditModal({ open: false, appt: null }); refreshAppts(); }
   };
 
   const handleStatusChange = async (apptId: string, newStatus: string) => {
@@ -309,6 +353,9 @@ const Agenda = () => {
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => openEditModal(a)}>
+                                  <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar
+                                </DropdownMenuItem>
                                 {a.payment_status !== "paid" && a.status !== "cancelled" && (
                                   <DropdownMenuItem onClick={() => handleMarkAsPaid(a.id)}>
                                     <Banknote className="h-3.5 w-3.5 mr-2 text-green-400" /> Marcar como Pago
@@ -353,6 +400,56 @@ const Agenda = () => {
           )}
         </>
       )}
+      {/* Edit Appointment Dialog */}
+      <Dialog open={editModal.open} onOpenChange={(v) => { if (!v) setEditModal({ open: false, appt: null }); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-primary" /> Editar Agendamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Cliente</label>
+              <Input value={editForm.client_name} onChange={(e) => setEditForm((f) => ({ ...f, client_name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Telefone</label>
+              <Input value={editForm.client_phone} onChange={(e) => setEditForm((f) => ({ ...f, client_phone: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Serviço</label>
+              <Select value={editForm.service_name} onValueChange={(v) => setEditForm((f) => ({ ...f, service_name: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {services.map((s) => <SelectItem key={s.id} value={s.name}>{s.name} - R$ {s.price}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Profissional</label>
+              <Select value={editForm.barber_name} onValueChange={(v) => setEditForm((f) => ({ ...f, barber_name: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {barbers.map((b) => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Data</label>
+                <Input type="date" value={editForm.scheduled_date} onChange={(e) => setEditForm((f) => ({ ...f, scheduled_date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
+                <Input type="time" value={editForm.scheduled_time} onChange={(e) => setEditForm((f) => ({ ...f, scheduled_time: e.target.value }))} />
+              </div>
+            </div>
+            <Button className="w-full gold-gradient text-primary-foreground font-semibold" onClick={handleEditSave} disabled={editSaving || !editForm.client_name.trim()}>
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

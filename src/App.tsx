@@ -35,6 +35,8 @@ import Produtos from "./pages/dashboard/Produtos";
 import Configuracoes from "./pages/dashboard/Configuracoes";
 import AgendamentoOnline from "./pages/dashboard/AgendamentoOnline";
 import Pagamentos from "./pages/dashboard/Pagamentos";
+import Caixa from "./pages/dashboard/Caixa";
+import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,8 @@ const AppContent = () => {
           <Route path="configuracoes" element={<Configuracoes />} />
           <Route path="agendamento-online" element={<AgendamentoOnline />} />
           <Route path="pagamentos" element={<Pagamentos />} />
+          <Route path="caixa" element={<Caixa />} />
+          <Route path="aprovacao-sinais" element={<AprovacaoSinais />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

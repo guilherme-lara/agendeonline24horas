@@ -3,7 +3,7 @@ import {
   MessageCircle, CalendarDays, Globe, Ticket, TrendingDown,
   BarChart3, Smile, Users, Scissors, ShoppingBag, PackageCheck,
   Cake, Settings, FileText, Shield, LogOut, X, ChevronRight,
-  CreditCard, LayoutDashboard,
+  CreditCard, LayoutDashboard, ShoppingCart, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,9 @@ const navItems = [
   { label: "Suporte", icon: MessageCircle, path: "/dashboard?tab=support", external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte+com+o+TechBarber!" },
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
+  { label: "Caixa / PDV", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
+  { label: "Aprovação de Sinais", icon: AlertTriangle, path: "/dashboard/aprovacao-sinais" },
   { label: "Comandas", icon: Ticket, path: "/dashboard/comandas" },
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
@@ -41,9 +43,9 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
   const { signOut } = useAuth();
 
   const isActive = (itemPath: string) => {
-    if (itemPath === "/dashboard" && pathname === "/dashboard") return true;
-    if (itemPath !== "/dashboard" && pathname.startsWith(itemPath.split("?")[0])) return true;
-    return false;
+    const cleanPath = itemPath.split("?")[0];
+    if (cleanPath === "/dashboard") return pathname === "/dashboard";
+    return pathname === cleanPath;
   };
 
   return (

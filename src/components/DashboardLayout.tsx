@@ -17,6 +17,7 @@ const DashboardLayout = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { barbershop, loading: shopLoading } = useBarbershop();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   if (authLoading || shopLoading) return <DashboardSkeleton />;
 
@@ -26,8 +27,8 @@ const DashboardLayout = () => {
     return null;
   }
 
-  // Super Admin should never load the owner dashboard — redirect to master panel
-  if (isAdmin && !barbershop) {
+  // Super Admin without impersonation should go to master panel
+  if (isAdmin && !barbershop && !isImpersonating) {
     navigate("/super-admin");
     return null;
   }
