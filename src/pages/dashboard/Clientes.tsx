@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle
+  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle, RefreshCw, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState, useMemo } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -46,88 +47,66 @@ interface CartItem {
 const Caixa = () => {
   const { barbershop } = useBarbershop();
   const { toast } = useToast();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false); // <-- Estado de erro isolado
+  const queryClient = useQueryClient();
+
+  // Estados de UI
   const [search, setSearch] = useState("");
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payMethod, setPayMethod] = useState("cash");
-  const [saving, setSaving] = useState(false);
   const [productSearch, setProductSearch] = useState("");
 
-  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
-  const loadCaixaData = useCallback(async () => {
-    if (!barbershop) return;
-    setLoading(true);
-    setError(false);
-
-    try {
+  // --- BUSCA DE AGENDAMENTOS DO DIA (TANSTACK QUERY) ---
+  const { data: appointments = [], isLoading: loadingAppts, isError: errorAppts, refetch: refetchAppts } = useQuery({
+    queryKey: ["daily-appointments", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
       const todayStr = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("id, client_name, client_phone, service_name, barber_name, price, scheduled_at, status")
+        .eq("barbershop_id", barbershop.id)
+        .gte("scheduled_at", `${todayStr}T00:00:00`)
+        .lte("scheduled_at", `${todayStr}T23:59:59`)
+        .in("status", ["confirmed", "pending", "completed"])
+        .order("scheduled_at");
       
-      const [apptRes, prodRes] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select("id, client_name, client_phone, service_name, barber_name, price, scheduled_at, status")
-          .eq("barbershop_id", barbershop.id)
-          .gte("scheduled_at", `${todayStr}T00:00:00`)
-          .lte("scheduled_at", `${todayStr}T23:59:59`)
-          .in("status", ["confirmed", "pending", "completed"])
-          .order("scheduled_at"),
-        supabase
-          .from("inventory")
-          .select("id, name, sell_price, quantity")
-          .eq("barbershop_id", barbershop.id)
-          .eq("active", true)
-          .gt("quantity", 0),
-      ]);
+      if (error) throw error;
+      return data as Appointment[];
+    },
+    enabled: !!barbershop?.id,
+    refetchOnWindowFocus: true, // Auto-sincronia ao voltar para a aba
+  });
 
-      if (apptRes.error) throw apptRes.error;
-      if (prodRes.error) throw prodRes.error;
+  // --- BUSCA DE ESTOQUE (TANSTACK QUERY) ---
+  const { data: inventory = [] } = useQuery({
+    queryKey: ["inventory-pdv", barbershop?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory")
+        .select("id, name, sell_price, quantity")
+        .eq("barbershop_id", barbershop?.id)
+        .eq("active", true)
+        .gt("quantity", 0);
+      
+      if (error) throw error;
+      return data as Product[];
+    },
+    enabled: !!barbershop?.id,
+    refetchOnWindowFocus: true,
+  });
 
-      setAppointments((apptRes.data as Appointment[]) || []);
-      setProducts((prodRes.data as Product[]) || []);
-    } catch (err) {
-      console.error("Erro ao carregar dados do caixa:", err);
-      setError(true);
-    } finally {
-      setLoading(false); // A MÁGICA: Independente de dar erro, o skeleton desliga
-    }
-  }, [barbershop]);
+  // --- MUTAÇÃO: FINALIZAR ATENDIMENTO (O FIM DO LOADING INFINITO) ---
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Health Check da Sessão para evitar travamento em standby
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada. Recarregando...");
+      if (!selectedAppt || !barbershop) return;
 
-  useEffect(() => {
-    loadCaixaData();
-  }, [loadCaixaData]);
+      const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
-  const openCheckout = (appt: Appointment) => {
-    setSelectedAppt(appt);
-    setCart([{ name: appt.service_name, price: Number(appt.price), qty: 1, type: "service" }]);
-    setPayMethod("cash");
-  };
-
-  const addProduct = (p: Product) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.product_id === p.id);
-      if (existing) {
-        return prev.map((i) => i.product_id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      }
-      return [...prev, { name: p.name, price: Number(p.sell_price), qty: 1, type: "product", product_id: p.id }];
-    });
-  };
-
-  const removeItem = (idx: number) => {
-    setCart((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-
-  const handleFinalize = async () => {
-    if (!barbershop || !selectedAppt) return;
-    setSaving(true);
-
-    try {
-      // Create order (comanda) linked to appointment
+      // 2. Criar Comanda (Orders)
       const { error: orderError } = await supabase.from("orders").insert([{
         barbershop_id: barbershop.id,
         appointment_id: selectedAppt.id,
@@ -137,22 +116,20 @@ const Caixa = () => {
         payment_method: payMethod,
         status: "closed",
       }]);
-
       if (orderError) throw orderError;
 
-      // Update appointment to completed with total_price
-      const { error: apptError } = await supabase.from("appointments").update({
+      // 3. Atualizar Agendamento
+      const { error: apptUpdateError } = await supabase.from("appointments").update({
         status: "completed",
         payment_status: "paid",
         total_price: total,
       }).eq("id", selectedAppt.id);
+      if (apptUpdateError) throw apptUpdateError;
 
-      if (apptError) throw apptError;
-
-      // Deduct product stock
+      // 4. Baixa de Estoque e Movimentação
       for (const item of cart) {
         if (item.type === "product" && item.product_id) {
-          const prod = products.find((p) => p.id === item.product_id);
+          const prod = inventory.find((p) => p.id === item.product_id);
           if (prod) {
             await supabase.from("inventory").update({ quantity: prod.quantity - item.qty }).eq("id", prod.id);
             await supabase.from("stock_movements").insert({
@@ -165,105 +142,131 @@ const Caixa = () => {
           }
         }
       }
-
-      toast({ title: "Atendimento finalizado!", description: `Total: R$ ${total.toFixed(2).replace(".", ",")}` });
+      return total;
+    },
+    onSuccess: (total) => {
+      queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
+      toast({ title: "Atendimento Finalizado!", description: `Total: R$ ${total?.toFixed(2).replace(".", ",")}` });
       setSelectedAppt(null);
       setCart([]);
-      
-      // Ao invés de repetir código de busca, apenas chamamos nossa função blindada
-      await loadCaixaData();
-      
-    } catch (err: any) {
-      console.error("Erro ao finalizar:", err);
-      toast({ title: "Erro", description: err.message || "Falha ao finalizar venda.", variant: "destructive" });
-    } finally {
-      setSaving(false);
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro no Checkout", description: err.message, variant: "destructive" });
     }
+  });
+
+  // --- LÓGICA DO CARRINHO ---
+  const openCheckout = (appt: Appointment) => {
+    setSelectedAppt(appt);
+    setCart([{ name: appt.service_name, price: Number(appt.price), qty: 1, type: "service" }]);
+    setPayMethod("cash");
   };
 
-  // <-- TELAS DE PROTEÇÃO -->
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  const addProductToCart = (p: Product) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.product_id === p.id);
+      if (existing) return prev.map((i) => i.product_id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { name: p.name, price: Number(p.sell_price), qty: 1, type: "product", product_id: p.id }];
+    });
+  };
 
-  // TELA DE ERRO (Adeus F5!)
-  if (error) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
-      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os dados do caixa.</p>
-      <Button onClick={loadCaixaData} className="gold-gradient text-primary-foreground font-semibold px-8">
-        Tentar Novamente
-      </Button>
-    </div>
-  );
+  const filteredAppts = useMemo(() => {
+    return appointments.filter((a) => {
+      const q = search.toLowerCase();
+      return !search.trim() || a.client_name.toLowerCase().includes(q) || a.service_name.toLowerCase().includes(q);
+    });
+  }, [appointments, search]);
+
+  const filteredProducts = useMemo(() => {
+    return inventory.filter((p) => !productSearch.trim() || p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [inventory, productSearch]);
+
+  const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.qty, 0), [cart]);
+
+  // --- RENDERS DE PROTEÇÃO ---
+  if (loadingAppts && !appointments.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+        <p className="text-xs text-slate-500 animate-pulse uppercase tracking-widest font-bold">Iniciando sistema de vendas...</p>
+      </div>
+    );
+  }
+
+  if (errorAppts) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Erro de sincronização</h2>
+        <p className="text-sm text-slate-400 mb-8">Não conseguimos conectar ao seu fluxo de caixa.</p>
+        <Button onClick={() => refetchAppts()} className="gold-gradient px-8 font-bold">
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
 
   if (!barbershop) return null;
 
-  const filteredAppts = appointments.filter((a) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return a.client_name.toLowerCase().includes(q) || a.service_name.toLowerCase().includes(q);
-  });
-
-  const filteredProducts = products.filter((p) =>
-    !productSearch.trim() || p.name.toLowerCase().includes(productSearch.toLowerCase())
-  );
-
   return (
-    <div className="p-6 max-w-5xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6 text-primary" /> Caixa / PDV
+          <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+            <ShoppingCart className="h-8 w-8 text-cyan-400" /> Frente de Caixa
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })} · {filteredAppts.length} atendimentos
+          <p className="text-slate-500 text-sm mt-1 font-medium capitalize">
+            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })} &bull; {filteredAppts.length} atendimentos registrados hoje
           </p>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar cliente ou serviço..."
-          className="bg-card border-border pl-10"
+          placeholder="Buscar por cliente ou serviço..."
+          className="bg-slate-900/40 border-slate-800 pl-11 h-12 text-white focus-visible:ring-cyan-500/50"
         />
       </div>
 
-      {/* Appointments list */}
       {filteredAppts.length === 0 ? (
-        <div className="text-center py-16">
-          <Receipt className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg mb-1">Nenhum atendimento hoje</h3>
-          <p className="text-sm text-muted-foreground">Os agendamentos do dia aparecerão aqui.</p>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-16 text-center backdrop-blur-sm shadow-xl">
+          <Receipt className="h-12 w-12 text-slate-700 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Sem agendamentos no momento</h3>
+          <p className="text-sm text-slate-500 max-w-xs mx-auto">Novos agendamentos feitos para hoje aparecerão aqui automaticamente.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3">
           {filteredAppts.map((a) => (
-            <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-              <div>
-                <p className="font-medium">{a.client_name}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{a.service_name}</span>
-                  <span>·</span>
-                  <span>{format(new Date(a.scheduled_at), "HH:mm")}</span>
-                  <span>·</span>
-                  <span>R$ {Number(a.price).toFixed(2).replace(".", ",")}</span>
-                </div>
-                {a.barber_name && <p className="text-xs text-muted-foreground mt-0.5">{a.barber_name}</p>}
+            <div key={a.id} className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-5 hover:border-slate-700 transition-all shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400 font-bold uppercase">
+                    {a.client_name.slice(0,1)}
+                 </div>
+                 <div>
+                    <p className="font-bold text-white">{a.client_name}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                      <span className="text-cyan-500">{a.service_name}</span>
+                      <span>&bull;</span>
+                      <span>{format(parseISO(a.scheduled_at), "HH:mm")}</span>
+                      <span>&bull;</span>
+                      <span className="text-emerald-500">R$ {Number(a.price).toFixed(2).replace(".", ",")}</span>
+                    </div>
+                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Badge className={a.status === "completed"
-                  ? "bg-green-500/15 text-green-400 border-green-500/30"
-                  : "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                 }>
                   {a.status === "completed" ? "Finalizado" : "Aberto"}
                 </Badge>
                 {a.status !== "completed" && (
-                  <Button size="sm" onClick={() => openCheckout(a)} className="gold-gradient text-primary-foreground font-semibold">
-                    <ShoppingCart className="h-3.5 w-3.5 mr-1" /> Abrir Caixa
+                  <Button onClick={() => openCheckout(a)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold h-10 px-6 rounded-xl shadow-lg shadow-cyan-900/20">
+                    <ShoppingCart className="h-4 w-4 mr-2" /> Abrir Checkout
                   </Button>
                 )}
               </div>
@@ -272,94 +275,96 @@ const Caixa = () => {
         </div>
       )}
 
-      {/* Checkout Dialog */}
+      {/* MODAL DE CHECKOUT PDV */}
       <Dialog open={!!selectedAppt} onOpenChange={(v) => { if (!v) setSelectedAppt(null); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              Caixa — {selectedAppt?.client_name}
+        <DialogContent className="bg-[#0b1224] border-slate-800 text-white max-w-lg shadow-2xl">
+          <DialogHeader className="border-b border-slate-800/50 pb-4">
+            <DialogTitle className="flex items-center gap-3 text-xl font-black">
+              <Receipt className="text-cyan-400 h-6 w-6" /> Detalhes da Comanda
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Cart items */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Itens</p>
-              {cart.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-sm bg-secondary rounded-lg px-3 py-2">
-                  <div>
-                    <span className="font-medium">{item.name}</span>
-                    <Badge variant="outline" className="ml-2 text-[10px]">{item.type === "service" ? "Serviço" : "Produto"}</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary font-medium">
-                      {item.qty > 1 ? `${item.qty}x ` : ""}R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}
-                    </span>
-                    {item.type === "product" && (
-                      <button onClick={() => removeItem(i)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+
+          <div className="space-y-6 pt-4">
+            <div className="bg-slate-950/50 rounded-xl border border-slate-800 overflow-hidden">
+               <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cliente: {selectedAppt?.client_name}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Atendimento ID: #{selectedAppt?.id.slice(0,6)}</p>
+               </div>
+               <div className="p-3 space-y-2">
+                  {cart.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs font-bold">
+                      <div className="flex items-center gap-2">
+                         <span className="text-slate-300">{item.name}</span>
+                         <Badge variant="outline" className="h-4 text-[8px] border-slate-700 text-slate-500 uppercase">{item.type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-cyan-400">{item.qty > 1 ? `${item.qty}x ` : ""}R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}</span>
+                        {item.type === "product" && (
+                          <button onClick={() => setCart(c => c.filter((_, idx) => idx !== i))} className="text-red-500/60 hover:text-red-400 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+               </div>
             </div>
 
-            {/* Add products */}
-            <div>
-              <p className="text-sm font-medium mb-2">Adicionar Produto</p>
+            {/* ADICIONAR PRODUTOS RÁPIDO */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vender Produto Adicional (Venda Cruzada)</label>
               <Input
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Buscar produto..."
-                className="mb-2"
+                placeholder="Pomada, bebida, etc..."
+                className="bg-slate-950 border-slate-800 h-10 text-xs"
               />
-              <div className="max-h-32 overflow-y-auto space-y-1">
+              <div className="max-h-28 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                 {filteredProducts.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => addProduct(p)}
-                    className="w-full flex items-center justify-between text-sm bg-card border border-border rounded-lg px-3 py-2 hover:border-primary/40 transition-colors"
+                    onClick={() => addProductToCart(p)}
+                    className="w-full flex items-center justify-between p-2 bg-slate-950/50 border border-slate-800 rounded-lg hover:border-cyan-500/30 transition-all text-left"
                   >
-                    <span>{p.name}</span>
+                    <div>
+                        <p className="text-xs font-bold text-white">{p.name}</p>
+                        <p className="text-[9px] text-slate-500 uppercase font-black">Estoque Atual: {p.quantity}</p>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Estoque: {p.quantity}</span>
-                      <span className="text-primary font-medium">R$ {Number(p.sell_price).toFixed(2).replace(".", ",")}</span>
-                      <Plus className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-black text-cyan-400">R$ {Number(p.sell_price).toFixed(2).replace(".", ",")}</span>
+                        <div className="h-6 w-6 bg-cyan-500/10 rounded flex items-center justify-center text-cyan-400"><Plus className="h-3 w-3" /></div>
                     </div>
                   </button>
                 ))}
-                {filteredProducts.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-2">Nenhum produto encontrado</p>
-                )}
               </div>
             </div>
 
-            {/* Payment method */}
-            <Select value={payMethod} onValueChange={setPayMethod}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Dinheiro</SelectItem>
-                <SelectItem value="pix">Pix</SelectItem>
-                <SelectItem value="card">Cartão</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Total */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <span className="font-bold text-lg">Total</span>
-              <span className="font-display text-2xl font-bold text-primary">
-                R$ {total.toFixed(2).replace(".", ",")}
-              </span>
+            {/* PAGAMENTO E TOTAL */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Método de Recebimento</label>
+                    <Select value={payMethod} onValueChange={setPayMethod}>
+                      <SelectTrigger className="bg-slate-950 border-slate-800 h-11"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0b1224] border-slate-800 text-white">
+                        <SelectItem value="cash">💵 Dinheiro</SelectItem>
+                        <SelectItem value="pix">📱 Pix (Manual)</SelectItem>
+                        <SelectItem value="card">💳 Cartão</SelectItem>
+                      </SelectContent>
+                    </Select>
+                </div>
+                <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3 text-right flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Final</p>
+                    <p className="text-2xl font-black text-white">R$ {cartTotal.toFixed(2).replace(".", ",")}</p>
+                </div>
             </div>
 
             <Button
-              className="w-full gold-gradient text-primary-foreground font-semibold"
-              onClick={handleFinalize}
-              disabled={saving || cart.length === 0}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 rounded-xl shadow-xl shadow-emerald-900/20"
+              onClick={() => checkoutMutation.mutate()}
+              disabled={checkoutMutation.isPending || cart.length === 0}
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-              Finalizar Atendimento
+              {checkoutMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
+              Concluir Venda e Baixar Estoque
             </Button>
           </div>
         </DialogContent>
