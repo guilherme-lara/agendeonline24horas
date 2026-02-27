@@ -11,26 +11,27 @@ interface Barbershop {
   address: string;
   settings: Record<string, any>;
   created_at: string;
-  plan_name?: string; // Adicionado para evitar furos de performance
+  plan_name?: string;
   plan_status?: string;
+  setup_completed?: boolean;
 }
 
-// Criamos uma variável fora do hook para servir de cache na memória (RAM) do navegador
+// Cache global em memória
 let memoryCache: Barbershop | null = null;
 
 export const useBarbershop = () => {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [barbershop, setBarbershop] = useState<Barbershop | null>(memoryCache);
-  const [loading, setLoading] = useState(!memoryCache); // Só carrega se não houver cache
+  const [loading, setLoading] = useState(!memoryCache);
 
   const clearImpersonation = useCallback(() => {
     localStorage.removeItem("impersonate_barbershop_id");
-    memoryCache = null; // Limpa o cache ao sair da impersonação
+    memoryCache = null;
+    setBarbershop(null);
   }, []);
 
   const refetch = useCallback(async (forceSilent = false) => {
-    // Se forceSilent for true, ele atualiza no fundo sem mostrar o "Carregando..."
-    if (!forceSilent) setLoading(true);
+    if (!forceSilent && !memoryCache) setLoading(true);
     
     if (!user) {
       setBarbershop(null);
@@ -41,7 +42,6 @@ export const useBarbershop = () => {
     try {
       const impersonateId = localStorage.getItem("impersonate_barbershop_id");
       
-      // Buscamos a barbearia JÁ TRAZENDO o plano (saas_plans) para economizar requests
       let query = supabase
         .from("barbershops")
         .select("*, saas_plans(plan_name, status)");
@@ -63,7 +63,8 @@ export const useBarbershop = () => {
           plan_status: data.saas_plans?.[0]?.status || "active"
         };
         
-        memoryCache = formattedData; // Salva no cache global
+        // Atualiza a referência global e o estado local
+        memoryCache = formattedData;
         setBarbershop(formattedData);
       }
     } catch (err) {
@@ -76,7 +77,6 @@ export const useBarbershop = () => {
   useEffect(() => {
     if (authLoading) return;
     
-    // Se o user deslogar, limpa tudo
     if (!user) {
       memoryCache = null;
       setBarbershop(null);
@@ -84,12 +84,21 @@ export const useBarbershop = () => {
       return;
     }
 
-    // Só faz a requisição se não tivermos cache OU se o ID do user mudou
-    if (!memoryCache || (memoryCache.owner_id !== user.id && !localStorage.getItem("impersonate_barbershop_id"))) {
+    // Se não tem cache, busca. Se tem, sincroniza silenciosamente.
+    if (!memoryCache) {
       refetch();
     } else {
       setLoading(false);
+      // Sincronização em background para garantir que o plano/dados mudaram
+      refetch(true); 
     }
+
+    // MÁGICA PARA O SISTEMA REDONDO:
+    // Revalida os dados sempre que o usuário volta para a aba do navegador
+    const handleFocus = () => refetch(true);
+    window.addEventListener("focus", handleFocus);
+    
+    return () => window.removeEventListener("focus", handleFocus);
   }, [user, authLoading, refetch]);
 
   return { 
