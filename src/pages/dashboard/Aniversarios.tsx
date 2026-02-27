@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
-import { Loader2, Cake, Phone, MessageCircle } from "lucide-react";
+import { Loader2, Cake, Phone, MessageCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,32 +17,53 @@ const Aniversarios = () => {
   const { barbershop } = useBarbershop();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
 
-  useEffect(() => {
+  // <-- FUNÇÃO REESCRITA COM TRY/CATCH/FINALLY ABSOLUTO -->
+  const loadBirthdays = useCallback(async () => {
     if (!barbershop) return;
-    const currentMonth = new Date().getMonth() + 1;
-    supabase
-      .from("customers")
-      .select("id, name, phone, birth_date")
-      .eq("barbershop_id", barbershop.id)
-      .not("birth_date", "is", null)
-      .then(({ data }) => {
-        const birthdayThisMonth = ((data as Customer[]) || []).filter((c) => {
-          if (!c.birth_date) return false;
-          const month = new Date(c.birth_date + "T00:00").getMonth() + 1;
-          return month === currentMonth;
-        });
-        birthdayThisMonth.sort((a, b) => {
-          const dayA = new Date(a.birth_date + "T00:00").getDate();
-          const dayB = new Date(b.birth_date + "T00:00").getDate();
-          return dayA - dayB;
-        });
-        setCustomers(birthdayThisMonth);
-        setLoading(false);
+    setLoading(true);
+    setError(false);
+
+    try {
+      const currentMonth = new Date().getMonth() + 1;
+      
+      const { data, error: fetchError } = await supabase
+        .from("customers")
+        .select("id, name, phone, birth_date")
+        .eq("barbershop_id", barbershop.id)
+        .not("birth_date", "is", null);
+
+      if (fetchError) throw fetchError;
+
+      const birthdayThisMonth = ((data as Customer[]) || []).filter((c) => {
+        if (!c.birth_date) return false;
+        const month = new Date(c.birth_date + "T00:00").getMonth() + 1;
+        return month === currentMonth;
       });
+
+      birthdayThisMonth.sort((a, b) => {
+        const dayA = new Date(a.birth_date + "T00:00").getDate();
+        const dayB = new Date(b.birth_date + "T00:00").getDate();
+        return dayA - dayB;
+      });
+
+      setCustomers(birthdayThisMonth);
+    } catch (err) {
+      console.error("Erro ao carregar aniversariantes:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Independente do que acontecer, a tela nunca trava!
+    }
   }, [barbershop]);
 
+  useEffect(() => {
+    loadBirthdays();
+  }, [loadBirthdays]);
+
+  // Função do WhatsApp ajustada
   const sendWhatsApp = (phone: string, name: string) => {
+    if (!phone) return;
     const msg = encodeURIComponent(
       `🎂 Parabéns, ${name}! Feliz Aniversário! 🎉 Como presente, você tem 10% de desconto no seu próximo corte. Agende já: ${window.location.origin}/agendamentos/${barbershop?.slug}`
     );
@@ -53,7 +74,20 @@ const Aniversarios = () => {
 
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
 
+  // <-- TELAS DE PROTEÇÃO -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os aniversariantes.</p>
+      <Button onClick={loadBirthdays} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
 
   return (
     <div className="p-6 max-w-4xl mx-auto animate-fade-in">
