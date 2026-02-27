@@ -50,7 +50,11 @@ const Dashboard = () => {
   }, [barbershop]);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!user || !barbershop?.id) return;
+   if (!user || !barbershop?.id) return;
+  
+    // Se mudou a barbearia (impersonate), limpa a lista antiga para não mostrar dado errado
+    setAppointments([]); 
+    setLoadingData(true);
     
     // Só mostra o esqueleto se for a primeira vez MESMO
     if (appointments.length === 0) setLoadingData(true);
