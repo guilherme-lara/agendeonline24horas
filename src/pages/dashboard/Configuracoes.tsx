@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Loader2, Save } from "lucide-react";
+import { Settings, Loader2, Save, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
@@ -25,10 +25,11 @@ const formatCnpjCpf = (value: string) => {
 };
 
 const Configuracoes = () => {
-  const { barbershop, refetch } = useBarbershop();
+  const { barbershop, loading: barberLoading, refetch } = useBarbershop();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
@@ -36,41 +37,79 @@ const Configuracoes = () => {
   const [address, setAddress] = useState("");
 
   useEffect(() => {
-    if (!barbershop) return;
+    // Se o hook global ainda está carregando, mantemos o loading local
+    if (barberLoading) return;
+
+    if (!barbershop) {
+      // Se parou de carregar e não veio barbearia, algo deu errado na conexão
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    // Sucesso no carregamento
     setCompanyName(barbershop.name || "");
     setPhone(barbershop.phone || "");
     setAddress(barbershop.address || "");
     setCnpjCpf((barbershop.settings as any)?.cnpj_cpf || "");
+    setError(false);
     setLoading(false);
-  }, [barbershop]);
+  }, [barbershop, barberLoading]);
 
   const handleSave = async () => {
     if (!barbershop) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("barbershops")
-      .update({
-        name: companyName.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
-        settings: {
-          ...(barbershop.settings || {}),
-          cnpj_cpf: cnpjCpf.trim(),
-        },
-      })
-      .eq("id", barbershop.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("barbershops")
+        .update({
+          name: companyName.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          settings: {
+            ...(barbershop.settings || {}),
+            cnpj_cpf: cnpjCpf.trim(),
+          },
+        })
+        .eq("id", barbershop.id);
 
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
+      if (updateError) throw updateError;
+
       toast({ title: "Configurações salvas!" });
       refetch();
+    } catch (err: any) {
+      toast({ 
+        title: "Erro ao salvar", 
+        description: err.message || "Verifique sua conexão.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  if (!barbershop) return null;
+  // <-- TELAS DE PROTEÇÃO -->
+  if (loading || (barberLoading && !error)) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+        <h2 className="font-display text-xl font-bold mb-2">Erro ao carregar configurações</h2>
+        <p className="text-sm text-muted-foreground mb-6">Não conseguimos recuperar os dados da sua barbearia.</p>
+        <Button onClick={() => { setLoading(true); refetch(); }} className="gold-gradient text-primary-foreground font-semibold px-8">
+          Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto animate-fade-in">
