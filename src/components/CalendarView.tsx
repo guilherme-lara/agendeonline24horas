@@ -3,7 +3,7 @@ import { format, isSameDay, addDays, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,7 +19,7 @@ interface Appointment {
 interface CalendarViewProps {
   appointments: Appointment[];
   barbershopId?: string;
-  onRefresh?: () => void; // Adicionado para recarregar a tela após soltar
+  onRefresh?: () => void;
 }
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7:00 - 19:00
@@ -31,11 +31,11 @@ const statusConfig: Record<string, { bg: string; border: string; text: string }>
   cancelled: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
 };
 
-const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
+const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewProps) => {
   const { toast } = useToast();
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const queryClient = useQueryClient(); // <-- Motor do cache local adicionado
   
-  // Estado para controle visual de onde o card está passando
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [draggingApptId, setDraggingApptId] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
@@ -43,7 +43,7 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
   const getAppointmentsForDay = (day: Date) =>
     appointments.filter((a) => isSameDay(new Date(a.scheduled_at), day) && a.status !== "cancelled");
 
-  // --- MUTAÇÃO: REMARCAR NO BANCO DE DADOS ---
+  // --- MUTAÇÃO OTIMISTA (INSTANTÂNEA) ---
   const rescheduleMutation = useMutation({
     mutationFn: async ({ id, newDateStr }: { id: string; newDateStr: string }) => {
       const { error } = await supabase
@@ -52,14 +52,32 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
         .eq("id", id);
       if (error) throw error;
     },
+    // O que acontece no exato milissegundo que você solta o card:
+    onMutate: async ({ id, newDateStr }) => {
+      // 1. Para buscas em andamento para não sobrescrever nosso drag
+      await queryClient.cancelQueries({ queryKey: ["appointments"] });
+
+      // 2. Atualiza a tela NA HORA, movendo o card sem esperar o servidor
+      queryClient.setQueryData(["appointments", barbershopId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((appt: any) => 
+          appt.id === id ? { ...appt, scheduled_at: newDateStr } : appt
+        );
+      });
+      
+      setDraggingApptId(null);
+    },
     onSuccess: () => {
-      toast({ title: "Agendamento remarcado!", description: "A agenda foi atualizada com sucesso." });
-      if (onRefresh) onRefresh(); // Recarrega os dados do componente pai (Agenda.tsx)
+      toast({ title: "Horário atualizado!", description: "Remarcado com sucesso." });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao remarcar", description: err.message, variant: "destructive" });
+      // Se a internet cair, ele avisa e puxa o dado original de volta
+      toast({ title: "Falha na conexão", description: "Não foi possível remarcar.", variant: "destructive" });
     },
-    onSettled: () => setDraggingApptId(null)
+    onSettled: () => {
+      // Depois de tudo, sincroniza com o banco para garantir a verdade absoluta
+      if (onRefresh) onRefresh();
+    }
   });
 
   // --- HANDLERS DE DRAG AND DROP ---
@@ -69,7 +87,7 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessário para permitir o Drop
+    e.preventDefault(); 
     e.dataTransfer.dropEffect = "move";
   };
 
@@ -80,7 +98,14 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
 
     // Calcula a nova data/hora com base no bloco onde foi solto
     const newDate = new Date(day);
-    newDate.setHours(hour, 0, 0, 0); // Zera os minutos para encaixar perfeitamente no bloco
+    newDate.setHours(hour, 0, 0, 0);
+
+    // Se o cara soltou no mesmo lugar, não faz nada
+    const draggedAppt = appointments.find(a => a.id === apptId);
+    if (draggedAppt && new Date(draggedAppt.scheduled_at).getTime() === newDate.getTime()) {
+      setDraggingApptId(null);
+      return;
+    }
 
     rescheduleMutation.mutate({ id: apptId, newDateStr: newDate.toISOString() });
   };
@@ -88,13 +113,6 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
   return (
     <div className="rounded-[2rem] border border-border bg-card overflow-hidden shadow-2xl relative">
       
-      {/* Overlay de carregamento durante o arrastar */}
-      {rescheduleMutation.isPending && (
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-
       {/* Week navigation */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
         <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, -7))} className="hover:bg-primary/20 hover:text-primary rounded-xl">
@@ -172,18 +190,17 @@ const CalendarView = ({ appointments, onRefresh }: CalendarViewProps) => {
                             ${cfg.bg} ${cfg.border} ${cfg.text} 
                             cursor-grab active:cursor-grabbing
                             hover:brightness-110 hover:scale-[1.02]
-                            ${isDraggingThis ? "opacity-50 scale-95 border-dashed" : "opacity-100"}
+                            ${isDraggingThis ? "opacity-30 scale-95 border-dashed" : "opacity-100"}
                           `}
                           title={`${a.client_name} - ${a.service_name}`}
                         >
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <div className="flex items-center justify-between gap-1 mb-0.5 pointer-events-none">
                             <span className="font-black text-[9px] tracking-widest uppercase bg-background/50 px-1 rounded-sm">
                               {format(new Date(a.scheduled_at), "HH:mm")}
                             </span>
-                            {/* Você pode adicionar um ícone de "grip" aqui se quiser */}
                           </div>
-                          <p className="font-bold text-xs truncate leading-tight">{a.client_name}</p>
-                          <p className="text-[9px] font-medium truncate opacity-80">{a.service_name}</p>
+                          <p className="font-bold text-xs truncate leading-tight pointer-events-none">{a.client_name}</p>
+                          <p className="text-[9px] font-medium truncate opacity-80 pointer-events-none">{a.service_name}</p>
                         </div>
                       );
                     })}
