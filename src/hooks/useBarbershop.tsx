@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useCallback } from "react";
 
-interface Barbershop {
+export interface Barbershop {
   id: string;
   owner_id: string;
   slug: string;
@@ -11,46 +12,31 @@ interface Barbershop {
   address: string;
   settings: Record<string, any>;
   created_at: string;
-  plan_name?: string;
-  plan_status?: string;
+  plan_name: string;
+  plan_status: string;
   setup_completed?: boolean;
 }
 
-// Cache global em memória para persistir entre trocas de abas/rotas
-let memoryCache: Barbershop | null = null;
-
 export const useBarbershop = () => {
-  const { user, loading: authLoading, isAdmin } = useAuth();
-  const [barbershop, setBarbershop] = useState<Barbershop | null>(memoryCache);
-  const [loading, setLoading] = useState(!memoryCache);
-  
-  // Ref para evitar refetch desnecessário se já estiver buscando
-  const isFetching = useRef(false);
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  const clearImpersonation = useCallback(async () => {
-    localStorage.removeItem("impersonate_barbershop_id");
-    memoryCache = null;
-    setBarbershop(null);
-    // Forçamos um refetch para voltar aos dados do dono real
-    window.location.reload(); // Forma mais segura de limpar todos os estados de impersonação
-  }, []);
+  // Pegamos o ID de impersonação para usar como chave de cache
+  const impersonateId = localStorage.getItem("impersonate_barbershop_id");
 
-  const refetch = useCallback(async (forceSilent = false) => {
-    if (isFetching.current) return;
-    
-    if (!forceSilent && !memoryCache) setLoading(true);
-    isFetching.current = true;
-    
-    if (!user) {
-      setBarbershop(null);
-      setLoading(false);
-      isFetching.current = false;
-      return;
-    }
+  const { data: barbershop, isLoading, refetch, isPlaceholderData } = useQuery({
+    // A chave da query garante que o cache mude se o user ou a impersonação mudar
+    queryKey: ["current-barbershop", user?.id, impersonateId],
+    queryFn: async (): Promise<Barbershop | null> => {
+      if (!user) return null;
 
-    try {
-      const impersonateId = localStorage.getItem("impersonate_barbershop_id");
-      
+      // 1. Antes de buscar, validamos se a sessão ainda existe para evitar erro 400
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn("Sessão expirada no useBarbershop. Forçando logout.");
+        return null;
+      }
+
       let query = supabase
         .from("barbershops")
         .select("*, saas_plans(plan_name, status)");
@@ -63,64 +49,41 @@ export const useBarbershop = () => {
 
       const { data, error } = await query.maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro na busca do banco:", error);
+        throw error;
+      }
 
       if (data) {
-        const formattedData: Barbershop = {
+        return {
           ...data,
           plan_name: data.saas_plans?.[0]?.plan_name || "essential",
           plan_status: data.saas_plans?.[0]?.status || "active"
-        };
-        
-        memoryCache = formattedData;
-        setBarbershop(formattedData);
-      } else {
-        setBarbershop(null);
+        } as Barbershop;
       }
-    } catch (err) {
-      console.error("Erro useBarbershop:", err);
-    } finally {
-      setLoading(false);
-      isFetching.current = false;
-    }
-  }, [user, isAdmin]);
+      return null;
+    },
+    // CONFIGURAÇÕES DE RESILIÊNCIA:
+    enabled: !!user && !authLoading, // Só busca se houver usuário logado
+    staleTime: 1000 * 60 * 5, // Considera o dado "quente" por 5 minutos
+    gcTime: 1000 * 60 * 60, // Mantém no lixo por 1 hora antes de deletar
+    retry: 2, // Se a internet oscilar, tenta 2 vezes antes de dar erro
+    refetchOnWindowFocus: true, // A MÁGICA: Revalida tudo quando você volta para a aba
+  });
 
-  useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      memoryCache = null;
-      setBarbershop(null);
-      setLoading(false);
-      return;
-    }
-
-    // Lógica de carga inicial
-    if (!memoryCache) {
-      refetch();
-    } else {
-      setLoading(false);
-      // Se o cache existe mas o owner_id é diferente (e não é admin), limpa
-      if (memoryCache.owner_id !== user.id && !localStorage.getItem("impersonate_barbershop_id") && !isAdmin) {
-        memoryCache = null;
-        refetch();
-      }
-    }
-
-    // Sincronização ao voltar para a aba
-    const handleFocus = () => {
-      if (user) refetch(true);
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [user, authLoading, refetch, isAdmin]);
+  const clearImpersonation = useCallback(async () => {
+    localStorage.removeItem("impersonate_barbershop_id");
+    // Limpamos o cache global e forçamos recarregamento para o dono real
+    await queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+    window.location.href = "/dashboard";
+  }, [queryClient]);
 
   return { 
-    barbershop, 
-    loading: loading || authLoading, 
+    barbershop: barbershop || null, 
+    loading: isLoading || authLoading, 
     user, 
     refetch, 
-    clearImpersonation 
+    clearImpersonation,
+    isUpdating: isPlaceholderData // Útil para mostrar um loader pequeno e discreto no canto
   };
 };
