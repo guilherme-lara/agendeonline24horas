@@ -3,6 +3,7 @@ import {
   CalendarDays, Loader2, Search, Clock, LayoutGrid, List,
   Check, XCircle, Play, Phone, MessageSquare, QrCode,
   Banknote, CalendarPlus, Maximize, Minimize, ExternalLink, Pencil,
+  AlertTriangle // <-- Adicionado para a tela de erro
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -74,6 +75,7 @@ const Agenda = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -87,23 +89,65 @@ const Agenda = () => {
   const [editForm, setEditForm] = useState({ client_name: "", client_phone: "", service_name: "", barber_name: "", scheduled_date: "", scheduled_time: "", price: "" });
   const [editSaving, setEditSaving] = useState(false);
 
-  useEffect(() => {
+  // <-- FUNÇÃO REESCRITA COM TRY/CATCH/FINALLY ABSOLUTO -->
+  const loadDashboardData = async () => {
     if (!barbershop) return;
-    const fetchData = async () => {
+    setLoading(true);
+    setError(false);
+
+    try {
       const [apptRes, svcRes, barberRes] = await Promise.all([
         supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).neq("status", "pendente_sinal").order("scheduled_at", { ascending: false }),
         supabase.from("services").select("id, name, price, duration").eq("barbershop_id", barbershop.id).eq("active", true).order("sort_order"),
         supabase.from("barbers").select("id, name").eq("barbershop_id", barbershop.id).eq("active", true),
       ]);
+
+      // Verifica se o Supabase devolveu erro direto na requisição
+      if (apptRes.error) throw apptRes.error;
+      if (svcRes.error) throw svcRes.error;
+      if (barberRes.error) throw barberRes.error;
+
       setAppointments((apptRes.data as Appointment[]) || []);
       setServices((svcRes.data as Service[]) || []);
       setBarbers((barberRes.data as { id: string; name: string }[]) || []);
-      setLoading(false);
-    };
-    fetchData();
+    } catch (err) {
+      console.error("Erro ao carregar os dados:", err);
+      setError(true); // Aciona a tela de recarregar
+    } finally {
+      setLoading(false); // A MÁGICA: Desliga a bolinha independente de sucesso ou falha
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, [barbershop]);
 
+  // <-- NOVA PROTEÇÃO DE TELA DE ERRO NO REFRESH RÁPIDO -->
+  const refreshAppts = async () => {
+    try {
+      const { data, error } = await supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).neq("status", "pendente_sinal").order("scheduled_at", { ascending: false });
+      if (error) throw error;
+      setAppointments((data as Appointment[]) || []);
+    } catch (err) {
+      console.error("Falha no refresh silencioso:", err);
+    }
+  };
+
+  // <-- TELAS DE PROTEÇÃO RENDERIZADAS AQUI -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os dados. A internet pode ter oscilado.</p>
+      <Button onClick={loadDashboardData} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
+
   if (!barbershop) return null;
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -114,11 +158,6 @@ const Agenda = () => {
     .filter((a) => new Date(a.scheduled_at) >= now)
     .sort((a, b) => compareAsc(new Date(a.scheduled_at), new Date(b.scheduled_at)))
     .slice(0, 5);
-
-  const refreshAppts = async () => {
-    const { data } = await supabase.from("appointments").select("*").eq("barbershop_id", barbershop.id).neq("status", "pendente_sinal").order("scheduled_at", { ascending: false });
-    setAppointments((data as Appointment[]) || []);
-  };
 
   const openEditModal = (appt: Appointment) => {
     const dt = new Date(appt.scheduled_at);
