@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -6,12 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 
-/**
- * Wraps all /dashboard/* routes.
- * - Redirects unauthenticated users to /auth
- * - Redirects Super Admin (isAdmin with no barbershop) to /super-admin
- * - Renders the retractable sidebar + <Outlet /> for nested routes
- */
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -19,19 +13,20 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
+  useEffect(() => {
+    if (authLoading || shopLoading) return;
+    if (!user) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+    if (isAdmin && !barbershop && !isImpersonating) {
+      navigate("/super-admin", { replace: true });
+    }
+  }, [user, isAdmin, barbershop, isImpersonating, authLoading, shopLoading, navigate]);
+
   if (authLoading || shopLoading) return <DashboardSkeleton />;
-
-  // Not logged in
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
-
-  // Super Admin without impersonation should go to master panel
-  if (isAdmin && !barbershop && !isImpersonating) {
-    navigate("/super-admin");
-    return null;
-  }
+  if (!user) return <DashboardSkeleton />;
+  if (isAdmin && !barbershop && !isImpersonating) return <DashboardSkeleton />;
 
   return (
     <div className="flex min-h-screen w-full">

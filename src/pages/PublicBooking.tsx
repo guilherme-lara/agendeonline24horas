@@ -77,6 +77,8 @@ const PublicBooking = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [signalPending, setSignalPending] = useState(false);
+  const [signalWhatsAppUrl, setSignalWhatsAppUrl] = useState<string | null>(null);
 
   // Pix payment state
   const [pixModalOpen, setPixModalOpen] = useState(false);
@@ -94,7 +96,7 @@ const PublicBooking = () => {
     if (!slug) return;
     supabase
       .from("barbershops")
-      .select("id, name, slug, address, logo_url, settings")
+      .select("id, name, slug, address, logo_url, phone, settings")
       .eq("slug", slug)
       .maybeSingle()
       .then(({ data }) => {
@@ -226,6 +228,35 @@ const PublicBooking = () => {
     );
   }
 
+  // Signal pending screen - shown INSTEAD of success when advance payment required
+  if (signalPending) {
+    return (
+      <div className="container max-w-md py-20 text-center animate-scale-in">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/20">
+          <AlertTriangle className="h-8 w-8 text-yellow-400" />
+        </div>
+        <h1 className="font-display text-2xl font-bold mb-2">Aguardando Pagamento do Sinal</h1>
+        <p className="text-muted-foreground text-sm mb-2">
+          Seu agendamento na <span className="text-primary font-semibold">{shop.name}</span> foi registrado, mas só será confirmado após o pagamento do sinal.
+        </p>
+        <p className="text-xs text-muted-foreground mb-6">
+          Envie o comprovante de pagamento pelo WhatsApp para que o dono da barbearia confirme seu horário.
+        </p>
+        {signalWhatsAppUrl && (
+          <a
+            href={signalWhatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Enviar Comprovante via WhatsApp
+          </a>
+        )}
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="container max-w-md py-20 text-center animate-scale-in">
@@ -241,7 +272,6 @@ const PublicBooking = () => {
   }
 
   const handleSubmit = async () => {
-    // === BACKEND DOUBLE CHECK: Barber is mandatory ===
     if (!selectedBarber) {
       toast({ title: "Erro", description: "Por favor, selecione um profissional para continuar.", variant: "destructive" });
       return;
@@ -249,6 +279,10 @@ const PublicBooking = () => {
 
     const phoneDigits = clientPhone.replace(/\D/g, "");
     if (!selectedService || !selectedDate || !selectedTime || !clientName.trim() || phoneDigits.length < 10) return;
+
+    // CRITICAL: Check if service requires advance payment
+    const requiresSignal = selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0;
+
     setSubmitting(true);
     try {
       const scheduledAt = new Date(selectedDate);
@@ -262,12 +296,12 @@ const PublicBooking = () => {
         _service_name: selectedService.name,
         _price: selectedService.price,
         _scheduled_at: scheduledAt.toISOString(),
-        _payment_method: paymentMethod === "local" ? "local" : "pix_online",
+        _payment_method: requiresSignal ? "local" : (paymentMethod === "local" ? "local" : "pix_online"),
       });
 
       if (error) throw error;
 
-      // Update barber_name on the created appointment
+      // Update barber_name
       if (appointmentId) {
         await supabase
           .from("appointments")
@@ -275,21 +309,24 @@ const PublicBooking = () => {
           .eq("id", appointmentId);
       }
 
+      // ENFORCE: If service requires signal, set status to pendente_sinal
+      if (requiresSignal && appointmentId) {
+        await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", appointmentId);
+
+        // Redirect to WhatsApp with payment info
+        const cleanPhone = (shop.phone || "").replace(/\D/g, "");
+        const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+        const msg = encodeURIComponent(
+          `Olá, acabei de solicitar o agendamento de *${selectedService.name}* para ${format(scheduledAt, "dd/MM 'às' HH:mm")}. Segue o comprovante do PIX de R$ ${Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")} referente ao sinal para confirmar meu horário!`
+        );
+        
+        // Show dedicated signal pending screen instead of generic success
+        setSignalPending(true);
+        setSignalWhatsAppUrl(cleanPhone.length >= 10 ? `https://wa.me/${fullPhone}?text=${msg}` : null);
+        return;
+      }
+
       if (paymentMethod === "local") {
-        // If advance payment required, set status to pendente_sinal and open WhatsApp
-        if (selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0) {
-          if (appointmentId) {
-            await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", appointmentId);
-          }
-          const cleanPhone = (shop.phone || "").replace(/\D/g, "");
-          const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-          const msg = encodeURIComponent(
-            `Olá, acabei de solicitar o agendamento de ${selectedService.name}. Segue o comprovante do PIX de R$ ${Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")} referente ao sinal para confirmar meu horário!`
-          );
-          if (cleanPhone.length >= 10) {
-            window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
-          }
-        }
         setSuccess(true);
         return;
       }
@@ -376,7 +413,8 @@ const PublicBooking = () => {
             )}
             <div>
               <h1 className="font-display text-lg font-bold">{shop.name}</h1>
-              <p className="text-xs text-muted-foreground">Agendamento online</p>
+              {shop.address && <p className="text-xs text-muted-foreground">{shop.address}</p>}
+              {shop.phone && <p className="text-xs text-muted-foreground">{shop.phone}</p>}
             </div>
           </div>
           {/* My Appointments Button */}

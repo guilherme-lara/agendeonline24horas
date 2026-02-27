@@ -24,7 +24,6 @@ import DashboardLayout from "./components/DashboardLayout";
 
 // Dashboard sub-pages
 import Agenda from "./pages/dashboard/Agenda";
-import Comandas from "./pages/dashboard/Comandas";
 import Despesas from "./pages/dashboard/Despesas";
 import Clientes from "./pages/dashboard/Clientes";
 import Aniversarios from "./pages/dashboard/Aniversarios";
@@ -33,6 +32,7 @@ import Relatorios from "./pages/dashboard/Relatorios";
 import Profissionais from "./pages/dashboard/Profissionais";
 import Produtos from "./pages/dashboard/Produtos";
 import Configuracoes from "./pages/dashboard/Configuracoes";
+import Servicos from "./pages/dashboard/Servicos";
 import AgendamentoOnline from "./pages/dashboard/AgendamentoOnline";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import Caixa from "./pages/dashboard/Caixa";
@@ -66,7 +66,6 @@ const AppContent = () => {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="agenda" element={<Agenda />} />
-          <Route path="comandas" element={<Comandas />} />
           <Route path="despesas" element={<Despesas />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="aniversarios" element={<Aniversarios />} />
@@ -75,6 +74,7 @@ const AppContent = () => {
           <Route path="profissionais" element={<Profissionais />} />
           <Route path="produtos" element={<Produtos />} />
           <Route path="configuracoes" element={<Configuracoes />} />
+          <Route path="servicos" element={<Servicos />} />
           <Route path="agendamento-online" element={<AgendamentoOnline />} />
           <Route path="pagamentos" element={<Pagamentos />} />
           <Route path="caixa" element={<Caixa />} />
