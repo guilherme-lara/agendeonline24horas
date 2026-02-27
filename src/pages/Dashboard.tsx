@@ -1,3 +1,6 @@
+import {
+  DollarSign, Loader2, TrendingUp, Clock, Users, AlertTriangle, X, Building2, Bell // <-- Adicione Building2 e Bell aqui
+} from "lucide-react";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
