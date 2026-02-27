@@ -1,6 +1,6 @@
 // 1. Core React e Bibliotecas Externas
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -14,11 +14,11 @@ import { useBarbershop } from "@/hooks/useBarbershop";
 import { BookingProvider } from "@/contexts/BookingContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-// 4. Componentes de UI e Layout
+// 4. Componentes de UI e Layout (IMPORTANTE: Verifique estes caminhos)
 import { Loader2, ShieldAlert, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import Header from "@/components/Header";
+import Header from "@/components/Header"; // Correção do ReferenceError
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
 
@@ -58,11 +58,11 @@ import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: true, // Revalida ao voltar para a aba
-      refetchOnReconnect: 'always', // Reconecta se o Wi-Fi oscilar
-      staleTime: 1000 * 30, // Dados considerados "frescos" por 30 segundos
+      refetchOnWindowFocus: true, // Acorda o app ao focar na aba
+      refetchOnReconnect: 'always', // Força reconexão se o sinal cair
+      staleTime: 1000 * 30, // Dados expiram em 30 segundos (foco em tempo real)
       retry: 2,
-      gcTime: 1000 * 60 * 60, // Limpa o cache após 1 hora de inatividade
+      gcTime: 1000 * 60 * 60, 
     },
   },
 });
@@ -115,12 +115,12 @@ const AppContent = () => {
   // --- O SEGREDO: SINCRONIA DE SESSÃO ---
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Se o usuário volta na aba e o token renovou, limpamos o cache para buscar dados novos
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Garante que o app "acorde" ao renovar o token
         queryClient.invalidateQueries(); 
       }
       if (event === 'SIGNED_OUT') {
-        queryClient.clear(); // Limpa o cache por segurança ao sair
+        queryClient.clear(); // Segurança: limpa dados sensíveis ao sair
       }
     });
 
