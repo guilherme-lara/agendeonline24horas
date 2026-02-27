@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Phone, Search, Loader2, Calendar, Clock, User, CalendarX2, Gift } from "lucide-react";
+import { Phone, Search, Loader2, Calendar, Clock, User, CalendarX2, Gift, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppointmentResult {
   id: string;
@@ -81,30 +82,48 @@ const AppointmentCard = ({ a, dimmed }: { a: AppointmentResult; dimmed?: boolean
 };
 
 const MyAppointments = () => {
+  const { toast } = useToast();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [searched, setSearched] = useState(false);
   const [appointments, setAppointments] = useState<AppointmentResult[]>([]);
 
+  // <-- BUSCA BLINDADA COM TRATAMENTO DE ERRO -->
   const handleSearch = useCallback(async (phoneValue?: string) => {
     const searchPhone = phoneValue || phone;
     const digits = searchPhone.replace(/\D/g, "");
     if (digits.length < 10) return;
+
     setLoading(true);
+    setError(false);
     setSearched(true);
 
-    try { localStorage.setItem(STORAGE_KEY, searchPhone.trim()); } catch {}
+    try {
+      try { localStorage.setItem(STORAGE_KEY, searchPhone.trim()); } catch {}
 
-    const { data } = await supabase
-      .from("appointments")
-      .select("id, service_name, barber_name, scheduled_at, status, price, payment_method")
-      .eq("client_phone", searchPhone.trim())
-      .order("scheduled_at", { ascending: false })
-      .limit(50);
+      const { data, error: fetchError } = await supabase
+        .from("appointments")
+        .select("id, service_name, barber_name, scheduled_at, status, price, payment_method")
+        .eq("client_phone", searchPhone.trim())
+        .order("scheduled_at", { ascending: false })
+        .limit(50);
 
-    setAppointments((data as AppointmentResult[]) || []);
-    setLoading(false);
-  }, [phone]);
+      if (fetchError) throw fetchError;
+
+      setAppointments((data as AppointmentResult[]) || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar agendamentos:", err);
+      setError(true);
+      toast({
+        title: "Falha na conexão",
+        description: "Não conseguimos buscar seus dados. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [phone, toast]);
 
   useEffect(() => {
     try {
@@ -114,23 +133,22 @@ const MyAppointments = () => {
         handleSearch(saved);
       }
     } catch {}
-  }, []);
+  }, [handleSearch]);
 
   const now = new Date();
   const upcoming = appointments.filter((a) => new Date(a.scheduled_at) >= now && a.status !== "cancelled");
   const past = appointments.filter((a) => new Date(a.scheduled_at) < now || a.status === "cancelled");
 
-  // Loyalty card
   const completedCount = appointments.filter((a) => a.status === "completed").length;
   const loyaltyProgress = Math.min(completedCount, LOYALTY_GOAL);
   const loyaltyPercent = (loyaltyProgress / LOYALTY_GOAL) * 100;
   const hasEarnedReward = completedCount >= LOYALTY_GOAL;
 
   return (
-    <div className="container max-w-lg py-8">
+    <div className="container max-w-lg py-8 pb-20 animate-fade-in">
       <h1 className="font-display text-2xl font-bold mb-2">Meus Agendamentos</h1>
       <p className="text-sm text-muted-foreground mb-6">
-        Informe seu celular para consultar seus agendamentos
+        Informe seu celular para consultar seus agendamentos e fidelidade
       </p>
 
       <div className="flex gap-2 mb-6">
@@ -160,7 +178,21 @@ const MyAppointments = () => {
         </div>
       )}
 
-      {searched && !loading && appointments.length === 0 && (
+      {/* TELA DE ERRO (Resiliência) */}
+      {error && !loading && (
+        <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in bg-destructive/5 rounded-xl border border-destructive/20">
+          <AlertTriangle className="h-10 w-10 text-destructive mb-3" />
+          <h3 className="font-bold text-lg">Erro na consulta</h3>
+          <p className="text-sm text-muted-foreground mb-6 px-4">
+            Houve uma oscilação na rede. Clique no botão abaixo para tentar buscar novamente.
+          </p>
+          <Button onClick={() => handleSearch()} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+            Tentar Novamente
+          </Button>
+        </div>
+      )}
+
+      {searched && !loading && !error && appointments.length === 0 && (
         <div className="text-center py-16 animate-fade-in">
           <CalendarX2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
           <h3 className="font-display text-lg font-bold mb-1">Nenhum agendamento</h3>
@@ -173,10 +205,10 @@ const MyAppointments = () => {
         </div>
       )}
 
-      {!loading && appointments.length > 0 && (
+      {!loading && !error && appointments.length > 0 && (
         <div className="space-y-6 animate-fade-in">
           {/* Loyalty Card */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 backdrop-blur-sm shadow-sm">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 backdrop-blur-sm shadow-sm border-l-4 border-l-primary">
             <div className="flex items-center gap-2 mb-3">
               <Gift className="h-5 w-5 text-primary" />
               <h2 className="font-display text-sm font-bold">Cartão Fidelidade</h2>
@@ -193,7 +225,7 @@ const MyAppointments = () => {
 
           {upcoming.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-primary mb-3">Próximos ({upcoming.length})</h2>
+              <h2 className="text-sm font-semibold text-primary mb-3 uppercase tracking-wider">Próximos ({upcoming.length})</h2>
               <div className="space-y-2">
                 {upcoming.map((a) => <AppointmentCard key={a.id} a={a} />)}
               </div>
@@ -202,7 +234,7 @@ const MyAppointments = () => {
 
           {past.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">Histórico ({past.length})</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Histórico ({past.length})</h2>
               <div className="space-y-2">
                 {past.map((a) => <AppointmentCard key={a.id} a={a} dimmed />)}
               </div>
