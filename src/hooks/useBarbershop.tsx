@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -16,26 +16,35 @@ interface Barbershop {
   setup_completed?: boolean;
 }
 
-// Cache global em memória
+// Cache global em memória para persistir entre trocas de abas/rotas
 let memoryCache: Barbershop | null = null;
 
 export const useBarbershop = () => {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [barbershop, setBarbershop] = useState<Barbershop | null>(memoryCache);
   const [loading, setLoading] = useState(!memoryCache);
+  
+  // Ref para evitar refetch desnecessário se já estiver buscando
+  const isFetching = useRef(false);
 
-  const clearImpersonation = useCallback(() => {
+  const clearImpersonation = useCallback(async () => {
     localStorage.removeItem("impersonate_barbershop_id");
     memoryCache = null;
     setBarbershop(null);
+    // Forçamos um refetch para voltar aos dados do dono real
+    window.location.reload(); // Forma mais segura de limpar todos os estados de impersonação
   }, []);
 
   const refetch = useCallback(async (forceSilent = false) => {
+    if (isFetching.current) return;
+    
     if (!forceSilent && !memoryCache) setLoading(true);
+    isFetching.current = true;
     
     if (!user) {
       setBarbershop(null);
       setLoading(false);
+      isFetching.current = false;
       return;
     }
 
@@ -63,14 +72,16 @@ export const useBarbershop = () => {
           plan_status: data.saas_plans?.[0]?.status || "active"
         };
         
-        // Atualiza a referência global e o estado local
         memoryCache = formattedData;
         setBarbershop(formattedData);
+      } else {
+        setBarbershop(null);
       }
     } catch (err) {
       console.error("Erro useBarbershop:", err);
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   }, [user, isAdmin]);
 
@@ -84,22 +95,26 @@ export const useBarbershop = () => {
       return;
     }
 
-    // Se não tem cache, busca. Se tem, sincroniza silenciosamente.
+    // Lógica de carga inicial
     if (!memoryCache) {
       refetch();
     } else {
       setLoading(false);
-      // Sincronização em background para garantir que o plano/dados mudaram
-      refetch(true); 
+      // Se o cache existe mas o owner_id é diferente (e não é admin), limpa
+      if (memoryCache.owner_id !== user.id && !localStorage.getItem("impersonate_barbershop_id") && !isAdmin) {
+        memoryCache = null;
+        refetch();
+      }
     }
 
-    // MÁGICA PARA O SISTEMA REDONDO:
-    // Revalida os dados sempre que o usuário volta para a aba do navegador
-    const handleFocus = () => refetch(true);
+    // Sincronização ao voltar para a aba
+    const handleFocus = () => {
+      if (user) refetch(true);
+    };
+
     window.addEventListener("focus", handleFocus);
-    
     return () => window.removeEventListener("focus", handleFocus);
-  }, [user, authLoading, refetch]);
+  }, [user, authLoading, refetch, isAdmin]);
 
   return { 
     barbershop, 
