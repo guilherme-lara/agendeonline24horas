@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { Scissors, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,18 +22,28 @@ const Login = () => {
   const [name, setName] = useState("");
   const submittingRef = useRef(false);
 
-  // Redirect if already logged in
+
+  const location = useLocation();  
   useEffect(() => {
-    if (authLoading || shopLoading) return;
-    if (!user) return;
-    // Admin/Master always goes to super-admin
-    if (isAdmin) {
+  if (authLoading) return;
+  if (!user) return;
+  if (isAdmin) {
+    if (location.pathname !== "/super-admin") {
       navigate("/super-admin", { replace: true });
-      return;
     }
-    if (barbershop) navigate("/dashboard", { replace: true });
-    else navigate("/onboarding", { replace: true });
-  }, [user, barbershop, isAdmin, authLoading, shopLoading, navigate]);
+    return;
+  }
+  if (shopLoading) return;
+  if (barbershop) {
+    if (location.pathname !== "/dashboard") {
+      navigate("/dashboard", { replace: true });
+    }
+  } else {
+    if (location.pathname !== "/onboarding") {
+      navigate("/onboarding", { replace: true });
+    }
+  }
+}, [user, barbershop, isAdmin, authLoading, shopLoading, navigate, location.pathname]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
