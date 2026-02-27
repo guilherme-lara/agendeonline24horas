@@ -38,7 +38,16 @@ import Pagamentos from "./pages/dashboard/Pagamentos";
 import Caixa from "./pages/dashboard/Caixa";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-const queryClient = new QueryClient();
+// A MÁGICA ACONTECE AQUI: Configuração do Tanstack Query blindada!
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Chega de travar ao trocar de aba!
+      retry: 1, // Se a internet falhar, tenta só mais uma vez rapidinho
+      staleTime: 1000 * 60 * 5, // Considera os dados recentes por 5 minutos
+    },
+  },
+});
 
 const AppContent = () => {
   const { pathname } = useLocation();
