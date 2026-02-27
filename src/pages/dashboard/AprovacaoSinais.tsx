@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   AlertTriangle, Loader2, Check, XCircle, Phone, MessageCircle,
 } from "lucide-react";
@@ -27,20 +27,36 @@ const AprovacaoSinais = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<PendingSignal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
 
-  const fetch = async () => {
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const loadPendingSignals = useCallback(async () => {
     if (!barbershop) return;
-    const { data } = await supabase
-      .from("appointments")
-      .select("id, client_name, client_phone, service_name, barber_name, price, scheduled_at, status, created_at")
-      .eq("barbershop_id", barbershop.id)
-      .eq("status", "pendente_sinal")
-      .order("created_at", { ascending: false });
-    setAppointments((data as PendingSignal[]) || []);
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(false);
 
-  useEffect(() => { fetch(); }, [barbershop]);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("appointments")
+        .select("id, client_name, client_phone, service_name, barber_name, price, scheduled_at, status, created_at")
+        .eq("barbershop_id", barbershop.id)
+        .eq("status", "pendente_sinal")
+        .order("created_at", { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setAppointments((data as PendingSignal[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar sinais pendentes:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Independente de falha ou sucesso, o carregamento desliga.
+    }
+  }, [barbershop]);
+
+  useEffect(() => { 
+    loadPendingSignals(); 
+  }, [loadPendingSignals]);
 
   const handleApprove = async (id: string) => {
     const { error } = await supabase
@@ -51,7 +67,7 @@ const AprovacaoSinais = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Sinal confirmado! Agendamento visível na Agenda." });
-      fetch();
+      loadPendingSignals(); // Atualizado para a nova função
     }
   };
 
@@ -64,7 +80,7 @@ const AprovacaoSinais = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Agendamento cancelado." });
-      fetch();
+      loadPendingSignals(); // Atualizado para a nova função
     }
   };
 
@@ -75,7 +91,21 @@ const AprovacaoSinais = () => {
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
   };
 
+  // <-- TELAS DE PROTEÇÃO -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os sinais pendentes.</p>
+      <Button onClick={loadPendingSignals} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
+
   if (!barbershop) return null;
 
   return (
