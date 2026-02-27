@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
-import { Loader2, Cake, Phone, MessageCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Cake, Phone, MessageCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 interface Customer {
   id: string;
@@ -15,53 +16,42 @@ interface Customer {
 
 const Aniversarios = () => {
   const { barbershop } = useBarbershop();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false); // <-- Estado de erro isolado
 
-  // <-- FUNÇÃO REESCRITA COM TRY/CATCH/FINALLY ABSOLUTO -->
-  const loadBirthdays = useCallback(async () => {
-    if (!barbershop) return;
-    setLoading(true);
-    setError(false);
+  // --- BUSCA DE DADOS (TANSTACK QUERY) ---
+  const { data: customers = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["birthdays", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
 
-    try {
-      const currentMonth = new Date().getMonth() + 1;
-      
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from("customers")
         .select("id, name, phone, birth_date")
         .eq("barbershop_id", barbershop.id)
         .not("birth_date", "is", null);
 
-      if (fetchError) throw fetchError;
+      if (error) throw error;
 
+      const currentMonth = new Date().getMonth() + 1;
+      
+      // Filtramos e ordenamos os dados dentro da função de busca
       const birthdayThisMonth = ((data as Customer[]) || []).filter((c) => {
         if (!c.birth_date) return false;
+        // Adicionamos o T00:00 para evitar problemas de fuso horário na conversão
         const month = new Date(c.birth_date + "T00:00").getMonth() + 1;
         return month === currentMonth;
       });
 
-      birthdayThisMonth.sort((a, b) => {
+      return birthdayThisMonth.sort((a, b) => {
         const dayA = new Date(a.birth_date + "T00:00").getDate();
         const dayB = new Date(b.birth_date + "T00:00").getDate();
         return dayA - dayB;
       });
+    },
+    enabled: !!barbershop?.id,
+    refetchOnWindowFocus: true, // Auto-update ao voltar para a aba
+    staleTime: 1000 * 60 * 30, // Considera os aniversariantes "frescos" por 30 minutos
+  });
 
-      setCustomers(birthdayThisMonth);
-    } catch (err) {
-      console.error("Erro ao carregar aniversariantes:", err);
-      setError(true);
-    } finally {
-      setLoading(false); // A MÁGICA: Independente do que acontecer, a tela nunca trava!
-    }
-  }, [barbershop]);
-
-  useEffect(() => {
-    loadBirthdays();
-  }, [loadBirthdays]);
-
-  // Função do WhatsApp ajustada
   const sendWhatsApp = (phone: string, name: string) => {
     if (!phone) return;
     const msg = encodeURIComponent(
@@ -74,76 +64,102 @@ const Aniversarios = () => {
 
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
 
-  // <-- TELAS DE PROTEÇÃO -->
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  // --- TELAS DE PROTEÇÃO ---
+  if (isLoading && !customers.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+        <p className="text-xs text-slate-500 animate-pulse uppercase tracking-widest font-bold">Localizando festas...</p>
+      </div>
+    );
+  }
 
-  // TELA DE ERRO (Adeus F5!)
-  if (error) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
-      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os aniversariantes.</p>
-      <Button onClick={loadBirthdays} className="gold-gradient text-primary-foreground font-semibold px-8">
-        Tentar Novamente
-      </Button>
-    </div>
-  );
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Erro de sincronia</h2>
+        <p className="text-sm text-slate-400 mb-8">Não conseguimos carregar a lista de aniversariantes.</p>
+        <Button onClick={() => refetch()} className="gold-gradient px-8 font-bold">
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-          <Cake className="h-6 w-6 text-primary" /> Aniversários
+    <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-10">
+        <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+          <Cake className="h-8 w-8 text-cyan-400" /> Aniversários
         </h1>
-        <p className="text-sm text-muted-foreground capitalize">
-          {customers.length} aniversariante{customers.length !== 1 ? "s" : ""} em {monthName}
+        <p className="text-slate-500 text-sm mt-1 font-medium capitalize">
+          {customers.length} aniversariante{customers.length !== 1 ? "s" : ""} identificado{customers.length !== 1 ? "s" : ""} em {monthName}
         </p>
       </div>
 
       {customers.length === 0 ? (
-        <div className="text-center py-16">
-          <Cake className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg mb-1 capitalize">Sem aniversariantes em {monthName}</h3>
-          <p className="text-sm text-muted-foreground">
-            Cadastre clientes com data de nascimento para ativar esta funcionalidade de marketing.
+        <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-16 text-center backdrop-blur-sm">
+          <div className="bg-slate-950 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800">
+            <Cake className="h-10 w-10 text-slate-700" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2 capitalize">Mês tranquilo em {monthName}</h3>
+          <p className="text-sm text-slate-500 max-w-xs mx-auto">
+            Cadastre as datas de nascimento dos seus clientes para criar promoções automáticas de marketing.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
           {customers.map((c) => {
             const day = new Date(c.birth_date + "T00:00").getDate();
             const today = new Date().getDate();
             const isToday = day === today;
+            
             return (
               <div
                 key={c.id}
-                className={`rounded-xl border bg-card p-4 flex items-center gap-4 ${
-                  isToday ? "border-primary shadow-gold" : "border-border"
+                className={`group rounded-2xl border transition-all duration-300 p-5 flex items-center gap-5 backdrop-blur-md ${
+                  isToday 
+                    ? "bg-cyan-500/10 border-cyan-500/30 shadow-lg shadow-cyan-900/20 scale-[1.02]" 
+                    : "bg-slate-900/40 border-slate-800 hover:border-slate-700"
                 }`}
               >
-                <div className={`h-12 w-12 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${
-                  isToday ? "gold-gradient" : "bg-secondary"
+                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform group-hover:rotate-12 ${
+                  isToday ? "bg-cyan-500 text-white shadow-cyan-500/40 shadow-lg" : "bg-slate-950 border border-slate-800"
                 } `}>
                   🎂
                 </div>
+                
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold truncate">{c.name}</p>
-                    {isToday && <span className="text-xs text-primary font-bold">HOJE!</span>}
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-bold text-white truncate">{c.name}</p>
+                    {isToday && (
+                      <Badge className="bg-cyan-500 hover:bg-cyan-500 text-[10px] font-black uppercase text-white animate-pulse">
+                        HOJE!
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Dia {day}</span>
-                    {c.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{c.phone}</span>}
+                  <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+                    <span className={isToday ? "text-cyan-400" : ""}>Dia {day}</span>
+                    {c.phone && (
+                      <span className="flex items-center gap-1 opacity-60">
+                        <Phone className="h-3 w-3" /> {c.phone}
+                      </span>
+                    )}
                   </div>
                 </div>
+
                 {c.phone && (
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={() => sendWhatsApp(c.phone, c.name)}
-                    className="flex-shrink-0 border-green-500/40 text-green-500 hover:bg-green-500/10"
+                    className={`h-10 rounded-xl px-4 font-bold transition-all ${
+                        isToday 
+                        ? "bg-cyan-500 hover:bg-cyan-400 text-white" 
+                        : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20"
+                    }`}
                   >
-                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    <MessageCircle className="h-4 w-4 mr-2" />
                     Parabenizar
                   </Button>
                 )}
