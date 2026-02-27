@@ -1,17 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays, BarChart3, CreditCard, Bell, Users, Shield,
-  Sparkles, Package, Brain, Check, ArrowRight, Scissors, Star, Quote,
+  Sparkles, Package, Brain, Check, ArrowRight, Scissors, Star, Quote, Zap, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const features = [
-  { icon: CalendarDays, title: "Agendamento Online", desc: "Seus clientes agendam 24h direto pelo link exclusivo da sua barbearia." },
-  { icon: BarChart3, title: "Dashboard Inteligente", desc: "Acompanhe faturamento, cortes e métricas em tempo real." },
-  { icon: CreditCard, title: "Pagamentos Integrados", desc: "Receba via Pix e Cartão diretamente na plataforma." },
-  { icon: Bell, title: "Notificações", desc: "Lembre seus clientes via WhatsApp e E-mail automaticamente." },
-  { icon: Users, title: "Gestão de Equipe", desc: "Gerencie barbeiros, horários e comissões em um só lugar." },
-  { icon: Shield, title: "Dados Seguros", desc: "Infraestrutura profissional com isolamento total por barbearia." },
+  { icon: Globe, title: "Link de Agendamento", desc: "Sua barbearia aberta 24h por dia com um endereço exclusivo e profissional." },
+  { icon: BarChart3, title: "BI e Relatórios", desc: "Acompanhe faturamento, lucratividade e ticket médio em dashboards neon." },
+  { icon: CreditCard, title: "PDV Integrado", desc: "Feche comandas, venda produtos e controle o estoque em segundos." },
+  { icon: Bell, title: "Lembretes Inteligentes", desc: "Reduza faltas em até 40% com notificações automáticas via WhatsApp." },
+  { icon: Users, title: "Gestão de Comissões", desc: "Cálculo automático de ganhos para cada barbeiro do seu time." },
+  { icon: Shield, title: "Infraestrutura Cloud", desc: "Dados protegidos em servidores de alta performance com isolamento total." },
 ];
 
 const plans = [
@@ -19,51 +20,44 @@ const plans = [
     name: "Essential",
     price: "97",
     period: "/mês",
-    desc: "Ideal para profissionais solo",
-    features: ["Link de agendamento personalizado", "Dashboard básico (ganhos dia/mês)", "Gestão de 1 barbeiro", "Suporte via E-mail"],
+    desc: "Para barbeiros independentes",
+    features: ["Link de agendamento único", "Até 100 agendamentos/mês", "Dashboard de ganhos", "Gestão de 1 profissional"],
     cta: "Começar Agora",
     popular: false,
+    color: "slate"
   },
   {
     name: "Growth",
     price: "197",
     period: "/mês",
-    desc: "Para barbearias em expansão",
+    desc: "O motor das barbearias de elite",
     features: [
       "Tudo do Essential",
       "Pagamentos via Pix Online",
-      "Lembretes automáticos",
-      "Dashboard de faturamento avançado",
-      "Até 5 barbeiros",
-      "Relatórios financeiros",
+      "Lembretes de WhatsApp",
+      "Controle de Comissões",
+      "Até 5 profissionais",
     ],
-    cta: "Escolher Growth",
+    cta: "Escolher Plano Growth",
     popular: true,
+    color: "cyan"
   },
   {
     name: "Pro",
     price: "397",
     period: "/mês",
-    desc: "Potência total para o seu negócio",
+    desc: "Controle total e automação",
     features: [
       "Tudo do Growth",
-      "Gestão de Estoque Completa",
-      "Sistema de CRM e Fidelidade",
-      "Relatórios preditivos com IA",
-      "Barbeiros ilimitados",
-      "Suporte prioritário 24/7",
+      "Gestão de Estoque Full",
+      "Sistema de Fidelidade",
+      "Relatórios com IA",
+      "Barbeiros Ilimitados",
     ],
-    cta: "Quero o Pro",
+    cta: "Acessar Plano Pro",
     popular: false,
+    color: "emerald"
   },
-];
-
-const planIcons = [Package, Sparkles, Brain];
-
-const testimonials = [
-  { name: "Guilherme L.", shop: "Barber Flow", text: "A automação de pagamentos mudou meu negócio. Não perco mais tempo conferindo PIX.", rating: 5 },
-  { name: "Rafael M.", shop: "Studio Barber", text: "O dashboard me dá uma clareza absurda de onde está vindo o lucro. Essencial.", rating: 5 },
-  { name: "Lucas P.", shop: "Vintage Shop", text: "Meus clientes elogiam a facilidade do agendamento. O sistema é muito rápido.", rating: 5 },
 ];
 
 const SaaSLanding = () => {
@@ -74,204 +68,195 @@ const SaaSLanding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/30">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-24 pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.15),transparent_70%)]" />
-        <div className="container relative z-10 text-center max-w-5xl px-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary mb-10 animate-fade-in">
-            <Sparkles className="h-3.5 w-3.5 fill-primary" /> A plataforma mais completa para barbearias
-          </div>
+    <div className="min-h-screen bg-[#0b1224] text-white selection:bg-cyan-500/30 overflow-x-hidden">
+      {/* --- HERO SECTION --- */}
+      <section className="relative pt-24 pb-32 lg:pt-32">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[500px] bg-cyan-500/10 blur-[120px] rounded-full -z-10" />
+        
+        <div className="container px-6 text-center max-w-5xl relative z-10">
+          <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 mb-8 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700">
+            <Sparkles className="h-3 w-3 mr-2 fill-cyan-400" /> A Revolução da Barbearia 2.0
+          </Badge>
           
-          <h1 className="font-display text-5xl sm:text-6xl lg:text-8xl font-bold leading-[1.1] mb-8 animate-slide-up">
-            Sua barbearia no <br />
-            <span className="text-gold-gradient">topo do mercado</span>
+          <h1 className="font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[0.9] mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            Escalamos sua <br />
+            <span className="text-cyan-500 text-glow-cyan">Barbearia.</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 animate-slide-up duration-700" style={{ animationDelay: "200ms" }}>
-            Agendamento 24h, gestão financeira automática e controle total de estoque. 
-            A tecnologia que você precisa para focar no que importa: a tesoura.
+          <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-12 font-medium leading-relaxed animate-in fade-in duration-1000">
+            Agendamento digital, gestão financeira automática e automação de estoque. 
+            Dê adeus às planilhas e assuma o controle do seu lucro.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up duration-1000" style={{ animationDelay: "400ms" }}>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in zoom-in-95 duration-1000">
             <Button
-              size="lg"
-              onClick={() => navigate("/auth")}
-              className="gold-gradient text-primary-foreground font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-all text-base px-10 py-7 h-auto"
+              onClick={() => navigate("/login")}
+              className="w-full sm:w-auto h-16 px-10 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-2xl shadow-cyan-900/20 text-lg transition-all active:scale-95 group"
             >
-              Criar Minha Barbearia <ArrowRight className="ml-2 h-5 w-5" />
+              Criar Minha Conta <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
-              size="lg"
               variant="outline"
               onClick={scrollToPricing}
-              className="text-base px-10 py-7 h-auto hover:bg-secondary transition-all"
+              className="w-full sm:w-auto h-16 px-10 border-slate-800 bg-slate-900/40 text-slate-400 hover:text-white hover:bg-slate-900 font-bold rounded-2xl transition-all"
             >
-              Ver Planos e Preços
+              Ver Planos de Assinatura
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="container py-24 px-4">
+      {/* --- FEATURES GRID --- */}
+      <section className="container py-24 px-6 relative">
+        <div className="absolute right-0 top-1/4 w-96 h-96 bg-emerald-500/5 blur-[120px] rounded-full" />
+        
         <div className="text-center mb-20">
-          <p className="text-xs uppercase tracking-[0.3em] text-primary mb-3 font-bold">Tecnologia</p>
-          <h2 className="font-display text-4xl sm:text-5xl font-bold">
-            Gestão <span className="text-gold-gradient">sem esforço</span>
-          </h2>
+          <Badge variant="outline" className="border-slate-800 text-slate-500 font-bold uppercase text-[9px] tracking-widest px-3 py-1 mb-4">Core Engine</Badge>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Potência Industrial</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {features.map((f, i) => (
             <div
               key={f.title}
-              className="group rounded-2xl border border-border bg-card p-8 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 animate-fade-in"
+              className="group relative rounded-[2rem] border border-slate-800 bg-slate-900/40 p-8 hover:border-cyan-500/30 transition-all duration-500 backdrop-blur-sm"
               style={{ animationDelay: `${i * 100}ms` }}
             >
-              <div className="h-12 w-12 rounded-xl gold-gradient flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <f.icon className="h-6 w-6 text-primary-foreground" />
+              <div className="h-12 w-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center mb-6 group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30 transition-all">
+                <f.icon className="h-6 w-6 text-cyan-400" />
               </div>
-              <h3 className="font-display text-xl font-bold mb-3">{f.title}</h3>
-              <p className="text-muted-foreground leading-relaxed text-sm">{f.desc}</p>
+              <h3 className="text-xl font-bold text-white mb-3 tracking-tight">{f.title}</h3>
+              <p className="text-slate-500 leading-relaxed text-sm font-medium">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-secondary/30 py-24 px-4">
-        <div className="container">
-          <div className="text-center mb-20">
-            <h2 className="font-display text-4xl font-bold">
-              Quem usa <span className="text-gold-gradient">fatura mais</span>
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {testimonials.map((t, i) => (
-              <div
-                key={t.name}
-                className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-all animate-fade-in"
-                style={{ animationDelay: `${i * 200}ms` }}
-              >
-                <div className="flex gap-1 mb-6">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <Quote className="h-8 w-8 text-primary/10 mb-4" />
-                <p className="text-muted-foreground mb-8 text-sm italic leading-relaxed">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full gold-gradient flex items-center justify-center font-bold text-primary-foreground text-xs">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.shop}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="container py-32 px-4">
+      {/* --- PRICING SECTION --- */}
+      <section id="pricing" className="container py-32 px-6">
         <div className="text-center mb-20">
-          <p className="text-xs uppercase tracking-[0.3em] text-primary mb-3 font-bold">Investimento</p>
-          <h2 className="font-display text-4xl sm:text-5xl font-bold mb-6">
-            O plano certo para o seu <span className="text-gold-gradient">tamanho</span>
+          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 mb-4 px-3 py-1 text-[10px] font-black uppercase tracking-widest">Pricing</Badge>
+          <h2 className="text-4xl sm:text-6xl font-black tracking-tight mb-6">
+            O plano ideal para sua <span className="text-emerald-500">Escala</span>
           </h2>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Recupere o valor do investimento em menos de 3 cortes no mês.
+          <p className="text-slate-500 text-sm max-w-md mx-auto font-medium leading-relaxed">
+            Sem letras miúdas. Cancele quando quiser. Recupere o investimento em menos de 1 dia de trabalho.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, i) => {
-            const Icon = planIcons[i];
-            return (
-              <div
-                key={plan.name}
-                className={`relative rounded-3xl border p-10 transition-all duration-500 animate-fade-in ${
-                  plan.popular
-                    ? "border-primary bg-card shadow-2xl shadow-primary/10 scale-105 z-10"
-                    : "border-border bg-card hover:border-primary/30"
-                }`}
-                style={{ animationDelay: `${i * 150}ms` }}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 gold-gradient text-primary-foreground text-[10px] uppercase tracking-widest font-black px-6 py-1.5 rounded-full shadow-lg">
-                    Recomendado
-                  </div>
-                )}
-                
-                <div className="text-center mb-8">
-                  <Icon className={`mx-auto h-10 w-10 mb-4 ${plan.popular ? "text-primary" : "text-muted-foreground/50"}`} />
-                  <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-2">{plan.desc}</p>
-                  <div className="mt-6 flex items-baseline justify-center gap-1">
-                    <span className="text-sm font-bold text-muted-foreground">R$</span>
-                    <span className="font-display text-5xl font-extrabold text-primary">{plan.price}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{plan.period}</span>
-                  </div>
+          {plans.map((plan, i) => (
+            <div
+              key={plan.name}
+              className={`relative rounded-[2.5rem] border p-10 transition-all duration-500 flex flex-col ${
+                plan.popular
+                  ? "border-cyan-500 bg-slate-900/60 shadow-2xl shadow-cyan-900/20 scale-105 z-10"
+                  : "border-slate-800 bg-slate-900/40 hover:border-slate-700"
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-cyan-500 text-white text-[10px] font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full shadow-lg">
+                  Mais Escolhido
                 </div>
+              )}
+              
+              <div className="mb-8">
+                <h3 className="text-2xl font-black text-white tracking-tight">{plan.name}</h3>
+                <p className="text-xs text-slate-500 mt-2 font-bold uppercase tracking-widest">{plan.desc}</p>
                 
-                <ul className="space-y-4 mb-10">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm">
-                      <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground leading-tight">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Button
-                  onClick={() => navigate("/auth")}
-                  className={`w-full py-6 h-auto font-bold rounded-xl transition-all ${
-                    plan.popular
-                      ? "gold-gradient text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20"
-                      : "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
-                  }`}
-                >
-                  {plan.cta}
-                </Button>
+                <div className="mt-8 flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-slate-500">R$</span>
+                  <span className={`text-6xl font-black tracking-tighter ${plan.popular ? "text-cyan-400" : "text-white"}`}>
+                    {plan.price}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{plan.period}</span>
+                </div>
               </div>
-            );
-          })}
+              
+              <ul className="space-y-4 mb-10 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-sm font-medium">
+                    <Check className={`h-5 w-5 ${plan.popular ? "text-cyan-400" : "text-emerald-400"} flex-shrink-0`} />
+                    <span className="text-slate-400 leading-tight">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <Button
+                onClick={() => navigate("/login")}
+                className={`w-full h-14 font-black rounded-2xl transition-all shadow-xl ${
+                  plan.popular
+                    ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20"
+                    : "bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-900"
+                }`}
+              >
+                {plan.cta}
+              </Button>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="container pb-32 px-4">
-        <div className="rounded-[2.5rem] border border-primary/20 bg-gradient-to-b from-card to-secondary/20 p-12 sm:p-20 text-center max-w-4xl mx-auto shadow-inner relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 bg-primary/5 rounded-full blur-3xl" />
-          <Scissors className="h-12 w-12 text-primary mx-auto mb-8 animate-bounce" />
-          <h2 className="font-display text-3xl sm:text-5xl font-bold mb-6">
-            Chega de perder tempo com papel e caneta.
-          </h2>
-          <p className="text-lg text-muted-foreground mb-12 max-w-md mx-auto leading-relaxed">
-            Modernize sua barbearia agora e ofereça a melhor experiência para seus clientes.
-          </p>
-          <Button
-            size="lg"
-            onClick={() => navigate("/auth")}
-            className="gold-gradient text-primary-foreground font-black shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-lg px-12 py-8 h-auto"
-          >
-            Começar Meu Teste Grátis <ArrowRight className="ml-2 h-6 w-6" />
-          </Button>
+      {/* --- TESTIMONIALS --- */}
+      <section className="bg-slate-900/20 py-24 border-y border-slate-800/50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent pointer-events-none" />
+        <div className="container px-6 relative">
+            <h2 className="text-center text-sm font-black uppercase text-slate-600 tracking-[0.4em] mb-16">Proof of Concept</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                {testimonials.map((t, i) => (
+                    <div key={t.name} className="bg-slate-950/50 border border-slate-800 p-8 rounded-[2rem] shadow-xl backdrop-blur-md">
+                        <Quote className="h-8 w-8 text-cyan-500/20 mb-4" />
+                        <p className="text-slate-300 mb-8 italic text-sm leading-relaxed font-medium">"{t.text}"</p>
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center font-black text-cyan-400 text-xs">
+                                {t.name[0]}
+                            </div>
+                            <div>
+                                <p className="font-bold text-white text-sm">{t.name}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t.shop}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
       </section>
 
-      {/* Footer Minimalista */}
-      <footer className="container py-12 text-center border-t border-border px-4">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Scissors className="h-4 w-4 text-primary" />
-          <span className="font-display font-bold text-sm tracking-tighter">AgendeOnline24Horas</span>
+      {/* --- FINAL CALL TO ACTION --- */}
+      <section className="container py-32 px-6">
+        <div className="relative rounded-[3rem] border border-cyan-500/20 bg-gradient-to-br from-slate-900/80 to-[#0b1224] p-12 sm:p-24 text-center max-w-5xl mx-auto shadow-2xl overflow-hidden backdrop-blur-xl">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
+          
+          <div className="relative z-10">
+            <div className="h-16 w-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-10 shadow-lg shadow-cyan-900/20">
+                <Zap className="h-8 w-8 text-cyan-400 fill-cyan-400" />
+            </div>
+            <h2 className="text-4xl sm:text-6xl font-black text-white mb-6 tracking-tight leading-none">
+              A era do papel acabou.
+            </h2>
+            <p className="text-lg text-slate-400 mb-12 max-w-lg mx-auto font-medium leading-relaxed">
+              Modernize seu fluxo, encante seus clientes e veja seus lucros crescerem com a maior plataforma do mercado.
+            </p>
+            <Button
+              size="lg"
+              onClick={() => navigate("/login")}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-2xl shadow-emerald-900/30 h-16 px-12 rounded-2xl text-lg transition-all active:scale-95"
+            >
+              Criar Minha Barbearia Agora <ArrowRight className="ml-2 h-6 w-6" />
+            </Button>
+          </div>
         </div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-          Desenvolvido para barbeiros de alta performance &copy; 2024
+      </section>
+
+      {/* --- FOOTER --- */}
+      <footer className="container py-12 text-center border-t border-slate-800/50 px-6">
+        <div className="flex items-center justify-center gap-3 mb-4 opacity-50">
+          <Scissors className="h-4 w-4 text-cyan-500" />
+          <span className="font-black text-xs uppercase tracking-[0.4em] text-white">System Online SaaS</span>
+        </div>
+        <p className="text-[10px] text-slate-700 font-bold uppercase tracking-[0.2em]">
+          Powered by Guilherme Lara Tech Ecosystem &bull; 2026
         </p>
       </footer>
     </div>
