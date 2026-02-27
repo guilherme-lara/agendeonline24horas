@@ -45,9 +45,14 @@ import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 1000 * 60 * 5,
+      // MÁGICA: Revalida os dados sempre que você volta para a aba
+      refetchOnWindowFocus: true, 
+      // Se os dados têm menos de 5 min, ele não faz barulho, apenas usa o cache
+      staleTime: 1000 * 60 * 5, 
+      // Tenta recuperar 3 vezes antes de mostrar erro
+      retry: 3,
+      // Se a aba hibernar por horas, o dado é jogado fora e buscado do zero ao voltar
+      gcTime: 1000 * 60 * 60, 
     },
   },
 });
