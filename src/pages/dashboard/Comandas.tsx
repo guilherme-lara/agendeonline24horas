@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, Plus, Loader2, Trash2, CheckCircle } from "lucide-react";
+import { Ticket, Plus, Loader2, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -35,6 +35,7 @@ const Comandas = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
   const [open, setOpen] = useState(false);
   const [barberName, setBarberName] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
@@ -44,18 +45,33 @@ const Comandas = () => {
   const [items, setItems] = useState<{ name: string; price: number; qty: number }[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const fetchOrders = async () => {
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const loadOrders = useCallback(async () => {
     if (!barbershop) return;
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("barbershop_id", barbershop.id)
-      .order("created_at", { ascending: false });
-    setOrders((data as unknown as Order[]) || []);
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(false);
 
-  useEffect(() => { fetchOrders(); }, [barbershop]);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("barbershop_id", barbershop.id)
+        .order("created_at", { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setOrders((data as unknown as Order[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar comandas:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Desliga o loading em qualquer situação
+    }
+  }, [barbershop]);
+
+  useEffect(() => { 
+    loadOrders(); 
+  }, [loadOrders]);
 
   const addItem = () => {
     if (!itemName.trim() || !itemPrice) return;
@@ -87,16 +103,29 @@ const Comandas = () => {
       setItems([]);
       setBarberName("");
       setNotes("");
-      fetchOrders();
+      loadOrders(); // Recarrega usando a função blindada
     }
   };
 
   const closeOrder = async (id: string) => {
     await supabase.from("orders").update({ status: "closed" }).eq("id", id);
-    fetchOrders();
+    loadOrders(); // Recarrega usando a função blindada
   };
 
+  // <-- TELAS DE PROTEÇÃO -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar as comandas.</p>
+      <Button onClick={loadOrders} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
 
   return (
     <div className="p-6 max-w-4xl mx-auto animate-fade-in">
