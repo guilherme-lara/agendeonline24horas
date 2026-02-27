@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Scissors, Loader2, Plus, Trash2, GripVertical, Settings } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,11 @@ interface Service {
 }
 
 const Servicos = () => {
-  const { barbershop } = useBarbershop();
+  const { barbershop, loading: barberLoading } = useBarbershop();
   const { toast } = useToast();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
   const [name, setName] = useState("");
@@ -35,18 +36,32 @@ const Servicos = () => {
   const [advanceValue, setAdvanceValue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetchServices = async () => {
+  // <-- BUSCA BLINDADA -->
+  const fetchServices = useCallback(async () => {
     if (!barbershop) return;
-    const { data } = await supabase
-      .from("services")
-      .select("*")
-      .eq("barbershop_id", barbershop.id)
-      .order("sort_order");
-    setServices((data as Service[]) || []);
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(false);
+    
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("services")
+        .select("*")
+        .eq("barbershop_id", barbershop.id)
+        .order("sort_order");
 
-  useEffect(() => { fetchServices(); }, [barbershop]);
+      if (fetchError) throw fetchError;
+      setServices((data as Service[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar serviços:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [barbershop]);
+
+  useEffect(() => { 
+    fetchServices(); 
+  }, [fetchServices]);
 
   const openNew = () => {
     setEditing(null);
@@ -66,37 +81,81 @@ const Servicos = () => {
   const handleSave = async () => {
     if (!barbershop || !name.trim()) return;
     setSaving(true);
-    const payload = {
-      name,
-      price: Number(price) || 0,
-      duration: Number(duration) || 30,
-      requires_advance_payment: requiresAdvance,
-      advance_payment_value: requiresAdvance ? (Number(advanceValue) || 0) : 0,
-    };
-    if (editing) {
-      const { error } = await supabase.from("services").update(payload).eq("id", editing.id);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { toast({ title: "Serviço atualizado!" }); setOpen(false); fetchServices(); }
-    } else {
-      const { error } = await supabase.from("services").insert({ ...payload, barbershop_id: barbershop.id, sort_order: services.length });
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { toast({ title: "Serviço cadastrado!" }); setOpen(false); fetchServices(); }
+    try {
+      const payload = {
+        name,
+        price: Number(price) || 0,
+        duration: Number(duration) || 30,
+        requires_advance_payment: requiresAdvance,
+        advance_payment_value: requiresAdvance ? (Number(advanceValue) || 0) : 0,
+      };
+
+      if (editing) {
+        const { error } = await supabase.from("services").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        toast({ title: "Serviço atualizado!" });
+      } else {
+        const { error } = await supabase.from("services").insert({ 
+          ...payload, 
+          barbershop_id: barbershop.id, 
+          sort_order: services.length 
+        });
+        if (error) throw error;
+        toast({ title: "Serviço cadastrado!" });
+      }
+      setOpen(false);
+      fetchServices();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleToggleActive = async (s: Service) => {
-    await supabase.from("services").update({ active: !s.active }).eq("id", s.id);
-    fetchServices();
+    try {
+      const { error } = await supabase.from("services").update({ active: !s.active }).eq("id", s.id);
+      if (error) throw error;
+      // Atualização otimista na UI para ser mais rápido
+      setServices(prev => prev.map(item => item.id === s.id ? { ...item, active: !item.active } : item));
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("services").delete().eq("id", id);
-    fetchServices();
-    toast({ title: "Serviço removido" });
+    try {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) throw error;
+      setServices(prev => prev.filter(item => item.id !== id));
+      toast({ title: "Serviço removido" });
+    } catch (err: any) {
+      toast({ title: "Erro ao deletar", description: err.message, variant: "destructive" });
+    }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  // <-- PROTEÇÃO DE CARREGAMENTO E ERRO -->
+  if (loading || (barberLoading && !error)) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+        <h2 className="font-display text-xl font-bold mb-2">Erro ao carregar serviços</h2>
+        <p className="text-sm text-muted-foreground mb-6">Verifique sua conexão e tente novamente.</p>
+        <Button onClick={fetchServices} className="gold-gradient text-primary-foreground font-semibold px-8">
+          Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
+
   if (!barbershop) return null;
 
   return (
@@ -130,17 +189,19 @@ const Servicos = () => {
                   <span>R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
                   <span>{s.duration}min</span>
                   {s.requires_advance_payment && (
-                    <span className="text-primary">Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span>
+                    <span className="text-primary font-semibold">Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span>
                   )}
                 </div>
               </div>
-              <Switch checked={s.active} onCheckedChange={() => handleToggleActive(s)} />
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
-                <Settings className="h-3.5 w-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(s.id)}>
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Switch checked={s.active} onCheckedChange={() => handleToggleActive(s)} />
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(s.id)}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -171,12 +232,16 @@ const Servicos = () => {
               <Switch checked={requiresAdvance} onCheckedChange={setRequiresAdvance} />
             </div>
             {requiresAdvance && (
-              <div>
+              <div className="animate-in slide-in-from-top-2 duration-200">
                 <label className="text-xs text-muted-foreground mb-1 block">Valor do Sinal (R$)</label>
                 <Input type="number" placeholder="50.00" value={advanceValue} onChange={(e) => setAdvanceValue(e.target.value)} />
               </div>
             )}
-            <Button className="w-full gold-gradient text-primary-foreground font-semibold" onClick={handleSave} disabled={saving || !name.trim()}>
+            <Button 
+              className="w-full gold-gradient text-primary-foreground font-semibold" 
+              onClick={handleSave} 
+              disabled={saving || !name.trim()}
+            >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               {editing ? "Salvar Alterações" : "Cadastrar Serviço"}
             </Button>
