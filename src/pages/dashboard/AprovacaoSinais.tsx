@@ -1,13 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, Loader2, Check, XCircle, Phone, MessageCircle,
+  AlertTriangle, Loader2, Check, XCircle, Phone, MessageCircle, RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface PendingSignal {
@@ -25,149 +25,173 @@ interface PendingSignal {
 const AprovacaoSinais = () => {
   const { barbershop } = useBarbershop();
   const { toast } = useToast();
-  const [appointments, setAppointments] = useState<PendingSignal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false); // <-- Estado de erro isolado
+  const queryClient = useQueryClient();
 
-  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
-  const loadPendingSignals = useCallback(async () => {
-    if (!barbershop) return;
-    setLoading(true);
-    setError(false);
+  // --- BUSCA DE DADOS (TANSTACK QUERY) ---
+  const { data: appointments = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["pending-signals", barbershop?.id],
+    queryFn: async () => {
+      if (!barbershop?.id) return [];
 
-    try {
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from("appointments")
         .select("id, client_name, client_phone, service_name, barber_name, price, scheduled_at, status, created_at")
         .eq("barbershop_id", barbershop.id)
         .eq("status", "pendente_sinal")
         .order("created_at", { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (error) throw error;
+      return data as PendingSignal[];
+    },
+    enabled: !!barbershop?.id,
+    refetchOnWindowFocus: true, // Auto-update ao voltar para a aba
+  });
 
-      setAppointments((data as PendingSignal[]) || []);
-    } catch (err) {
-      console.error("Erro ao carregar sinais pendentes:", err);
-      setError(true);
-    } finally {
-      setLoading(false); // A MÁGICA: Independente de falha ou sucesso, o carregamento desliga.
+  // --- MUTAÇÕES DE AÇÃO ---
+  const signalMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string, newStatus: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status: newStatus })
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["pending-signals"] });
+      // Também invalidamos a agenda para que o novo agendamento apareça lá na hora
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      
+      const isApproved = variables.newStatus === "confirmed";
+      toast({ 
+        title: isApproved ? "Sinal Confirmado!" : "Agendamento Rejeitado",
+        description: isApproved ? "O agendamento agora está visível na Agenda principal." : "O horário foi liberado."
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro na operação", description: err.message, variant: "destructive" });
     }
-  }, [barbershop]);
-
-  useEffect(() => { 
-    loadPendingSignals(); 
-  }, [loadPendingSignals]);
-
-  const handleApprove = async (id: string) => {
-    const { error } = await supabase
-      .from("appointments")
-      .update({ status: "confirmed" })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Sinal confirmado! Agendamento visível na Agenda." });
-      loadPendingSignals(); // Atualizado para a nova função
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    const { error } = await supabase
-      .from("appointments")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Agendamento cancelado." });
-      loadPendingSignals(); // Atualizado para a nova função
-    }
-  };
+  });
 
   const openWhatsApp = (phone: string, clientName: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
     const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    const msg = encodeURIComponent(`Olá ${clientName}! Recebemos sua solicitação de agendamento. Poderia enviar o comprovante do sinal para confirmarmos? 😊`);
+    const msg = encodeURIComponent(`Olá ${clientName}! Recebemos sua solicitação de agendamento na ${barbershop?.name}. Poderia enviar o comprovante do sinal para confirmarmos? 😊`);
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
   };
 
-  // <-- TELAS DE PROTEÇÃO -->
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  // --- TELAS DE PROTEÇÃO ---
+  if (isLoading && !appointments.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+        <p className="text-xs text-slate-500 animate-pulse uppercase tracking-widest font-bold">Buscando comprovantes...</p>
+      </div>
+    );
+  }
 
-  // TELA DE ERRO (Adeus F5!)
-  if (error) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
-      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
-      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os sinais pendentes.</p>
-      <Button onClick={loadPendingSignals} className="gold-gradient text-primary-foreground font-semibold px-8">
-        Tentar Novamente
-      </Button>
-    </div>
-  );
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Erro de conexão</h2>
+        <p className="text-sm text-slate-400 mb-8">Não conseguimos carregar as aprovações pendentes.</p>
+        <Button onClick={() => refetch()} className="gold-gradient px-8 font-bold">
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
 
   if (!barbershop) return null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-          <AlertTriangle className="h-6 w-6 text-yellow-400" /> Aprovação de Sinais
+    <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
+      <div className="mb-10">
+        <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
+          <AlertTriangle className="h-8 w-8 text-amber-400" /> Aprovação de Sinais
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {appointments.length} agendamento{appointments.length !== 1 ? "s" : ""} aguardando confirmação de sinal
+        <p className="text-slate-500 text-sm mt-1 font-medium">
+          {appointments.length} agendamento{appointments.length !== 1 ? "s" : ""} aguardando sua validação manual.
         </p>
       </div>
 
       {appointments.length === 0 ? (
-        <div className="text-center py-16">
-          <Check className="h-12 w-12 text-green-400/40 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg mb-1">Tudo em dia!</h3>
-          <p className="text-sm text-muted-foreground">Não há sinais pendentes de aprovação.</p>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-16 text-center backdrop-blur-sm shadow-xl">
+          <div className="bg-slate-950 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800">
+            <Check className="h-10 w-10 text-emerald-500/40" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Tudo em dia!</h3>
+          <p className="text-sm text-slate-500 max-w-xs mx-auto">
+            Não há novas solicitações de sinal pendentes no momento.
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4">
           {appointments.map((a) => (
-            <div key={a.id} className="rounded-xl border border-yellow-500/20 bg-card p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-semibold">{a.client_name}</p>
-                  <p className="text-xs text-muted-foreground">{a.client_phone}</p>
+            <div key={a.id} className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md transition-all hover:border-slate-700 shadow-lg">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-lg font-bold text-cyan-400">
+                      {a.client_name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg text-white leading-tight">{a.client_name}</p>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{a.client_phone || "Sem telefone"}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 bg-slate-950/50 p-4 rounded-xl border border-slate-800/50">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter mb-1">Serviço</p>
+                      <p className="text-xs font-bold text-white">{a.service_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter mb-1">Barbeiro</p>
+                      <p className="text-xs font-bold text-white">{a.barber_name || "Geral"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter mb-1">Data/Hora</p>
+                      <p className="text-xs font-bold text-cyan-400">{format(parseISO(a.scheduled_at), "dd/MM 'às' HH:mm")}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter mb-1">Valor</p>
+                      <p className="text-xs font-bold text-emerald-400">R$ {Number(a.price).toFixed(2).replace(".", ",")}</p>
+                    </div>
+                  </div>
                 </div>
-                <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30">
-                  Pendente Sinal
-                </Badge>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm mb-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Serviço</p>
-                  <p className="font-medium">{a.service_name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Profissional</p>
-                  <p className="font-medium">{a.barber_name || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Data/Hora</p>
-                  <p className="font-medium">{format(new Date(a.scheduled_at), "dd/MM HH:mm")}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Valor</p>
-                  <p className="font-medium text-primary">R$ {Number(a.price).toFixed(2).replace(".", ",")}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleApprove(a.id)} className="bg-green-600 hover:bg-green-700 text-white">
-                  <Check className="h-3.5 w-3.5 mr-1" /> Confirmar Sinal
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleReject(a.id)} className="text-destructive hover:bg-destructive/10">
-                  <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeitar
-                </Button>
-                {a.client_phone && (
-                  <Button size="sm" variant="outline" onClick={() => openWhatsApp(a.client_phone, a.client_name)}>
-                    <MessageCircle className="h-3.5 w-3.5 mr-1 text-green-500" /> WhatsApp
+
+                <div className="flex md:flex-col gap-2 min-w-[180px]">
+                  <Button 
+                    onClick={() => signalMutation.mutate({ id: a.id, newStatus: "confirmed" })}
+                    disabled={signalMutation.isPending}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 shadow-lg shadow-emerald-900/20"
+                  >
+                    {signalMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                    Confirmar
                   </Button>
-                )}
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => signalMutation.mutate({ id: a.id, newStatus: "cancelled" })}
+                    disabled={signalMutation.isPending}
+                    className="flex-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 font-bold h-10"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" /> Rejeitar
+                  </Button>
+                  {a.client_phone && (
+                    <Button 
+                        variant="outline" 
+                        onClick={() => openWhatsApp(a.client_phone, a.client_name)}
+                        className="flex-1 border-slate-800 hover:bg-slate-800 text-slate-400 h-10"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2 text-emerald-500" /> WhatsApp
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
