@@ -1,11 +1,16 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, Crown, Loader2, LogOut, AlertTriangle } from "lucide-react";
+import { 
+  DollarSign, Users, Crown, Loader2, LogOut, AlertTriangle, RefreshCw, BarChart3, Search 
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState, useMemo } from "react";
 
 interface Subscriber {
   id: string;
@@ -24,160 +29,188 @@ const planLabel: Record<string, string> = {
   premium: "Premium",
 };
 
-const statusLabel: Record<string, { text: string; cls: string }> = {
-  active: { text: "Ativo", cls: "text-green-400" },
-  inactive: { text: "Inativo", cls: "text-muted-foreground" },
-  cancelled: { text: "Cancelado", cls: "text-destructive" },
+const statusConfig: Record<string, { label: string; cls: string }> = {
+  active: { label: "Ativo", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  inactive: { label: "Pendente", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  cancelled: { label: "Cancelado", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
 };
 
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAdmin, signOut } = useAuth();
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
-  const loadAdminData = useCallback(async () => {
-    if (!user || !isAdmin) return;
-    
-    setLoading(true);
-    setError(false);
-
-    try {
-      const { data, error: fetchError } = await supabase
+  // --- BUSCA DE ASSINANTES (TANSTACK QUERY) ---
+  const { data: subscribers = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-subscribers"],
+    queryFn: async () => {
+      if (!isAdmin) return [];
+      const { data, error } = await supabase
         .from("subscribers")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (fetchError) throw fetchError;
-      setSubscribers((data as Subscriber[]) || []);
-    } catch (err) {
-      console.error("Erro ao carregar assinantes:", err);
-      setError(true);
-    } finally {
-      setLoading(false); // A MÁGICA: Desativa o loading em qualquer cenário
-    }
-  }, [user, isAdmin]);
+      if (error) throw error;
+      return data as Subscriber[];
+    },
+    enabled: !!user && isAdmin,
+    refetchOnWindowFocus: true, // Sincronia instantânea ao voltar para a aba
+  });
 
-  useEffect(() => {
-    if (!authLoading && user && isAdmin) {
-      loadAdminData();
-    }
-  }, [user, authLoading, isAdmin, loadAdminData]);
+  // --- CÁLCULOS DE KPI ---
+  const stats = useMemo(() => {
+    const active = subscribers.filter((s) => s.status === "active");
+    const revenue = active.reduce((sum, s) => sum + Number(s.plan_price || 0), 0);
 
-  if (authLoading) {
+    return [
+      { label: "Assinantes Ativos", value: active.length, icon: Users, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+      { label: "MRR (Receita)", value: `R$ ${revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+      { label: "Base Total", value: subscribers.length, icon: Crown, color: "text-amber-400", bg: "bg-amber-500/10" },
+    ];
+  }, [subscribers]);
+
+  const filteredSubscribers = useMemo(() => {
+    return subscribers.filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.phone.includes(searchTerm)
+    );
+  }, [subscribers, searchTerm]);
+
+  // --- PROTEÇÃO DE ACESSO ---
+  if (authLoading) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+      <p className="text-xs text-slate-500 animate-pulse font-bold uppercase tracking-widest">Validando credenciais...</p>
+    </div>
+  );
+
+  if (!user || !isAdmin) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+        <div className="bg-red-500/10 p-4 rounded-full mb-6">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Acesso Negado</h2>
+        <p className="text-slate-400 text-sm mb-8 max-w-xs">Este terminal é restrito a administradores do sistema.</p>
+        <Button onClick={() => navigate("/")} variant="outline" className="border-slate-800 text-slate-400 hover:text-white">Voltar ao Início</Button>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="container max-w-md py-20 text-center animate-fade-in">
-        <h2 className="font-display text-2xl font-bold mb-3">Acesso Restrito</h2>
-        <p className="text-sm text-muted-foreground mb-6">Faça login para acessar o painel administrativo.</p>
-        <Button onClick={() => navigate("/login")} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
-          Fazer Login
-        </Button>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="container max-w-md py-20 text-center animate-fade-in">
-        <h2 className="font-display text-2xl font-bold mb-3">Sem Permissão</h2>
-        <p className="text-sm text-muted-foreground mb-6">Você não tem permissão de administrador.</p>
-        <Button variant="outline" onClick={() => navigate("/")}>Voltar ao Início</Button>
-      </div>
-    );
-  }
-
-  const activeCount = subscribers.filter((s) => s.status === "active").length;
-  const revenue = subscribers.filter((s) => s.status === "active").reduce((sum, s) => sum + Number(s.plan_price), 0);
-
-  const stats = [
-    { label: "Assinantes Ativos", value: activeCount, icon: Users, color: "text-primary" },
-    { label: "Receita Mensal", value: `R$ ${revenue.toFixed(2).replace(".", ",")}`, icon: DollarSign, color: "text-green-400" },
-    { label: "Total Cadastros", value: subscribers.length, icon: Crown, color: "text-primary" },
-  ];
+  if (isError) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="text-xl font-bold text-white mb-2">Falha na Sincronia</h2>
+      <p className="text-sm text-slate-400 mb-8 px-6">Não conseguimos conectar à base de assinantes.</p>
+      <Button onClick={() => refetch()} className="gold-gradient px-8 font-bold">
+        <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+      </Button>
+    </div>
+  );
 
   return (
-    <div className="container max-w-4xl py-8 animate-fade-in">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="font-display text-2xl font-bold">Painel Administrativo</h1>
-        <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
-          <LogOut className="h-4 w-4 mr-1" /> Sair
+    <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">
+      {/* HEADER PREMIUM */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800 pb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+             <div className="h-8 w-8 bg-amber-500/10 rounded-lg flex items-center justify-center border border-amber-500/20">
+                <Crown className="h-5 w-5 text-amber-500" />
+             </div>
+             <h1 className="text-3xl font-black text-white tracking-tight">SaaS Central Admin</h1>
+          </div>
+          <p className="text-slate-500 text-sm font-medium">
+            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })} &bull; Controle Global de Assinaturas
+          </p>
+        </div>
+        <Button variant="ghost" onClick={signOut} className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 font-bold transition-all">
+          <LogOut className="h-4 w-4 mr-2" /> Encerrar Sessão
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground mb-8">
-        {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-      </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
-            <stat.icon className={`h-5 w-5 ${stat.color} mb-2`} />
-            <p className="font-display text-2xl font-bold">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
+          <div key={stat.label} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl hover:border-slate-700 transition-all">
+            <div className={`h-10 w-10 ${stat.bg} rounded-xl flex items-center justify-center mb-4`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+            </div>
+            <p className="text-3xl font-black text-white tracking-tighter">{stat.value}</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{stat.label}</p>
           </div>
         ))}
       </div>
 
-      <h2 className="font-display text-lg font-bold mb-4">Assinantes</h2>
-      
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      {/* SEARCH AND TABLE */}
+      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-md">
+        <div className="p-6 border-b border-slate-800 bg-slate-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-cyan-400" /> Gestão de Assinantes
+            </h2>
+            <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Input 
+                    placeholder="Nome ou telefone..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-slate-950 border-slate-800 pl-10 h-10 text-xs text-white" 
+                />
+            </div>
         </div>
-      ) : error ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center bg-card border border-dashed border-border rounded-lg">
-          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
-          <p className="text-sm text-muted-foreground mb-4">Erro ao carregar assinantes.</p>
-          <Button size="sm" onClick={loadAdminData} variant="outline">
-            Tentar Novamente
-          </Button>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-950/50 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
+              <tr>
+                <th className="px-6 py-4 text-left">Assinante</th>
+                <th className="px-6 py-4 text-left hidden sm:table-cell">Contato</th>
+                <th className="px-6 py-4 text-left">Plano</th>
+                <th className="px-6 py-4 text-left hidden sm:table-cell">Ticket</th>
+                <th className="px-6 py-4 text-left">Status</th>
+                <th className="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {filteredSubscribers.map((s) => {
+                const st = statusConfig[s.status] || statusConfig.inactive;
+                return (
+                  <tr key={s.id} className="hover:bg-slate-800/20 transition-colors group">
+                    <td className="px-6 py-4">
+                        <p className="font-bold text-slate-200">{s.name}</p>
+                        <p className="text-[10px] text-slate-600">Desde {format(parseISO(s.created_at), "dd/MM/yyyy")}</p>
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell font-mono text-slate-400">{s.phone}</td>
+                    <td className="px-6 py-4">
+                      <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[10px] font-black uppercase">
+                        {planLabel[s.plan] || s.plan}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell font-black text-slate-200">
+                      R$ {Number(s.plan_price).toFixed(2).replace(".", ",")}
+                    </td>
+                    <td className="px-6 py-4">
+                        <Badge className={`${st.cls} border font-black text-[9px] uppercase px-2 py-0.5`}>
+                            {st.label}
+                        </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                        <Button variant="ghost" size="sm" className="h-8 text-slate-500 hover:text-white">Gerenciar</Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      ) : subscribers.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nenhum assinante cadastrado.</p>
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Telefone</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Plano</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subscribers.map((s) => {
-                  const st = statusLabel[s.status] || statusLabel.inactive;
-                  return (
-                    <tr key={s.id} className="border-t border-border">
-                      <td className="px-4 py-3 font-medium">{s.name}</td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">{s.phone}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-primary font-medium">{planLabel[s.plan] || s.plan}</span>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
-                        R$ {Number(s.plan_price).toFixed(2).replace(".", ",")}
-                      </td>
-                      <td className={`px-4 py-3 font-medium ${st.cls}`}>{st.text}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+
+        {filteredSubscribers.length === 0 && (
+            <div className="py-20 text-center">
+                <Users className="h-10 w-10 text-slate-800 mx-auto mb-4" />
+                <p className="text-slate-500 font-medium">Nenhum assinante encontrado para esta busca.</p>
+            </div>
+        )}
+      </div>
     </div>
   );
 };
