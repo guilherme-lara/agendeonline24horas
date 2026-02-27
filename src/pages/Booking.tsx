@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { useBooking } from "@/contexts/BookingContext";
 import { services, barbers, generateTimeSlots } from "@/data/mock-data";
 import StepIndicator from "@/components/StepIndicator";
@@ -13,10 +13,12 @@ import CustomerInfoStep from "@/components/CustomerInfoStep";
 import PaymentStep from "@/components/PaymentStep";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
 
 const Booking = () => {
   const navigate = useNavigate();
   const booking = useBooking();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   const timeSlots = useMemo(
@@ -46,13 +48,30 @@ const Booking = () => {
     if (booking.currentStep > 1) booking.setStep(booking.currentStep - 1);
   };
 
-  const handleConfirm = () => {
+  // <-- FUNÇÃO DE CONFIRMAÇÃO BLINDADA -->
+  const handleConfirm = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      // Aqui entrará sua chamada real ao Supabase futuramente
+      // Ex: await supabase.from('appointments').insert({...})
+      
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulação de delay de rede
+      
       booking.reset();
       navigate("/booking/success");
-    }, 1500);
+      
+    } catch (error: any) {
+      console.error("Erro ao confirmar agendamento:", error);
+      toast({
+        title: "Erro na conexão",
+        description: "Não conseguimos finalizar seu agendamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      // A MÁGICA: Independente de erro ou sucesso, o botão volta ao normal
+      setLoading(false);
+    }
   };
 
   return (
