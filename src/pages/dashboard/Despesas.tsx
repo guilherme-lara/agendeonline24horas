@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingDown, Plus, Loader2, Trash2, PiggyBank } from "lucide-react";
+import { TrendingDown, Plus, Loader2, Trash2, PiggyBank, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -46,6 +46,7 @@ const Despesas = () => {
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -54,51 +55,90 @@ const Despesas = () => {
   const [saving, setSaving] = useState(false);
   const [monthFilter, setMonthFilter] = useState(format(new Date(), "yyyy-MM"));
 
-  const fetchExpenses = async () => {
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const loadExpenses = useCallback(async () => {
     if (!barbershop) return;
-    const { data } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("barbershop_id", barbershop.id)
-      .order("date", { ascending: false });
-    setExpenses((data as Expense[]) || []);
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(false);
 
-  useEffect(() => { fetchExpenses(); }, [barbershop]);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("barbershop_id", barbershop.id)
+        .order("date", { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setExpenses((data as Expense[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar despesas:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Independente de falha ou sucesso, o carregamento desliga.
+    }
+  }, [barbershop]);
+
+  useEffect(() => { 
+    loadExpenses(); 
+  }, [loadExpenses]);
 
   const handleCreate = async () => {
     if (!barbershop || !description.trim() || !amount) return;
     setSaving(true);
-    const { error } = await supabase.from("expenses").insert({
-      barbershop_id: barbershop.id,
-      description: description.trim(),
-      amount: Number(amount),
-      date,
-      category,
-    });
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const { error } = await supabase.from("expenses").insert({
+        barbershop_id: barbershop.id,
+        description: description.trim(),
+        amount: Number(amount),
+        date,
+        category,
+      });
+
+      if (error) throw error;
+
       toast({ title: "Despesa registrada!" });
       setOpen(false);
       setDescription("");
       setAmount("");
-      fetchExpenses();
+      loadExpenses(); // Recarrega usando a função blindada
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("expenses").delete().eq("id", id);
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
-    toast({ title: "Despesa removida" });
+    try {
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
+      toast({ title: "Despesa removida" });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = expenses.filter((e) => e.date.startsWith(monthFilter));
   const totalMonth = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
+  // <-- TELAS DE PROTEÇÃO -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar o histórico de despesas.</p>
+      <Button onClick={loadExpenses} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
+
+  if (!barbershop) return null;
 
   return (
     <div className="p-6 max-w-4xl mx-auto animate-fade-in">
