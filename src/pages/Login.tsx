@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Scissors, Mail, Lock, Loader2, Eye, EyeOff, User } from "lucide-react";
+import { Scissors, Mail, Lock, Loader2, Eye, EyeOff, User, ArrowRight, ShieldCheck } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -12,194 +13,191 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user, loading: authLoading, isAdmin } = useAuth();
-  const { barbershop, loading: shopLoading } = useBarbershop();
+  const queryClient = useQueryClient();
   
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { barbershop, loading: shopLoading } = useBarbershop() as any;
+  
   const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState("");
-  const submittingRef = useRef(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ email: "", password: "", name: "" });
 
-  // <-- LÓGICA DE REDIRECIONAMENTO BLINDADA -->
+  // --- LÓGICA DE REDIRECIONAMENTO BLINDADA ---
   useEffect(() => {
     if (authLoading || shopLoading) return;
     if (!user) return;
 
-    const handleRedirect = () => {
-      if (isAdmin) {
-        if (location.pathname !== "/super-admin") navigate("/super-admin", { replace: true });
-        return;
-      }
-
-      if (barbershop) {
-        if (location.pathname !== "/dashboard") navigate("/dashboard", { replace: true });
-      } else {
-        // Se tem user mas não tem barbearia vinculada, vai para o Onboarding
-        if (location.pathname !== "/onboarding") navigate("/onboarding", { replace: true });
-      }
-    };
-
-    handleRedirect();
-  }, [user, barbershop, isAdmin, authLoading, shopLoading, navigate, location.pathname]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submittingRef.current) return;
-    
-    const cleanEmail = email.trim();
-    if (!cleanEmail || !password.trim()) return;
-    if (isSignUp && !name.trim()) {
-      toast({ title: "Campo obrigatório", description: "Por favor, informe seu nome.", variant: "destructive" });
-      return;
+    if (isAdmin) {
+      navigate("/super-admin", { replace: true });
+    } else if (barbershop) {
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/onboarding", { replace: true });
     }
+  }, [user, barbershop, isAdmin, authLoading, shopLoading, navigate]);
 
-    submittingRef.current = true;
-    setLoading(true);
+  // --- MUTAÇÃO: LOGIN / CADASTRO ---
+  const authMutation = useMutation({
+    mutationFn: async () => {
+      const email = formData.email.trim();
+      const password = formData.password.trim();
 
-    try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email: cleanEmail,
+        const { data, error } = await supabase.auth.signUp({
+          email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name: name.trim() },
+            data: { name: formData.name.trim() },
           },
         });
-
-        if (error) {
-          if (error.message.includes("rate limit")) {
-            toast({ title: "Muitas tentativas", description: "Aguarde um momento antes de tentar novamente.", variant: "destructive" });
-          } else {
-            throw error;
-          }
-        } else {
-          toast({ 
-            title: "Conta criada com sucesso!", 
-            description: "Enviamos um link de confirmação para o seu e-mail.",
-          });
-          setIsSignUp(false); // Volta para o login após criar conta
-        }
+        if (error) throw error;
+        return { type: 'signup', data };
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-
-        if (error) {
-          // Tradução amigável de erros comuns
-          let msg = "E-mail ou senha incorretos.";
-          if (error.message.includes("Invalid login credentials")) msg = "E-mail ou senha inválidos.";
-          if (error.message.includes("Email not confirmed")) msg = "Por favor, confirme seu e-mail antes de entrar.";
-          
-          toast({ title: "Erro ao entrar", description: msg, variant: "destructive" });
-        } else {
-          toast({ title: "Bem-vindo de volta!" });
-        }
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        return { type: 'login', data };
       }
-    } catch (err: any) {
-      toast({
-        title: "Ops!",
-        description: err.message || "Não conseguimos completar a ação. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      submittingRef.current = false;
+    },
+    onSuccess: (res) => {
+      // Invalida as queries de usuário e barbearia para forçar o redirecionamento imediato
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+
+      if (res.type === 'signup') {
+        toast({ 
+          title: "Conta criada!", 
+          description: "Verifique seu e-mail para confirmar o acesso." 
+        });
+        setIsSignUp(false);
+      } else {
+        toast({ title: "Bem-vindo ao sistema!" });
+      }
+    },
+    onError: (err: any) => {
+      let msg = "Falha na autenticação. Verifique os dados.";
+      if (err.message.includes("rate limit")) msg = "Muitas tentativas. Aguarde um pouco.";
+      if (err.message.includes("Invalid login")) msg = "E-mail ou senha incorretos.";
+      
+      toast({ title: "Erro", description: msg, variant: "destructive" });
     }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) return;
+    authMutation.mutate();
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full gold-gradient shadow-gold transform hover:scale-105 transition-transform">
-            <Scissors className="h-8 w-8 text-primary-foreground" />
+    <div className="min-h-screen bg-[#0b1224] flex items-center justify-center px-6 relative overflow-hidden">
+      {/* EFEITOS DE FUNDO */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
+
+      <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-500">
+        <div className="text-center mb-10">
+          <div className="mx-auto mb-6 relative group">
+            <div className="absolute inset-0 bg-cyan-500/20 blur-2xl group-hover:bg-cyan-500/40 transition-all rounded-full" />
+            <div className="relative h-20 w-20 mx-auto flex items-center justify-center rounded-[2rem] bg-slate-900 border border-slate-800 shadow-2xl transition-transform group-hover:scale-110">
+              <Scissors className="h-10 w-10 text-cyan-400" />
+            </div>
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            {isSignUp ? "AgendeOnline" : "Bem-vindo"}
+          <h1 className="text-4xl font-black text-white tracking-tight">
+            {isSignUp ? "Agende" : "System"}<span className="text-cyan-500">Online</span>
           </h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            {isSignUp ? "Crie sua conta administrativa" : "Acesse o painel da sua barbearia"}
+          <p className="text-slate-500 text-sm mt-2 font-bold uppercase tracking-widest">
+            Plataforma SaaS para Barbearias
           </p>
         </div>
 
-        <div className="bg-card border border-border p-6 rounded-xl shadow-xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] backdrop-blur-xl shadow-2xl relative">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {isSignUp && (
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Seu nome completo"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-background border-border pl-10"
-                  required
-                />
+              <div className="space-y-1.5 animate-in slide-in-from-top-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                  <Input
+                    placeholder="Como quer ser chamado?"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="bg-slate-950 border-slate-800 pl-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    required
+                  />
+                </div>
               </div>
             )}
             
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-background border-border pl-10"
-                required
-              />
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">E-mail de Acesso</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                  <Input
+                    type="email"
+                    placeholder="seu@exemplo.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="bg-slate-950 border-slate-800 pl-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    required
+                  />
+                </div>
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background border-border pl-10 pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sua Senha</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="bg-slate-950 border-slate-800 pl-11 pr-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
             </div>
 
             <Button
               type="submit"
-              disabled={loading || authLoading}
-              className="w-full gold-gradient text-primary-foreground font-bold hover:opacity-90 h-11"
+              disabled={authMutation.isPending || authLoading}
+              className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black h-14 rounded-2xl shadow-xl shadow-cyan-900/20 transition-all active:scale-95 group"
             >
-              {loading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...</>
-              ) : isSignUp ? "Cadastrar Agora" : "Acessar Painel"}
+              {authMutation.isPending ? (
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Autenticando...</>
+              ) : (
+                <>{isSignUp ? "Criar Minha Conta" : "Entrar no Painel"} <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+              )}
             </Button>
           </form>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border"></span></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Ou</span></div>
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-800"></span></div>
+            <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-[#0b1224] px-4 text-slate-600 tracking-[0.3em]">Ou</span></div>
           </div>
 
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-sm text-center text-muted-foreground hover:text-primary transition-colors"
+            className="w-full text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest"
           >
-            {isSignUp ? "Já possui uma conta? Faça login" : "Ainda não tem conta? Comece aqui"}
+            {isSignUp ? "Já tem acesso? Faça Login" : "Novo por aqui? Criar Barbeira"}
           </button>
         </div>
         
-        <p className="mt-8 text-center text-[10px] text-muted-foreground uppercase tracking-widest">
-          AgendeOnline24Horas &copy; 2024
-        </p>
+        <div className="mt-12 flex items-center justify-center gap-2 opacity-40">
+            <ShieldCheck className="h-3 w-3 text-slate-500" />
+            <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">
+              Ambiente Seguro &bull; Guilherme Lara Ecosystem 2026
+            </p>
+        </div>
       </div>
     </div>
   );
