@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DollarSign, Loader2, TrendingUp, Clock, Users, AlertTriangle, X,
@@ -27,12 +27,13 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
   const [planName, setPlanName] = useState("essential");
   const [systemAnnouncement, setSystemAnnouncement] = useState("");
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; plan: string; feature: string }>({ open: false, plan: "", feature: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
-  // Welcome toast (first login only)
+  // Welcome toast
   useEffect(() => {
     if (shopLoading || !barbershop) return;
     const key = `agendeonline_welcome_${barbershop.id}`;
@@ -42,28 +43,60 @@ const Dashboard = () => {
         toast({ title: "Bem-vindo ao AgendeOnline24horas! 🎉", description: `Seu plano atual é: ${planName.charAt(0).toUpperCase() + planName.slice(1)}` });
       }, 500);
     }
-  }, [shopLoading, barbershop]);
+  }, [shopLoading, barbershop, planName]);
+
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const fetchDashboardData = useCallback(async () => {
+    if (!user || !barbershop) return;
+    setLoading(true);
+    setError(false);
+
+    try {
+      const [apptRes, planRes, annRes] = await Promise.all([
+        supabase.from("appointments").select("id, client_name, price, scheduled_at, status").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false }),
+        supabase.from("saas_plans").select("plan_name").eq("barbershop_id", barbershop.id).eq("status", "active").maybeSingle(),
+        supabase.from("system_settings").select("value").eq("key", "announcement").maybeSingle(),
+      ]);
+
+      if (apptRes.error) throw apptRes.error;
+      
+      setAppointments((apptRes.data as Appointment[]) || []);
+      if (planRes.data) setPlanName(planRes.data.plan_name);
+      if (annRes.data) setSystemAnnouncement((annRes.data as any).value || "");
+
+    } catch (err) {
+      console.error("Erro ao carregar Dashboard:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Independente de erro, o esqueleto de carregamento para.
+    }
+  }, [barbershop, user]);
 
   useEffect(() => {
     if (shopLoading) return;
     if (!user || !barbershop) return;
     if (!(barbershop as any).setup_completed) { navigate("/onboarding"); return; }
 
-    const fetchData = async () => {
-      const [apptRes, planRes, annRes] = await Promise.all([
-        supabase.from("appointments").select("id, client_name, price, scheduled_at, status").eq("barbershop_id", barbershop.id).order("scheduled_at", { ascending: false }),
-        supabase.from("saas_plans").select("plan_name").eq("barbershop_id", barbershop.id).eq("status", "active").maybeSingle(),
-        supabase.from("system_settings").select("value").eq("key", "announcement").maybeSingle(),
-      ]);
-      setAppointments((apptRes.data as Appointment[]) || []);
-      if (planRes.data) setPlanName(planRes.data.plan_name);
-      if (annRes.data) setSystemAnnouncement((annRes.data as any).value || "");
-      setLoading(false);
-    };
-    fetchData();
-  }, [barbershop, shopLoading, user, navigate]);
+    fetchDashboardData();
+  }, [barbershop, shopLoading, user, navigate, fetchDashboardData]);
 
-  if (shopLoading || loading) return <DashboardSkeleton />;
+  // <-- TELAS DE PROTEÇÃO -->
+  if (shopLoading || (loading && !error)) return <DashboardSkeleton />;
+
+  // TELA DE ERRO (Para não ficar preso no Skeleton se a internet cair)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in p-6">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-2xl font-bold mb-2">Erro ao carregar Dashboard</h2>
+      <p className="text-sm text-muted-foreground mb-8">
+        Não conseguimos conectar aos dados da sua empresa. Verifique sua conexão.
+      </p>
+      <Button onClick={fetchDashboardData} className="gold-gradient text-primary-foreground font-semibold px-10">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
+
   if (!barbershop) return null;
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
