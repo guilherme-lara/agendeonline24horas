@@ -4,51 +4,74 @@ import type { User } from "@supabase/supabase-js";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Só fica true no carregamento inicial da página
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    return !!data;
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    } catch {
+      return false; // Se der erro de rede, não trava tudo
+    }
   };
 
-useEffect(() => {
-    // Busca a sessão inicial
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Busca inicial ao carregar a página (A única que deve ter loading)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
       const currentUser = session?.user ?? null;
+      
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
-        setUser(currentUser);
-        setIsAdmin(admin);
+        if (isMounted) {
+          setUser(currentUser);
+          setIsAdmin(admin);
+        }
       } else {
-        setUser(null);
+        if (isMounted) setUser(null);
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
 
+    // 2. Escuta mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setLoading(true); // 1. Trava o carregamento imediatamente!
-        const currentUser = session?.user ?? null;
-
-        if (currentUser) {
-          const admin = await checkAdmin(currentUser.id);
-          setUser(currentUser); // 2. Atualiza os dois estados juntos
-          setIsAdmin(admin);
-        } else {
-          setUser(null);
-          setIsAdmin(false);
+      async (event, session) => {
+        if (!isMounted) return;
+        
+        // O VILÃO DA ABA ESTÁ AQUI! 
+        // O Supabase dispara "TOKEN_REFRESHED" sozinho quando você volta pra aba.
+        // Se ignorarmos ele aqui, o sistema NUNCA MAIS trava ao trocar de guia.
+        
+        if (event === 'SIGNED_IN') {
+          const currentUser = session?.user ?? null;
+          if (currentUser) {
+            const admin = await checkAdmin(currentUser.id);
+            if (isMounted) {
+              setUser(currentUser);
+              setIsAdmin(admin);
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setUser(null);
+            setIsAdmin(false);
+          }
         }
-        setLoading(false); // 3. Libera o carregamento
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = useCallback(async () => {
@@ -57,7 +80,6 @@ useEffect(() => {
     setUser(null);
     setIsAdmin(false);
     setLoading(false);
-    // Clear all local state to avoid stale data
     try {
       localStorage.clear();
       sessionStorage.clear();
