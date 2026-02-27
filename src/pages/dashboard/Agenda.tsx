@@ -40,7 +40,7 @@ const Agenda = () => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [editModal, setEditModal] = useState({ open: false, appt: null as any });
 
-  // Query de Agendamentos
+  // --- BUSCA DE AGENDAMENTOS ---
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ["appointments", barbershop?.id],
     queryFn: async () => {
@@ -49,6 +49,23 @@ const Agenda = () => {
         .select("*")
         .eq("barbershop_id", barbershop?.id)
         .order("scheduled_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!barbershop?.id,
+    refetchOnWindowFocus: true,
+  });
+
+  // --- BUSCA DE SERVIÇOS (PARA O QUICKBOOKING) ---
+  const { data: services = [] } = useQuery({
+    queryKey: ["services", barbershop?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("*")
+        .eq("barbershop_id", barbershop?.id)
+        .eq("active", true)
+        .order("sort_order");
       if (error) throw error;
       return data || [];
     },
@@ -112,7 +129,7 @@ const Agenda = () => {
               onClick={() => setActiveTab("completed")}
               className={`rounded-xl px-6 ${activeTab === "completed" ? "bg-slate-800 text-white" : "text-slate-500"}`}
             >
-              <History className="h-4 w-4 mr-2" /> Concluídos
+              <History className="h-4 w-4 mr-2" /> Histórico
             </Button>
           </div>
 
@@ -127,18 +144,23 @@ const Agenda = () => {
             </Button>
           </div>
           
-          <QuickBooking barbershopId={barbershop?.id} services={[]} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
+          {/* CORREÇÃO: services={services} (O ERRO ESTAVA AQUI) */}
+          <QuickBooking 
+            barbershopId={barbershop?.id} 
+            services={services} 
+            onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} 
+          />
         </div>
       </div>
 
       {/* BUSCA FULL WIDTH */}
       <div className="relative mb-8">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 h-5 w-5" />
-        <Input 
+        <input 
           value={search} 
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Pesquisar por cliente, serviço ou barbeiro..." 
-          className="w-full bg-slate-900/50 border-slate-800 h-14 pl-12 rounded-2xl text-white focus:ring-cyan-500/20"
+          className="w-full bg-slate-900/50 border border-slate-800 h-14 pl-12 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
         />
       </div>
 
