@@ -27,6 +27,9 @@ const Login = () => {
   useEffect(() => {
   if (authLoading) return;
   if (!user) return;
+  if (!profile) return;
+
+    
   if (isAdmin) {
     if (location.pathname !== "/super-admin") {
       navigate("/super-admin", { replace: true });
