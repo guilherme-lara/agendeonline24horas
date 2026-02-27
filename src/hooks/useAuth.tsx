@@ -17,30 +17,34 @@ export const useAuth = () => {
     return !!data;
   };
 
-  useEffect(() => {
-    // Get initial session first
+useEffect(() => {
+    // Busca a sessão inicial
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
+        setUser(currentUser);
         setIsAdmin(admin);
+      } else {
+        setUser(null);
       }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        setLoading(true); // 1. Trava o carregamento imediatamente!
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
 
         if (currentUser) {
           const admin = await checkAdmin(currentUser.id);
+          setUser(currentUser); // 2. Atualiza os dois estados juntos
           setIsAdmin(admin);
         } else {
+          setUser(null);
           setIsAdmin(false);
         }
-        setLoading(false);
+        setLoading(false); // 3. Libera o carregamento
       }
     );
 
