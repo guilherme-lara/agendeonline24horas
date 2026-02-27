@@ -51,8 +51,68 @@ const AppContent = () => {
   return (
     <>
       <Header />
-      <Routes>
-        {/* ... suas rotas permanecem iguais */}
+    <Routes>
+        {/* --- ÁREA PÚBLICA / LANDING --- */}
+        <Route path="/" element={<SaaSLanding />} />
+        <Route path="/auth" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        
+        {/* --- FLUXO DE CLIENTE (BOOKING) --- */}
+        <Route path="/agendamentos/:slug" element={<PublicBooking />} />
+        <Route path="/book/:slug" element={<PublicBooking />} />
+        <Route path="/meus-agendamentos" element={<MyAppointments />} />
+        <Route path="/appointments" element={<MyAppointments />} />
+        <Route path="/:slug/success" element={<BookingSuccess />} />
+        
+        {/* --- ONBOARDING E VENDAS --- */}
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/subscribe/:planId" element={<Subscribe />} />
+
+        {/* --- PAINÉIS ADMINISTRATIVOS --- */}
+        <Route path="/super-admin" element={<SuperAdmin />} />
+        <Route path="/admin" element={<Admin />} />
+
+        {/* --- ECOSSISTEMA DASHBOARD (COM SIDEBAR) --- */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="agenda" element={<Agenda />} />
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="servicos" element={<Servicos />} />
+          <Route path="profissionais" element={<Profissionais />} />
+          <Route path="configuracoes" element={<Configuracoes />} />
+          <Route path="agendamento-online" element={<AgendamentoOnline />} />
+          
+          {/* RECURSOS BLOQUEADOS (PLANO GROWTH +) */}
+          <Route path="caixa" element={
+            <PlanGate minPlan="growth"><Caixa /></PlanGate>
+          } />
+          <Route path="relatorios" element={
+            <PlanGate minPlan="growth"><Relatorios /></PlanGate>
+          } />
+          <Route path="despesas" element={
+            <PlanGate minPlan="growth"><Despesas /></PlanGate>
+          } />
+          <Route path="produtos" element={
+            <PlanGate minPlan="growth"><Produtos /></PlanGate>
+          } />
+          <Route path="aniversarios" element={
+            <PlanGate minPlan="growth"><Aniversarios /></PlanGate>
+          } />
+
+          {/* RECURSOS EXCLUSIVOS (PLANO PRO) */}
+          <Route path="pacotes" element={
+            <PlanGate minPlan="pro"><Pacotes /></PlanGate>
+          } />
+          <Route path="pagamentos" element={
+            <PlanGate minPlan="pro"><Pagamentos /></PlanGate>
+          } />
+          <Route path="aprovacao-sinais" element={
+            <PlanGate minPlan="pro"><AprovacaoSinais /></PlanGate>
+          } />
+        </Route>
+
+        {/* FALLBACK 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       {!hideFooter && <Footer />}
     </>
