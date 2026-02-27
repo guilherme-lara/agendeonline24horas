@@ -12,7 +12,7 @@ const features = [
   { icon: CreditCard, title: "PDV Integrado", desc: "Feche comandas, venda produtos e controle o estoque em segundos." },
   { icon: Bell, title: "Lembretes Inteligentes", desc: "Reduza faltas em até 40% com notificações automáticas via WhatsApp." },
   { icon: Users, title: "Gestão de Comissões", desc: "Cálculo automático de ganhos para cada barbeiro do seu time." },
-  { icon: Shield, title: "Infraestrutura Cloud", desc: "Dados protegidos em servidores de alta performance com isolamento total." },
+  { icon: Shield, title: "Dados Seguros", desc: "Infraestrutura profissional com isolamento total por barbearia." },
 ];
 
 const plans = [
@@ -60,6 +60,15 @@ const plans = [
   },
 ];
 
+// --- ADICIONE ESTAS DUAS LISTAS ABAIXO (O QUE FALTAVA) ---
+const planIcons = [Package, Sparkles, Brain];
+
+const testimonials = [
+  { name: "Guilherme L.", shop: "Barber Flow", text: "A automação de pagamentos mudou meu negócio. Não perco mais tempo conferindo PIX.", rating: 5 },
+  { name: "Rafael M.", shop: "Studio Barber", text: "O dashboard me dá uma clareza absurda de onde está vindo o lucro. Essencial.", rating: 5 },
+  { name: "Lucas P.", shop: "Vintage Shop", text: "Meus clientes elogiam a facilidade do agendamento. O sistema é muito rápido.", rating: 5 },
+];
+
 const SaaSLanding = () => {
   const navigate = useNavigate();
 
@@ -74,21 +83,21 @@ const SaaSLanding = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[500px] bg-cyan-500/10 blur-[120px] rounded-full -z-10" />
         
         <div className="container px-6 text-center max-w-5xl relative z-10">
-          <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 mb-8 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-700">
+          <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 mb-8 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em]">
             <Sparkles className="h-3 w-3 mr-2 fill-cyan-400" /> A Revolução da Barbearia 2.0
           </Badge>
           
-          <h1 className="font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[0.9] mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <h1 className="font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[0.9] mb-8">
             Escalamos sua <br />
-            <span className="text-cyan-500 text-glow-cyan">Barbearia.</span>
+            <span className="text-cyan-500">Barbearia.</span>
           </h1>
           
-          <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-12 font-medium leading-relaxed animate-in fade-in duration-1000">
+          <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
             Agendamento digital, gestão financeira automática e automação de estoque. 
             Dê adeus às planilhas e assuma o controle do seu lucro.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in zoom-in-95 duration-1000">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               onClick={() => navigate("/login")}
               className="w-full sm:w-auto h-16 px-10 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-2xl shadow-cyan-900/20 text-lg transition-all active:scale-95 group"
@@ -145,55 +154,59 @@ const SaaSLanding = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, i) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-[2.5rem] border p-10 transition-all duration-500 flex flex-col ${
-                plan.popular
-                  ? "border-cyan-500 bg-slate-900/60 shadow-2xl shadow-cyan-900/20 scale-105 z-10"
-                  : "border-slate-800 bg-slate-900/40 hover:border-slate-700"
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-cyan-500 text-white text-[10px] font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full shadow-lg">
-                  Mais Escolhido
-                </div>
-              )}
-              
-              <div className="mb-8">
-                <h3 className="text-2xl font-black text-white tracking-tight">{plan.name}</h3>
-                <p className="text-xs text-slate-500 mt-2 font-bold uppercase tracking-widest">{plan.desc}</p>
-                
-                <div className="mt-8 flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-slate-500">R$</span>
-                  <span className={`text-6xl font-black tracking-tighter ${plan.popular ? "text-cyan-400" : "text-white"}`}>
-                    {plan.price}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{plan.period}</span>
-                </div>
-              </div>
-              
-              <ul className="space-y-4 mb-10 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-3 text-sm font-medium">
-                    <Check className={`h-5 w-5 ${plan.popular ? "text-cyan-400" : "text-emerald-400"} flex-shrink-0`} />
-                    <span className="text-slate-400 leading-tight">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              
-              <Button
-                onClick={() => navigate("/login")}
-                className={`w-full h-14 font-black rounded-2xl transition-all shadow-xl ${
+          {plans.map((plan, i) => {
+            const Icon = planIcons[i];
+            return (
+              <div
+                key={plan.name}
+                className={`relative rounded-[2.5rem] border p-10 transition-all duration-500 flex flex-col ${
                   plan.popular
-                    ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20"
-                    : "bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-900"
+                    ? "border-cyan-500 bg-slate-900/60 shadow-2xl shadow-cyan-900/20 scale-105 z-10"
+                    : "border-slate-800 bg-slate-900/40 hover:border-slate-700"
                 }`}
               >
-                {plan.cta}
-              </Button>
-            </div>
-          ))}
+                {plan.popular && (
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-cyan-500 text-white text-[10px] font-black uppercase tracking-[0.2em] px-6 py-2 rounded-full shadow-lg">
+                    Mais Escolhido
+                  </div>
+                )}
+                
+                <div className="mb-8">
+                  <Icon className={`h-10 w-10 mb-6 ${plan.popular ? "text-cyan-400" : "text-slate-600"}`} />
+                  <h3 className="text-2xl font-black text-white tracking-tight">{plan.name}</h3>
+                  <p className="text-xs text-slate-500 mt-2 font-bold uppercase tracking-widest">{plan.desc}</p>
+                  
+                  <div className="mt-8 flex items-baseline gap-1">
+                    <span className="text-sm font-bold text-slate-500">R$</span>
+                    <span className={`text-6xl font-black tracking-tighter ${plan.popular ? "text-cyan-400" : "text-white"}`}>
+                      {plan.price}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{plan.period}</span>
+                  </div>
+                </div>
+                
+                <ul className="space-y-4 mb-10 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-3 text-sm font-medium">
+                      <Check className={`h-5 w-5 ${plan.popular ? "text-cyan-400" : "text-emerald-400"} flex-shrink-0`} />
+                      <span className="text-slate-400 leading-tight">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <Button
+                  onClick={() => navigate("/login")}
+                  className={`w-full h-14 font-black rounded-2xl transition-all shadow-xl ${
+                    plan.popular
+                      ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-900/20"
+                      : "bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-900"
+                  }`}
+                >
+                  {plan.cta}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -205,6 +218,11 @@ const SaaSLanding = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {testimonials.map((t, i) => (
                     <div key={t.name} className="bg-slate-950/50 border border-slate-800 p-8 rounded-[2rem] shadow-xl backdrop-blur-md">
+                        <div className="flex gap-1 mb-6">
+                          {Array.from({ length: t.rating }).map((_, j) => (
+                            <Star key={j} className="h-4 w-4 fill-cyan-400 text-cyan-400" />
+                          ))}
+                        </div>
                         <Quote className="h-8 w-8 text-cyan-500/20 mb-4" />
                         <p className="text-slate-300 mb-8 italic text-sm leading-relaxed font-medium">"{t.text}"</p>
                         <div className="flex items-center gap-4">
@@ -229,9 +247,7 @@ const SaaSLanding = () => {
           <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
           
           <div className="relative z-10">
-            <div className="h-16 w-16 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-10 shadow-lg shadow-cyan-900/20">
-                <Zap className="h-8 w-8 text-cyan-400 fill-cyan-400" />
-            </div>
+            <Zap className="h-16 w-16 text-cyan-400 mx-auto mb-10 fill-cyan-400" />
             <h2 className="text-4xl sm:text-6xl font-black text-white mb-6 tracking-tight leading-none">
               A era do papel acabou.
             </h2>
