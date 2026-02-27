@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, Users, Crown, Loader2, LogOut } from "lucide-react";
+import { DollarSign, Users, Crown, Loader2, LogOut, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -35,20 +35,36 @@ const Admin = () => {
   const { user, loading: authLoading, isAdmin, signOut } = useAuth();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) return;
-    if (!authLoading && user && isAdmin) {
-      supabase
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const loadAdminData = useCallback(async () => {
+    if (!user || !isAdmin) return;
+    
+    setLoading(true);
+    setError(false);
+
+    try {
+      const { data, error: fetchError } = await supabase
         .from("subscribers")
         .select("*")
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          setSubscribers((data as Subscriber[]) || []);
-          setLoading(false);
-        });
+        .order("created_at", { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setSubscribers((data as Subscriber[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar assinantes:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Desativa o loading em qualquer cenário
     }
-  }, [user, authLoading, isAdmin]);
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      loadAdminData();
+    }
+  }, [user, authLoading, isAdmin, loadAdminData]);
 
   if (authLoading) {
     return (
@@ -112,9 +128,18 @@ const Admin = () => {
       </div>
 
       <h2 className="font-display text-lg font-bold mb-4">Assinantes</h2>
+      
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center bg-card border border-dashed border-border rounded-lg">
+          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
+          <p className="text-sm text-muted-foreground mb-4">Erro ao carregar assinantes.</p>
+          <Button size="sm" onClick={loadAdminData} variant="outline">
+            Tentar Novamente
+          </Button>
         </div>
       ) : subscribers.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nenhum assinante cadastrado.</p>
