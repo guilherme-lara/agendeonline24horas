@@ -23,6 +23,8 @@ export const useBarbershop = () => {
   }, []);
 
   const refetch = useCallback(async () => {
+  setLoading(true);
+    
     if (!user) {
       setBarbershop(null);
       setLoading(false);
