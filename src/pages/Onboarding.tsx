@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Scissors, Loader2, ArrowRight, ArrowLeft, Clock, Plus, Trash2, Check, Users } from "lucide-react";
+import { Scissors, Loader2, ArrowRight, ArrowLeft, Clock, Plus, Trash2, Check, Users, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -27,13 +27,12 @@ const defaultHours: HourDraft[] = Array.from({ length: 7 }, (_, i) => ({
   day_of_week: i,
   open_time: "09:00",
   close_time: "19:00",
-  is_closed: i === 0, // Sunday closed
+  is_closed: i === 0, // Domingo fechado por padrão
 }));
 
 const defaultServices: ServiceDraft[] = [
   { name: "Corte Degradê", price: "50", duration: "40" },
   { name: "Barba Completa", price: "35", duration: "30" },
-  { name: "Corte + Barba", price: "75", duration: "60" },
 ];
 
 const Onboarding = () => {
@@ -41,6 +40,7 @@ const Onboarding = () => {
   const { user, loading: authLoading } = useAuth();
   const { barbershop, loading: shopLoading, refetch } = useBarbershop();
   const { toast } = useToast();
+  const isSubmitting = useRef(false);
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -76,7 +76,7 @@ const Onboarding = () => {
   };
 
   const addService = () => {
-    if (services.length >= 10) return;
+    if (services.length >= 15) return;
     setServices((prev) => [...prev, { name: "", price: "30", duration: "30" }]);
   };
 
@@ -86,39 +86,54 @@ const Onboarding = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user || !name.trim() || !slug.trim()) return;
+    if (isSubmitting.current || !user || !name.trim()) return;
+    
     const validServices = services.filter((s) => s.name.trim());
     if (validServices.length === 0) {
-      toast({ title: "Erro", description: "Cadastre pelo menos 1 serviço.", variant: "destructive" });
+      toast({ title: "Quase lá!", description: "Adicione pelo menos um serviço para continuar.", variant: "destructive" });
       return;
     }
 
+    isSubmitting.current = true;
     setLoading(true);
-    try {
-      const finalSlug = generateSlug(slug);
 
+    try {
+      const finalSlug = slug.trim() || generateSlug(name);
+
+      // Verificação de segurança: Slug duplicado
       const { data: existing } = await supabase
         .from("barbershops").select("id").eq("slug", finalSlug).maybeSingle();
+      
       if (existing) {
-        toast({ title: "Slug já em uso", description: "Escolha outro nome para a URL.", variant: "destructive" });
+        setStep(1);
+        toast({ title: "URL Indisponível", description: "Este nome já está em uso. Tente outro.", variant: "destructive" });
         setLoading(false);
+        isSubmitting.current = false;
         return;
       }
 
-      // 1. Create barbershop
-      const { data: shop, error } = await supabase
+      // 1. Criar a Barbearia
+      const { data: shop, error: shopError } = await supabase
         .from("barbershops")
-        .insert({ owner_id: user.id, name: name.trim(), slug: finalSlug, phone: phone.trim(), default_commission: parseFloat(defaultCommission) || 0, setup_completed: true })
+        .insert({ 
+          owner_id: user.id, 
+          name: name.trim(), 
+          slug: finalSlug, 
+          phone: phone.trim(), 
+          default_commission: parseFloat(defaultCommission) || 0, 
+          setup_completed: true 
+        })
         .select().single();
-      if (error) throw error;
 
-      // 2. Link profile
+      if (shopError) throw shopError;
+
+      // 2. Atualizar perfil do usuário
       await supabase.from("profiles").update({ barbershop_id: shop.id }).eq("user_id", user.id);
 
-      // 3. Create SaaS plan
+      // 3. Vincular Plano SaaS inicial
       await supabase.from("saas_plans").insert({ barbershop_id: shop.id, plan_name: "essential" });
 
-      // 4. Insert business hours
+      // 4. Inserir Horários (Bulk Insert)
       const hoursPayload = hours.map((h) => ({
         barbershop_id: shop.id,
         day_of_week: h.day_of_week,
@@ -128,7 +143,7 @@ const Onboarding = () => {
       }));
       await supabase.from("business_hours").insert(hoursPayload);
 
-      // 5. Insert services
+      // 5. Inserir Serviços (Bulk Insert)
       const servicesPayload = validServices.map((s, i) => ({
         barbershop_id: shop.id,
         name: s.name.trim(),
@@ -138,7 +153,7 @@ const Onboarding = () => {
       }));
       await supabase.from("services").insert(servicesPayload);
 
-      // 6. Insert first barber if provided
+      // 6. Criar o primeiro Barbeiro (se informado)
       if (firstBarberName.trim()) {
         await supabase.from("barbers").insert({
           barbershop_id: shop.id,
@@ -148,11 +163,11 @@ const Onboarding = () => {
       }
 
       await refetch();
-      toast({ title: "Barbearia criada!", description: "Tudo configurado. Bem-vindo ao TechBarber." });
+      toast({ title: "Sucesso!", description: "Sua barbearia está pronta para decolar." });
       navigate("/dashboard", { replace: true });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
-      toast({ title: "Erro", description: message, variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro na configuração", description: err.message || "Erro ao salvar dados.", variant: "destructive" });
+      isSubmitting.current = false;
     } finally {
       setLoading(false);
     }
@@ -160,8 +175,9 @@ const Onboarding = () => {
 
   if (authLoading || shopLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground animate-pulse">Preparando seu ambiente...</p>
       </div>
     );
   }
@@ -169,249 +185,207 @@ const Onboarding = () => {
   const totalSteps = 4;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg animate-fade-in">
-        {/* Header */}
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg">
+        {/* Header de Progresso */}
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full gold-gradient shadow-gold">
-            <Scissors className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full gold-gradient shadow-lg">
+            <Scissors className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-2xl font-bold">Configure sua Barbearia</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="font-display text-3xl font-bold tracking-tight">Configuração Inicial</h1>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`h-1.5 w-8 rounded-full transition-all duration-500 ${i < step ? "gold-gradient" : "bg-muted"}`} 
+              />
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4 uppercase tracking-[0.2em]">
             Passo {step} de {totalSteps}
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex gap-2 mb-8">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                i < step ? "gold-gradient" : "bg-secondary"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Step 1: Basic info */}
-        {step === 1 && (
-          <div className="space-y-5">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Nome da Barbearia</label>
-              <Input
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Ex: Barbearia do Guilherme"
-                className="bg-card border-border"
-                required
-                maxLength={100}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">URL do Agendamento</label>
-              <div className="flex items-center rounded-md border border-border bg-card overflow-hidden">
-                <span className="px-3 text-xs text-muted-foreground bg-secondary border-r border-border py-2.5">/agendamentos/</span>
-                <input
-                  value={slug}
-                  onChange={(e) => setSlug(generateSlug(e.target.value))}
-                  className="flex-1 bg-transparent px-3 py-2.5 text-sm outline-none"
-                  required
-                  maxLength={60}
+        <div className="bg-card border border-border p-6 sm:p-8 rounded-2xl shadow-xl">
+          {/* Passo 1: Identidade */}
+          {step === 1 && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-right-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nome da sua Barbearia</label>
+                <Input
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="Ex: Barber Shop Premium"
+                  className="h-12"
+                  autoFocus
                 />
               </div>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">WhatsApp (opcional)</label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(11) 99999-9999"
-                className="bg-card border-border"
-                maxLength={20}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Comissão Padrão (%)</label>
-              <Input
-                type="number"
-                value={defaultCommission}
-                onChange={(e) => setDefaultCommission(e.target.value)}
-                placeholder="30"
-                className="bg-card border-border"
-                min="0"
-                max="100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Aplicada aos novos barbeiros cadastrados</p>
-            </div>
-            <Button
-              onClick={() => setStep(2)}
-              disabled={!name.trim() || !slug.trim()}
-              className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 py-6"
-            >
-              Próximo <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Step 2: Business Hours */}
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-lg font-bold">Horário de Funcionamento</h2>
-            </div>
-            <div className="space-y-2">
-              {hours.map((h, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-3 rounded-lg border p-3 transition-all ${
-                    h.is_closed ? "border-border bg-secondary/50 opacity-60" : "border-border bg-card"
-                  }`}
-                >
-                  <span className="text-sm font-medium w-16 shrink-0">{DAYS[i].slice(0, 3)}</span>
-                  <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={!h.is_closed}
-                      onChange={(e) => updateHour(i, "is_closed", !e.target.checked)}
-                      className="rounded border-border"
-                    />
-                    <span className="text-xs text-muted-foreground">Aberto</span>
-                  </label>
-                  {!h.is_closed && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <input
-                        type="time"
-                        value={h.open_time}
-                        onChange={(e) => updateHour(i, "open_time", e.target.value)}
-                        className="bg-secondary text-sm rounded px-2 py-1 border border-border"
-                      />
-                      <span className="text-xs text-muted-foreground">às</span>
-                      <input
-                        type="time"
-                        value={h.close_time}
-                        onChange={(e) => updateHour(i, "close_time", e.target.value)}
-                        className="bg-secondary text-sm rounded px-2 py-1 border border-border"
-                      />
-                    </div>
-                  )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">URL de Agendamento</label>
+                <div className="flex items-center rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                  <span className="pl-3 text-xs font-mono text-muted-foreground">app/</span>
+                  <input
+                    value={slug}
+                    onChange={(e) => setSlug(generateSlug(e.target.value))}
+                    className="flex-1 bg-transparent border-none p-3 text-sm outline-none"
+                    placeholder="nome-da-barbearia"
+                  />
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-              </Button>
+                <p className="text-[10px] text-muted-foreground">Este será o link que você enviará para seus clientes.</p>
+              </div>
               <Button
-                onClick={() => setStep(3)}
-                className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+                onClick={() => setStep(2)}
+                disabled={!name.trim() || !slug.trim()}
+                className="w-full gold-gradient text-primary-foreground font-bold h-12"
               >
-                Próximo <ArrowRight className="ml-2 h-4 w-4" />
+                Próximo Passo <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 3: First Barber */}
-        {step === 3 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-lg font-bold">Primeiro Barbeiro</h2>
+          {/* Passo 2: Horários */}
+          {step === 2 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold font-display">Quando você abre?</h2>
+              </div>
+              <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                {hours.map((h, i) => (
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${h.is_closed ? "bg-muted/30 border-dashed" : "bg-background border-border"}`}>
+                    <span className="text-sm font-bold w-12">{DAYS[i].slice(0, 3)}</span>
+                    <div className="flex items-center gap-2">
+                      {!h.is_closed ? (
+                        <div className="flex items-center gap-1">
+                          <input type="time" value={h.open_time} onChange={(e) => updateHour(i, "open_time", e.target.value)} className="bg-secondary text-xs p-1 rounded border" />
+                          <span className="text-[10px] text-muted-foreground">às</span>
+                          <input type="time" value={h.close_time} onChange={(e) => updateHour(i, "close_time", e.target.value)} className="bg-secondary text-xs p-1 rounded border" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Fechado o dia todo</span>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => updateHour(i, "is_closed", !h.is_closed)}
+                        className={`text-[10px] h-7 ${h.is_closed ? "text-primary" : "text-destructive"}`}
+                      >
+                        {h.is_closed ? "Abrir" : "Fechar"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <Button variant="outline" onClick={() => setStep(1)} className="h-12 font-semibold">Voltar</Button>
+                <Button onClick={() => setStep(3)} className="gold-gradient text-primary-foreground font-bold h-12">Continuar</Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Opcional — você pode adicionar depois no Dashboard.</p>
-            <Input
-              value={firstBarberName}
-              onChange={(e) => setFirstBarberName(e.target.value)}
-              placeholder="Nome do barbeiro principal"
-              className="bg-card border-border"
-              maxLength={100}
-            />
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-              </Button>
-              <Button
-                onClick={() => setStep(4)}
-                className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
-              >
-                Próximo <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 4: Services */}
-        {step === 4 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-display text-lg font-bold">Seus Serviços</h2>
-              <Button variant="outline" size="sm" onClick={addService} disabled={services.length >= 10}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-              </Button>
+          {/* Passo 3: Equipe */}
+          {step === 3 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold font-display">Quem é o Barbeiro?</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nome do Barbeiro Principal</label>
+                  <Input
+                    value={firstBarberName}
+                    onChange={(e) => setFirstBarberName(e.target.value)}
+                    placeholder="Pode ser o seu próprio nome"
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Comissão Padrão (%)</label>
+                  <Input
+                    type="number"
+                    value={defaultCommission}
+                    onChange={(e) => setDefaultCommission(e.target.value)}
+                    className="h-12"
+                  />
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> Você pode ajustar isso por serviço depois.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" onClick={() => setStep(2)} className="h-12 font-semibold">Voltar</Button>
+                <Button onClick={() => setStep(4)} className="gold-gradient text-primary-foreground font-bold h-12">Continuar</Button>
+              </div>
             </div>
-            <div className="space-y-3">
-              {services.map((s, i) => (
-                <div key={i} className="rounded-lg border border-border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Serviço {i + 1}</span>
+          )}
+
+          {/* Passo 4: Serviços */}
+          {step === 4 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold font-display">Serviços e Preços</h2>
+                <Button variant="outline" size="sm" onClick={addService} className="h-8 text-xs border-primary text-primary hover:bg-primary/10">
+                  <Plus className="h-3 w-3 mr-1" /> Novo
+                </Button>
+              </div>
+              <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-2 custom-scrollbar">
+                {services.map((s, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-border bg-muted/20 space-y-3 relative group">
+                    <Input
+                      value={s.name}
+                      onChange={(e) => updateService(i, "name", e.target.value)}
+                      placeholder="Nome do serviço"
+                      className="bg-background h-10 font-medium"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          value={s.price}
+                          onChange={(e) => updateService(i, "price", e.target.value)}
+                          className="pl-8 h-9 text-xs"
+                        />
+                      </div>
+                      <div className="relative">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">min</span>
+                        <Input
+                          type="number"
+                          value={s.duration}
+                          onChange={(e) => updateService(i, "duration", e.target.value)}
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                    </div>
                     {services.length > 1 && (
-                      <button onClick={() => removeService(i)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <button 
+                        onClick={() => removeService(i)} 
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     )}
                   </div>
-                  <Input
-                    value={s.name}
-                    onChange={(e) => updateService(i, "name", e.target.value)}
-                    placeholder="Nome do serviço"
-                    className="bg-secondary border-border"
-                    maxLength={100}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Preço (R$)</label>
-                      <Input
-                        type="number"
-                        value={s.price}
-                        onChange={(e) => updateService(i, "price", e.target.value)}
-                        className="bg-secondary border-border"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Duração (min)</label>
-                      <Input
-                        type="number"
-                        value={s.duration}
-                        onChange={(e) => updateService(i, "duration", e.target.value)}
-                        className="bg-secondary border-border"
-                        min="5"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-6">
+                <Button variant="outline" onClick={() => setStep(3)} className="h-12 font-semibold">Voltar</Button>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={loading}
+                  className="gold-gradient text-primary-foreground font-bold h-12"
+                >
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="mr-2 h-5 w-5" /> Finalizar</>}
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || services.filter((s) => s.name.trim()).length === 0}
-                className="flex-1 gold-gradient text-primary-foreground font-semibold hover:opacity-90"
-              >
-                {loading ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando...</>
-                ) : (
-                  <><Check className="mr-2 h-4 w-4" /> Finalizar</>
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+        
+        <p className="text-center text-[10px] text-muted-foreground mt-8 uppercase tracking-widest">
+          Ambiente Seguro &bull; Configuração Rápida
+        </p>
       </div>
     </div>
   );
