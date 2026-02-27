@@ -144,7 +144,6 @@ const Agenda = () => {
             </Button>
           </div>
           
-          {/* CORREÇÃO: services={services} (O ERRO ESTAVA AQUI) */}
           <QuickBooking 
             barbershopId={barbershop?.id} 
             services={services} 
@@ -226,7 +225,12 @@ const Agenda = () => {
           </div>
         </div>
       ) : (
-        <CalendarView appointments={filtered} barbershopId={barbershop?.id} />
+        <CalendarView 
+          appointments={filtered} 
+          barbershopId={barbershop?.id}
+          // AQUI ESTÁ A ATUALIZAÇÃO:
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
+        />
       )}
 
       {/* MODAL DE EDIÇÃO DIRETA */}
