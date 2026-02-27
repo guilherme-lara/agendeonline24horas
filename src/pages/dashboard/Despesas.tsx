@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  TrendingDown, Plus, Loader2, Trash2, PiggyBank, AlertTriangle, RefreshCw, X 
+  TrendingDown, Plus, Loader2, CheckCircle, Trash2, PiggyBank, AlertTriangle, RefreshCw, X 
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
