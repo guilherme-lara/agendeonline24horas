@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   TrendingDown, Plus, Loader2, CheckCircle, Trash2, PiggyBank, AlertTriangle, RefreshCw, X 
