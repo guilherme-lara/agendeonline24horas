@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { PackageCheck, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { PackageCheck, Plus, Loader2, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -32,6 +32,7 @@ const Pacotes = () => {
   const [packages, setPackages] = useState<Package[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false); // <-- Estado de erro isolado
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Package | null>(null);
   const [name, setName] = useState("");
@@ -41,18 +42,34 @@ const Pacotes = () => {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const fetch = async () => {
+  // <-- FUNÇÃO BLINDADA COM TRY/CATCH/FINALLY -->
+  const loadPackagesData = useCallback(async () => {
     if (!barbershop) return;
-    const [pkgRes, svcRes] = await Promise.all([
-      supabase.from("packages").select("*").eq("barbershop_id", barbershop.id).order("name"),
-      supabase.from("services").select("id, name").eq("barbershop_id", barbershop.id).eq("active", true),
-    ]);
-    setPackages((pkgRes.data as Package[]) || []);
-    setServices((svcRes.data as Service[]) || []);
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(false);
 
-  useEffect(() => { fetch(); }, [barbershop]);
+    try {
+      const [pkgRes, svcRes] = await Promise.all([
+        supabase.from("packages").select("*").eq("barbershop_id", barbershop.id).order("name"),
+        supabase.from("services").select("id, name").eq("barbershop_id", barbershop.id).eq("active", true),
+      ]);
+
+      if (pkgRes.error) throw pkgRes.error;
+      if (svcRes.error) throw svcRes.error;
+
+      setPackages((pkgRes.data as Package[]) || []);
+      setServices((svcRes.data as Service[]) || []);
+    } catch (err) {
+      console.error("Erro ao carregar pacotes:", err);
+      setError(true);
+    } finally {
+      setLoading(false); // A MÁGICA: Independente de erro, o loading desativa
+    }
+  }, [barbershop]);
+
+  useEffect(() => { 
+    loadPackagesData(); 
+  }, [loadPackagesData]);
 
   const openNew = () => {
     setEditing(null);
@@ -70,35 +87,69 @@ const Pacotes = () => {
   const handleSave = async () => {
     if (!barbershop || !name.trim()) return;
     setSaving(true);
-    const payload = {
-      name, price: Number(price), quantity: Number(quantity),
-      service_id: serviceId === "none" ? null : serviceId,
-      description,
-    };
-    if (editing) {
-      const { error } = await supabase.from("packages").update(payload).eq("id", editing.id);
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { toast({ title: "Pacote atualizado!" }); setOpen(false); fetch(); }
-    } else {
-      const { error } = await supabase.from("packages").insert({ ...payload, barbershop_id: barbershop.id });
-      if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { toast({ title: "Pacote criado!" }); setOpen(false); fetch(); }
+    try {
+      const payload = {
+        name, price: Number(price), quantity: Number(quantity),
+        service_id: serviceId === "none" ? null : serviceId,
+        description,
+      };
+      
+      if (editing) {
+        const { error: saveError } = await supabase.from("packages").update(payload).eq("id", editing.id);
+        if (saveError) throw saveError;
+        toast({ title: "Pacote atualizado!" });
+      } else {
+        const { error: saveError } = await supabase.from("packages").insert({ ...payload, barbershop_id: barbershop.id });
+        if (saveError) throw saveError;
+        toast({ title: "Pacote criado!" });
+      }
+      
+      setOpen(false);
+      loadPackagesData(); // Recarrega usando a função blindada
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const toggleActive = async (p: Package) => {
-    await supabase.from("packages").update({ active: !p.active }).eq("id", p.id);
-    setPackages((prev) => prev.map((pk) => pk.id === p.id ? { ...pk, active: !pk.active } : pk));
+    try {
+      const { error: updateError } = await supabase.from("packages").update({ active: !p.active }).eq("id", p.id);
+      if (updateError) throw updateError;
+      setPackages((prev) => prev.map((pk) => pk.id === p.id ? { ...pk, active: !pk.active } : pk));
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("packages").delete().eq("id", id);
-    setPackages((prev) => prev.filter((p) => p.id !== id));
-    toast({ title: "Pacote removido" });
+    try {
+      const { error: deleteError } = await supabase.from("packages").delete().eq("id", id);
+      if (deleteError) throw deleteError;
+      setPackages((prev) => prev.filter((p) => p.id !== id));
+      toast({ title: "Pacote removido" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
   };
 
+  // <-- TELAS DE PROTEÇÃO -->
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  // TELA DE ERRO (Adeus F5!)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">Falha na conexão</h2>
+      <p className="text-sm text-muted-foreground mb-6">Não foi possível carregar os pacotes.</p>
+      <Button onClick={loadPackagesData} className="gold-gradient text-primary-foreground font-semibold px-8">
+        Tentar Novamente
+      </Button>
+    </div>
+  );
+
+  if (!barbershop) return null;
 
   return (
     <div className="p-6 max-w-4xl mx-auto animate-fade-in">
