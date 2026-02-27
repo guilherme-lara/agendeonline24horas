@@ -1,177 +1,205 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
+import { 
+  Loader2, ArrowLeft, CheckCircle2, ShieldCheck, 
+  CreditCard, Zap, Sparkles, Rocket 
+} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { plans } from "@/components/SubscriptionPlans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+const planIcons: Record<string, any> = {
+  essential: Zap,
+  growth: Sparkles,
+  pro: Rocket
+};
 
 const Subscribe = () => {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const plan = plans.find((p) => p.id === planId);
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: ""
+  });
 
-  // Formatação de telefone em tempo real
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
+  // --- MUTAÇÃO: ATIVAR ASSINATURA ---
+  const subscribeMutation = useMutation({
+    mutationFn: async () => {
+      // Health Check de Sessão
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada. Por favor, faça login novamente.");
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (name.trim().length < 3) {
-      toast({ title: "Nome muito curto", description: "Por favor, informe seu nome completo.", variant: "destructive" });
-      return;
-    }
-    if (cleanPhone.length < 10) {
-      toast({ title: "Telefone inválido", description: "Informe um WhatsApp válido com DDD.", variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Inserção blindada no banco de dados
       const { error } = await supabase.from("subscribers").insert({
         user_id: user?.id,
-        name: name.trim(),
-        phone: phone.trim(),
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
         plan: plan?.id,
         plan_price: plan?.price,
         status: 'active'
       });
 
       if (error) throw error;
-
+    },
+    onSuccess: () => {
+      // Invalida o cache global para que o sistema reconheça o novo plano instantaneamente
+      queryClient.invalidateQueries({ queryKey: ["saas-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscribers"] });
+      
       toast({ 
         title: "Assinatura Ativada! 🎉", 
-        description: `Seja bem-vindo ao plano ${plan?.name}. Redirecionando...` 
+        description: `Bem-vindo ao nível ${plan?.name}. Seu painel está sendo liberado.` 
       });
       
-      // Pequeno delay para o usuário ler o toast de sucesso
       setTimeout(() => navigate("/dashboard"), 1500);
-
-    } catch (err: any) {
-      console.error("Erro na assinatura:", err);
+    },
+    onError: (err: any) => {
       toast({ 
-        title: "Falha na ativação", 
-        description: err.message || "Não conseguimos processar sua assinatura. Tente novamente.", 
+        title: "Erro na ativação", 
+        description: err.message || "Tente novamente em instantes.", 
         variant: "destructive" 
       });
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const formatPhone = (value: string) => {
+    const d = value.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   };
 
-  // Proteções de carregamento e acesso
-  if (authLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.name.trim().length < 3 || formData.phone.replace(/\D/g, "").length < 10) {
+      toast({ title: "Dados incompletos", description: "Verifique o nome e o telefone.", variant: "destructive" });
+      return;
+    }
+    subscribeMutation.mutate();
+  };
+
+  // --- RENDERS DE PROTEÇÃO ---
+  if (authLoading) return (
+    <div className="min-h-screen bg-[#0b1224] flex items-center justify-center">
+      <Loader2 className="h-10 w-10 animate-spin text-cyan-500" />
+    </div>
+  );
 
   if (!plan) {
     return (
-      <div className="container max-w-md py-20 text-center animate-fade-in">
-        <p className="text-muted-foreground mb-4">Plano não encontrado ou expirado.</p>
-        <Button variant="outline" onClick={() => navigate("/")}>Voltar para Início</Button>
+      <div className="min-h-screen bg-[#0b1224] flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-white font-bold mb-4">Plano não identificado.</h2>
+        <Button onClick={() => navigate("/")} variant="outline" className="border-slate-800 text-slate-400">Voltar</Button>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="container max-w-md py-20 text-center animate-fade-in">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-          <ShieldCheck className="h-8 w-8 text-primary" />
+      <div className="min-h-screen bg-[#0b1224] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="h-20 w-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center mb-8 border border-cyan-500/20">
+          <ShieldCheck className="h-10 w-10 text-cyan-400" />
         </div>
-        <h2 className="font-display text-2xl font-bold mb-3">Identificação Necessária</h2>
-        <p className="text-sm text-muted-foreground mb-8">
-          Para ativar o plano <span className="text-primary font-bold">{plan.name}</span>, precisamos que você acesse sua conta.
-        </p>
-        <Button onClick={() => navigate("/auth")} className="w-full gold-gradient text-primary-foreground font-bold h-12">
-          Fazer Login ou Criar Conta
-        </Button>
+        <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Falta pouco!</h2>
+        <p className="text-slate-500 mb-10 max-w-xs mx-auto">Para ativar o plano <b>{plan.name}</b>, você precisa estar conectado à sua conta.</p>
+        <Button onClick={() => navigate("/login")} className="gold-gradient h-14 px-12 rounded-2xl font-black shadow-xl w-full max-w-sm">Acessar Minha Conta</Button>
       </div>
     );
   }
 
+  const PlanIcon = planIcons[plan.id] || Sparkles;
+
   return (
-    <div className="container max-w-md py-10 animate-fade-in">
-      <button 
-        onClick={() => navigate(-1)} 
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8 group"
-      >
-        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" /> Voltar
-      </button>
+    <div className="min-h-screen bg-[#0b1224] py-12 px-6 relative overflow-hidden flex flex-col items-center">
+      {/* EFEITO DE FUNDO */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 blur-[120px] rounded-full -z-10" />
 
-      <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-card to-secondary/30 p-8 mb-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <CheckCircle2 className="h-12 w-12 text-primary" />
-        </div>
-        <p className="text-xs uppercase tracking-widest text-primary font-bold mb-2">Você escolheu o plano</p>
-        <h2 className="font-display text-3xl font-bold mb-2">{plan.name}</h2>
-        <div className="flex items-baseline gap-1">
-          <span className="text-sm font-bold text-muted-foreground">R$</span>
-          <span className="text-4xl font-display font-black text-primary">{plan.price.toFixed(2).replace(".", ",")}</span>
-          <span className="text-xs text-muted-foreground">/mês</span>
-        </div>
-      </div>
+      <div className="w-full max-w-md">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-white transition-all mb-10"
+        >
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" /> Voltar
+        </button>
 
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <h3 className="font-display text-lg font-bold mb-6 flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-primary" />
-          Dados da Assinatura
-        </h3>
-        
-        <form onSubmit={handleSubscribe} className="space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Responsável Financeiro</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nome completo para nota"
-              className="h-12 bg-background"
-              required
-            />
+        {/* CARD DO PLANO ESCOLHIDO */}
+        <div className="relative rounded-[2.5rem] border border-cyan-500/30 bg-slate-900/60 p-8 mb-8 shadow-2xl backdrop-blur-md overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <PlanIcon className="h-20 w-20 text-cyan-400" />
           </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">WhatsApp de Contato</label>
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(formatPhone(e.target.value))}
-              placeholder="(00) 00000-0000"
-              className="h-12 bg-background"
-              required
-              maxLength={15}
-            />
+          
+          <Badge className="bg-cyan-500 text-white font-black text-[9px] uppercase tracking-widest mb-4 px-3">Upgrade Selecionado</Badge>
+          <h2 className="text-3xl font-black text-white tracking-tighter mb-2">{plan.name}</h2>
+          
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-bold text-slate-500">R$</span>
+            <span className="text-5xl font-black text-cyan-400 tracking-tighter">
+              {plan.price.toFixed(2).replace(".", ",")}
+            </span>
+            <span className="text-xs font-bold text-slate-600 uppercase ml-1">/mês</span>
           </div>
+        </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full gold-gradient text-primary-foreground font-black h-14 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
-          >
-            {loading ? (
-              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Ativando...</>
-            ) : (
-              "Confirmar e Ativar Agora"
-            )}
-          </Button>
-        </form>
-        
-        <p className="text-[10px] text-center text-muted-foreground mt-6 uppercase tracking-tighter">
-          Pagamento processado em ambiente seguro &bull; Sem fidelidade
-        </p>
+        {/* FORMULÁRIO DE ATIVAÇÃO */}
+        <div className="bg-slate-900/40 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-8 flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
+            Confirmação de Faturamento
+          </h3>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Responsável</label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nome completo para o contrato"
+                className="h-14 bg-slate-950 border-slate-800 text-white font-bold focus-visible:ring-cyan-500/50"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">WhatsApp Financeiro</label>
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+                placeholder="(00) 00000-0000"
+                className="h-14 bg-slate-950 border-slate-800 text-white font-mono focus-visible:ring-cyan-500/50"
+                required
+                maxLength={15}
+              />
+            </div>
+
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={subscribeMutation.isPending}
+                className="w-full h-16 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-xl shadow-cyan-900/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+              >
+                {subscribeMutation.isPending ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" /> Processando...</>
+                ) : (
+                  <><CreditCard className="h-5 w-5" /> Ativar Plano Agora</>
+                )}
+              </Button>
+            </div>
+          </form>
+          
+          <p className="text-[9px] text-center text-slate-600 mt-8 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+            <ShieldCheck className="h-3 w-3" /> Transação Criptografada via SSL &bull; Sem Multas
+          </p>
+        </div>
       </div>
     </div>
   );
