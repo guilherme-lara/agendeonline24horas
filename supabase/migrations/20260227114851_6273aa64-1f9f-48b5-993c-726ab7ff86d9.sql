@@ -1,0 +1,1 @@
+UPDATE public.services SET requires_advance_payment = true, advance_payment_value = 25.00 WHERE barbershop_id = (SELECT id FROM barbershops WHERE slug = 'studio-nespoli') AND name = 'Corte Degradê'

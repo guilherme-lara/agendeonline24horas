@@ -1,0 +1,1 @@
+UPDATE public.services SET requires_advance_payment = true, advance_payment_value = 25.00 WHERE id = '416ee65c-349c-4ed7-8a74-58e80eeac4aa'
