@@ -44,20 +44,15 @@ const Dashboard = () => {
   
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
-  // Plano em tempo real vindo do hook com cache
   const currentPlan = useMemo(() => {
     return (barbershop as any)?.plan_name || "essential";
   }, [barbershop]);
 
-  const fetchDashboardData = useCallback(async () => {
-   if (!user || !barbershop?.id) return;
-  
-    // Se mudou a barbearia (impersonate), limpa a lista antiga para não mostrar dado errado
-    setAppointments([]); 
-    setLoadingData(true);
+  const fetchDashboardData = useCallback(async (isRefresh = false) => {
+    if (!user || !barbershop?.id) return;
     
-    // Só mostra o esqueleto se for a primeira vez MESMO
-    if (appointments.length === 0) setLoadingData(true);
+    // Se não for um refresh silencioso, e não tivermos dados, mostra o loading
+    if (!isRefresh && appointments.length === 0) setLoadingData(true);
     setError(false);
 
     try {
@@ -81,13 +76,14 @@ const Dashboard = () => {
 
     } catch (err) {
       console.error("Erro Dashboard:", err);
-      setError(true);
+      // Só mostra tela de erro se realmente não houver nenhum dado em cache
+      if (appointments.length === 0) setError(true);
     } finally {
       setLoadingData(false);
     }
   }, [barbershop?.id, user, appointments.length]);
 
-  // EFEITO DE SINCRONIZAÇÃO: Dispara sempre que a aba ganha foco ou muda de ID
+  // EFEITO 1: Carregamento inicial e troca de barbearia
   useEffect(() => {
     if (shopLoading) return;
     if (!user || !barbershop) return;
@@ -98,7 +94,18 @@ const Dashboard = () => {
     }
 
     fetchDashboardData();
-  }, [barbershop?.id, user?.id, shopLoading, navigate, fetchDashboardData]);
+  }, [barbershop?.id, user?.id, shopLoading, navigate]); // Removido fetchDashboardData das deps para evitar loop
+
+  // EFEITO 2: Sincronização sem F5 (Foco da aba)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("Sincronizando Dashboard...");
+      fetchDashboardData(true); // true = refresh silencioso
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchDashboardData]);
 
   // Boas-vindas
   useEffect(() => {
@@ -124,7 +131,7 @@ const Dashboard = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2 text-white">Falha na Sincronização</h2>
         <p className="text-sm text-slate-400 mb-8">Não conseguimos conectar aos dados agora.</p>
-        <Button onClick={fetchDashboardData} className="bg-cyan-600 hover:bg-cyan-500 font-bold px-10">
+        <Button onClick={() => fetchDashboardData()} className="bg-cyan-600 hover:bg-cyan-500 font-bold px-10">
           Tentar Novamente
         </Button>
       </div>
@@ -133,7 +140,7 @@ const Dashboard = () => {
 
   if (!barbershop) return null;
 
-  // --- CÁLCULOS ---
+  // --- CÁLCULOS KPI ---
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const activeAppointments = appointments.filter((a) => a.status !== "cancelled");
   const todayAppointments = activeAppointments.filter((a) => a.scheduled_at.startsWith(todayStr));
