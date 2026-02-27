@@ -19,6 +19,7 @@ import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge"; // <-- ADICIONE ESTA LINHA
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
 
