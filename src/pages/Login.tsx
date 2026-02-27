@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const { barbershop, loading: shopLoading } = useBarbershop();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,9 +24,15 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (authLoading || shopLoading) return;
-    if (user && barbershop) navigate("/dashboard", { replace: true });
-    else if (user && !barbershop) navigate("/onboarding", { replace: true });
-  }, [user, barbershop, authLoading, shopLoading, navigate]);
+    if (!user) return;
+    // Admin/Master always goes to super-admin
+    if (isAdmin) {
+      navigate("/super-admin", { replace: true });
+      return;
+    }
+    if (barbershop) navigate("/dashboard", { replace: true });
+    else navigate("/onboarding", { replace: true });
+  }, [user, barbershop, isAdmin, authLoading, shopLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  MessageCircle, CalendarDays, Globe, Ticket, TrendingDown,
+  MessageCircle, CalendarDays, Globe, TrendingDown,
   BarChart3, Smile, Users, Scissors, ShoppingBag, PackageCheck,
-  Cake, Settings, FileText, Shield, LogOut, X, ChevronRight,
+  Cake, Settings, LogOut, X, ChevronRight,
   CreditCard, LayoutDashboard, ShoppingCart, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,22 +20,19 @@ const navItems = [
   { label: "Suporte", icon: MessageCircle, path: "/dashboard?tab=support", external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte+com+o+TechBarber!" },
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
-  { label: "Caixa / PDV", icon: ShoppingCart, path: "/dashboard/caixa" },
+  { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
   { label: "Aprovação de Sinais", icon: AlertTriangle, path: "/dashboard/aprovacao-sinais" },
-  { label: "Comandas", icon: Ticket, path: "/dashboard/comandas" },
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
   { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
-  { label: "Serviços", icon: Scissors, path: "/dashboard/configuracoes" },
+  { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
   { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
   { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
   { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
   { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
   { label: "Configurações", icon: Settings, path: "/dashboard/configuracoes" },
-  { label: "Termos de uso", icon: FileText, path: "/termos" },
-  { label: "Política de privacidade", icon: Shield, path: "/privacidade" },
 ];
 
 const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
