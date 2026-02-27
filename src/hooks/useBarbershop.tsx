@@ -23,7 +23,7 @@ export const useBarbershop = () => {
   }, []);
 
   const refetch = useCallback(async () => {
-  setLoading(true);
+    setLoading(true);
     
     if (!user) {
       setBarbershop(null);
@@ -31,28 +31,38 @@ export const useBarbershop = () => {
       return;
     }
 
-    // Check for impersonation mode (admin only)
-    const impersonateId = localStorage.getItem("impersonate_barbershop_id");
-    if (impersonateId && isAdmin) {
-      const { data } = await supabase
+    try {
+      const impersonateId = localStorage.getItem("impersonate_barbershop_id");
+      if (impersonateId && isAdmin) {
+        const { data, error } = await supabase
+          .from("barbershops")
+          .select("*")
+          .eq("id", impersonateId)
+          .maybeSingle();
+        
+        if (error) throw error;
+
+        if (data) {
+          setBarbershop(data as Barbershop);
+          return; 
+        }
+      }
+
+      const { data, error } = await supabase
         .from("barbershops")
         .select("*")
-        .eq("id", impersonateId)
+        .eq("owner_id", user.id)
         .maybeSingle();
-      if (data) {
-        setBarbershop(data as Barbershop);
-        setLoading(false);
-        return;
-      }
-    }
 
-    const { data } = await supabase
-      .from("barbershops")
-      .select("*")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-    setBarbershop(data as Barbershop | null);
-    setLoading(false);
+      if (error) throw error;
+
+      setBarbershop(data as Barbershop | null);
+
+    } catch (err) {
+      console.error("Erro silencioso ao buscar barbearia (ignorado):", err);
+    } finally {
+      setLoading(false);
+    }
   }, [user, isAdmin]);
 
   useEffect(() => {
