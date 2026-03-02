@@ -113,6 +113,36 @@ Deno.serve(async (req) => {
     let updateData: Record<string, unknown> = {};
 
     if (isPaid) {
+      // SECURITY: Validate payment amount matches appointment price
+      const { data: apptData } = await supabase
+        .from("appointments")
+        .select("price, payment_confirmed_at")
+        .eq("id", appointmentId)
+        .single();
+
+      // Idempotency: skip if already confirmed
+      if (apptData?.payment_confirmed_at) {
+        console.log(`Appointment ${appointmentId} already confirmed. Skipping duplicate webhook.`);
+        return new Response(JSON.stringify({ received: true, skipped: "already_confirmed" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Amount validation (if webhook provides amount)
+      const webhookAmount = billing.amount || pixQrCode.amount || data.amount;
+      if (webhookAmount && apptData?.price) {
+        const expectedCents = Math.round(Number(apptData.price) * 100);
+        const receivedCents = Math.round(Number(webhookAmount));
+        if (receivedCents < expectedCents) {
+          console.error(`Amount mismatch! Expected ${expectedCents}, got ${receivedCents}. Rejecting.`);
+          return new Response(JSON.stringify({ error: "Amount mismatch" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       updateData = {
         payment_status: "paid",
         status: "confirmed",

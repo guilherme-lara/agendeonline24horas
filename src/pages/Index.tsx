@@ -27,16 +27,17 @@ const Index = () => {
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---
+  // Usa view segura que NÃO expõe email/phone dos barbeiros
   const { data: barbers = [], isLoading: loadingBarbers } = useQuery({
     queryKey: ["home-barbers"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("barbers")
-        .select("*")
+        .select("id, name, avatar_url, active")
         .eq("active", true)
         .limit(4);
       if (error) throw error;
-      return data;
+      return (data || []) as unknown as Array<{ id: string; name: string; avatar_url: string | null; active: boolean }>;
     },
   });
 
