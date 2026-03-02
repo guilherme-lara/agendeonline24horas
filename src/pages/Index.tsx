@@ -90,7 +90,7 @@ const Index = () => {
                   {service.name}
                 </h3>
                 <p className="text-xs text-slate-500 mb-6 line-clamp-2 leading-relaxed">
-                  {service.description || "Técnica refinada e acabamento impecável para o seu estilo."}
+                  {"Técnica refinada e acabamento impecável para o seu estilo."}
                 </p>
                 
                 <div className="flex items-center justify-between">
@@ -155,7 +155,7 @@ const Index = () => {
                 {barber.name}
               </h3>
               <p className="text-[10px] text-slate-500 mb-8 uppercase font-black tracking-[0.15em]">
-                {barber.specialty || "Master Barber"}
+                {"Master Barber"}
               </p>
               
               <Button 

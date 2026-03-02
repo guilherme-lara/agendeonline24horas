@@ -406,11 +406,13 @@ const Booking = () => {
 
                <TimeSlotPicker
 
+                  slots={[]}
+
                   selectedTime={booking.selectedTime}
 
                   onSelect={(time) => booking.setTime(time)}
 
-               />
+                />
 
             </div>
 
