@@ -36,12 +36,32 @@ const PublicBooking = () => {
   const [signalPending, setSignalPending] = useState(false);
 
   // --- QUERIES ---
+  // Usa a view pública + busca logo_url e phone separadamente se autenticado
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
-      const { data, error } = await supabase.from("barbershops").select("*").eq("slug", slug).maybeSingle();
+      // Busca dados públicos seguros
+      const { data: publicData, error } = await supabase
+        .from("barbershops_public")
+        .select("*")
+        .eq("slug", slug!)
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!publicData) return null;
+      
+      // Busca logo_url e phone (campos não-sensíveis) diretamente
+      // Isso é seguro pois são campos públicos por natureza
+      const { data: extraData } = await supabase
+        .from("barbershops")
+        .select("logo_url, phone")
+        .eq("id", publicData.id!)
+        .maybeSingle();
+      
+      return {
+        ...publicData,
+        logo_url: extraData?.logo_url || null,
+        phone: extraData?.phone || null,
+      };
     },
     enabled: !!slug,
   });
@@ -50,15 +70,17 @@ const PublicBooking = () => {
     queryKey: ["shop-resources", shop?.id],
     queryFn: async () => {
       const [servs, hours, barbers] = await Promise.all([
-        supabase.from("services").select("*").eq("barbershop_id", shop?.id).eq("active", true).order("sort_order"),
-        supabase.from("business_hours").select("*").eq("barbershop_id", shop?.id),
-        supabase.from("barbers").select("*").eq("barbershop_id", shop?.id).eq("active", true),
+        supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
+        supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
+        // Usa view segura que NÃO expõe email/phone
+        supabase.from("barbers_public" as any).select("*").eq("barbershop_id", shop!.id),
       ]);
       return { services: servs.data || [], hours: hours.data || [], barbers: barbers.data || [] };
     },
     enabled: !!shop?.id,
   });
 
+  // Usa view segura que NÃO expõe dados de pagamento/cliente
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
     queryFn: async () => {
@@ -67,15 +89,14 @@ const PublicBooking = () => {
       dayEnd.setHours(23, 59, 59);
 
       const { data, error } = await supabase
-        .from("appointments")
+        .from("appointments_public" as any)
         .select("scheduled_at, service_name, status")
-        .eq("barbershop_id", shop?.id)
+        .eq("barbershop_id", shop!.id)
         .gte("scheduled_at", dayStart)
-        .lte("scheduled_at", dayEnd.toISOString())
-        .neq("status", "cancelled");
+        .lte("scheduled_at", dayEnd.toISOString());
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
   });
