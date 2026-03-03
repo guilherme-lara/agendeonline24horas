@@ -28,17 +28,19 @@ export const useAuth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       const currentUser = session?.user ?? null;
-      
+
+      // Nunca bloqueia a UI aguardando checkAdmin
+      if (isMounted) {
+        setUser(currentUser);
+        setLoading(false);
+      }
+
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
-        if (isMounted) {
-          setUser(currentUser);
-          setIsAdmin(admin);
-        }
-      } else {
-        if (isMounted) setUser(null);
+        if (isMounted) setIsAdmin(admin);
+      } else if (isMounted) {
+        setIsAdmin(false);
       }
-      if (isMounted) setLoading(false);
     });
 
     // 2. Escuta mudanças na autenticação
@@ -46,23 +48,22 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
         
-        // O VILÃO DA ABA ESTÁ AQUI! 
-        // O Supabase dispara "TOKEN_REFRESHED" sozinho quando você volta pra aba.
-        // Se ignorarmos ele aqui, o sistema NUNCA MAIS trava ao trocar de guia.
-        
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           const currentUser = session?.user ?? null;
+          if (isMounted) {
+            setUser(currentUser);
+            setLoading(false);
+          }
+
           if (currentUser) {
             const admin = await checkAdmin(currentUser.id);
-            if (isMounted) {
-              setUser(currentUser);
-              setIsAdmin(admin);
-            }
+            if (isMounted) setIsAdmin(admin);
           }
         } else if (event === 'SIGNED_OUT') {
           if (isMounted) {
             setUser(null);
             setIsAdmin(false);
+            setLoading(false);
           }
         }
       }

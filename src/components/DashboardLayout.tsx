@@ -14,7 +14,7 @@ const DashboardLayout = () => {
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
   useEffect(() => {
-    if (authLoading || shopLoading) return;
+    if ((authLoading && !user) || (shopLoading && !barbershop && !isAdmin && !isImpersonating)) return;
     if (!user) {
       navigate("/auth", { replace: true });
       return;
@@ -24,7 +24,7 @@ const DashboardLayout = () => {
     }
   }, [user, isAdmin, barbershop, isImpersonating, authLoading, shopLoading, navigate]);
 
-  if (authLoading || shopLoading) return <DashboardSkeleton />;
+  if ((authLoading && !user) || (shopLoading && !barbershop && !isAdmin && !isImpersonating)) return <DashboardSkeleton />;
   if (!user) return <DashboardSkeleton />;
   if (isAdmin && !barbershop && !isImpersonating) return <DashboardSkeleton />;
 

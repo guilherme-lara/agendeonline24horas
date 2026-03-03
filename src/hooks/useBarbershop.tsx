@@ -18,7 +18,7 @@ export interface Barbershop {
 }
 
 export const useBarbershop = () => {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   // Pegamos o ID de impersonação para usar como chave de cache
@@ -29,13 +29,6 @@ export const useBarbershop = () => {
     queryKey: ["current-barbershop", user?.id, impersonateId],
     queryFn: async (): Promise<Barbershop | null> => {
       if (!user) return null;
-
-      // 1. Antes de buscar, validamos se a sessão ainda existe para evitar erro 400
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn("Sessão expirada no useBarbershop. Forçando logout.");
-        return null;
-      }
 
       let query = supabase
         .from("barbershops")
@@ -64,7 +57,7 @@ export const useBarbershop = () => {
       return null;
     },
     // CONFIGURAÇÕES DE RESILIÊNCIA:
-    enabled: !!user && !authLoading, // Só busca se houver usuário logado
+    enabled: !!user, // Evita congelamento quando authLoading oscila ao voltar da aba
     staleTime: 1000 * 60 * 2, // Dados "quentes" por 2 minutos
     gcTime: 1000 * 60 * 10, // Cache vivo por 10 minutos
     retry: 1, // 1 retry apenas — evita loops
@@ -81,7 +74,7 @@ export const useBarbershop = () => {
   return { 
     barbershop: barbershop || null, 
     // REGRA 2: loading = true APENAS na primeira carga real (sem dados no cache)
-    loading: (isLoading && !barbershop) || authLoading, 
+    loading: isLoading && !barbershop, 
     user, 
     refetch, 
     clearImpersonation,
