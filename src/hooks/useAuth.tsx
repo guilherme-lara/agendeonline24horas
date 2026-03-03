@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Só fica true no carregamento inicial da página
+  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkAdmin = async (userId: string) => {
@@ -17,29 +17,29 @@ export const useAuth = () => {
         .maybeSingle();
       return !!data;
     } catch {
-      return false; // Se der erro de rede, não trava tudo
+      return false;
     }
   };
 
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Busca inicial ao carregar a página (A única que deve ter loading)
+    // 1. Busca inicial (A única que liga o setLoading)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       const currentUser = session?.user ?? null;
 
-      // Nunca bloqueia a UI aguardando checkAdmin
-      if (isMounted) {
-        setUser(currentUser);
-        setLoading(false);
-      }
-
       if (currentUser) {
+        setUser(currentUser);
+        setLoading(false); // Já libera a UI enquanto checa Admin em background
         const admin = await checkAdmin(currentUser.id);
         if (isMounted) setIsAdmin(admin);
-      } else if (isMounted) {
-        setIsAdmin(false);
+      } else {
+        if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+        }
       }
     });
 
@@ -47,25 +47,25 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const currentUser = session?.user ?? null;
-          if (isMounted) {
-            setUser(currentUser);
-            setLoading(false);
-          }
 
+        // SE FEZ LOGOUT EXPLÍCITO
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+        } 
+        // SE FEZ LOGIN EXPLÍCITO
+        else if (event === 'SIGNED_IN') {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
           if (currentUser) {
             const admin = await checkAdmin(currentUser.id);
             if (isMounted) setIsAdmin(admin);
           }
-        } else if (event === 'SIGNED_OUT') {
-          if (isMounted) {
-            setUser(null);
-            setIsAdmin(false);
-            setLoading(false);
-          }
         }
+        // O SEGREDO ESTÁ AQUI: 
+        // Removemos o 'TOKEN_REFRESHED' do condicional principal.
+        // O Supabase cuida da segurança em background. Não precisamos avisar a UI.
       }
     );
 
