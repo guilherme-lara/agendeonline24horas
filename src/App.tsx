@@ -56,16 +56,21 @@ import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
 // --- A BALA DE PRATA: CONFIGURAÇÃO BLINDADA DO CACHE ---
+// --- A BALA DE PRATA: CONFIGURAÇÃO BLINDADA DO CACHE ---
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // <-- DESLIGA O GATILHO QUE TRAVAVA A ABA
-      refetchOnMount: false, // <-- Evita piscar a tela ao trocar de páginas rápido
-      refetchOnReconnect: true, // Se a internet cair e voltar, ele recarrega suavemente
-      staleTime: 1000 * 60 * 5, // 5 minutos de dados em memória (sem refetch)
-      gcTime: 1000 * 60 * 15, // 15 minutos até limpar do lixo
-      retry: 1, // Se der erro, tenta só mais uma vez
+      networkMode: 'always', // <-- A CURA: Ignora o falso "Offline" do navegador e força o disparo
+      refetchOnWindowFocus: false, 
+      refetchOnMount: false, 
+      refetchOnReconnect: true, 
+      staleTime: 1000 * 60 * 5, 
+      gcTime: 1000 * 60 * 15, 
+      retry: 1, 
     },
+    mutations: {
+      networkMode: 'always', // <-- A CURA: Impede que botões (como o "Adicionar Produto") fiquem girando eternamente
+    }
   },
 });
 
