@@ -24,17 +24,29 @@ const Login = () => {
 
   // --- LÓGICA DE REDIRECIONAMENTO BLINDADA ---
   useEffect(() => {
-    if (authLoading || shopLoading) return;
+    // 1. Se ainda está carregando a autenticação básica, aguarde.
+    if (authLoading) return;
+
+    // 2. Se não tem ninguém logado, apenas fica na tela de login esperando a ação do usuário.
     if (!user) return;
 
+    // 3. É SUPER ADMIN? 
+    // O Passe Livre: Redireciona NA HORA. Ignoramos o shopLoading, pois Admin não tem barbearia carregada.
     if (isAdmin) {
       navigate("/super-admin", { replace: true });
-    } else if (barbershop) {
+      return; 
+    }
+
+    // 4. É USUÁRIO COMUM (BARBEIRO)?
+    // Aí sim precisamos esperar a busca da barbearia terminar para saber o destino (Onboarding ou Dashboard).
+    if (shopLoading) return;
+
+    if (barbershop) {
       navigate("/dashboard", { replace: true });
     } else {
       navigate("/onboarding", { replace: true });
     }
-  }, [user, barbershop, isAdmin, authLoading, shopLoading, navigate]);
+  }, [user, isAdmin, barbershop, authLoading, shopLoading, navigate]);
 
   // --- MUTAÇÃO: LOGIN / CADASTRO ---
   const authMutation = useMutation({
@@ -60,7 +72,7 @@ const Login = () => {
       }
     },
     onSuccess: (res) => {
-      // Invalida as queries de usuário e barbearia para forçar o redirecionamento imediato
+      // Invalida as queries de usuário e barbearia para forçar o recarregamento na nova tela
       queryClient.invalidateQueries({ queryKey: ["session"] });
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
 
