@@ -158,7 +158,8 @@ const Dashboard = () => {
     };
   }, [appointments, orders]);
 
-  if (shopLoading || (loadingAppts && loadingOrders)) return <DashboardSkeleton />;
+  // REGRA 2: Skeleton APENAS se é a primeira carga real E não temos dados no cache
+  if ((shopLoading && !barbershop) || (loadingAppts && !appointments.length && loadingOrders && !orders.length)) return <DashboardSkeleton />;
 
   if (errorAppts) return (
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">

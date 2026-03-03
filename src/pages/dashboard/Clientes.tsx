@@ -116,7 +116,8 @@ const Clientes = () => {
     );
   }, [customers, search]);
 
-  if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
+  // REGRA 2: Loader APENAS na primeira carga real
+  if (loading && !customers.length) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -125,7 +126,7 @@ const Clientes = () => {
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-tight">
-            <Users className="h-8 w-8 text-cyan-400" /> Base de Clientes
+            <User className="h-8 w-8 text-cyan-400" /> Base de Clientes
           </h1>
           <p className="text-slate-500 text-sm mt-1 font-medium">Gerencie sua carteira e fidelize seu público.</p>
         </div>
