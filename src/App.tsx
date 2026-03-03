@@ -107,29 +107,12 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   return <>{children}</>;
 };
 
-// --- CONTEÚDO PRINCIPAL ---
+// --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
   const { pathname } = useLocation();
-  const queryClient = useQueryClient();
   const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin");
 
-  // --- SINCRONIA DE SESSÃO SILENCIOSA ---
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // REGRA DE OURO: Ignoramos o TOKEN_REFRESHED. 
-      // O Supabase renova a segurança invisivelmente. Não tocamos na UI.
-      if (event === 'SIGNED_OUT') {
-        queryClient.clear(); // Limpa cache no logout por segurança
-      }
-      
-      // Apenas forçamos invalidate se for um Login explícito
-      if (event === 'SIGNED_IN') {
-         queryClient.invalidateQueries();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
+  // 👉 O useEffect que apagava o cache foi REMOVIDO DAQUI!
 
   return (
     <>
