@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { AuthProvider } from "@/hooks/useAuth";
 // 2. Supabase e Integrações
 import { supabase } from "@/integrations/supabase/client";
 
@@ -176,14 +177,18 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <BookingProvider>
-              <AppContent />
-            </BookingProvider>
+            <AuthProvider>      {/* <--- ADICIONE ESTA LINHA */}
+              <BookingProvider>
+                <AppContent />
+              </BookingProvider>
+            </AuthProvider>     {/* <--- ADICIONE ESTA LINHA */}
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </ErrorBoundary>
 );
+
+export default App;
 
 export default App;
