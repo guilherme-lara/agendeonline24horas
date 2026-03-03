@@ -58,11 +58,11 @@ import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: true, // Acorda o app ao focar na aba
-      refetchOnReconnect: 'always', // Força reconexão se o sinal cair
-      staleTime: 1000 * 30, // Dados expiram em 30 segundos (foco em tempo real)
-      retry: 2,
-      gcTime: 1000 * 60 * 60, 
+      refetchOnWindowFocus: true, // Revalida ao voltar para a aba, MAS protegido pelo staleTime
+      refetchOnReconnect: 'always',
+      staleTime: 1000 * 60, // REGRA 1: 1 minuto — dados não "envelhecem" instantaneamente
+      gcTime: 1000 * 60 * 10, // REGRA 1: Cache vivo por 10 minutos
+      retry: 1, // REGRA 1: Apenas 1 retry para evitar loops
     },
   },
 });

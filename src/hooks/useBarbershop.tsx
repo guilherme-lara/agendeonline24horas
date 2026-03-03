@@ -24,7 +24,7 @@ export const useBarbershop = () => {
   // Pegamos o ID de impersonação para usar como chave de cache
   const impersonateId = localStorage.getItem("impersonate_barbershop_id");
 
-  const { data: barbershop, isLoading, refetch, isPlaceholderData } = useQuery({
+  const { data: barbershop, isLoading, isFetching, refetch, isError } = useQuery({
     // A chave da query garante que o cache mude se o user ou a impersonação mudar
     queryKey: ["current-barbershop", user?.id, impersonateId],
     queryFn: async (): Promise<Barbershop | null> => {
@@ -65,10 +65,10 @@ export const useBarbershop = () => {
     },
     // CONFIGURAÇÕES DE RESILIÊNCIA:
     enabled: !!user && !authLoading, // Só busca se houver usuário logado
-    staleTime: 1000 * 60 * 5, // Considera o dado "quente" por 5 minutos
-    gcTime: 1000 * 60 * 60, // Mantém no lixo por 1 hora antes de deletar
-    retry: 2, // Se a internet oscilar, tenta 2 vezes antes de dar erro
-    refetchOnWindowFocus: true, // A MÁGICA: Revalida tudo quando você volta para a aba
+    staleTime: 1000 * 60 * 2, // Dados "quentes" por 2 minutos
+    gcTime: 1000 * 60 * 10, // Cache vivo por 10 minutos
+    retry: 1, // 1 retry apenas — evita loops
+    refetchOnWindowFocus: true, // Revalida protegido pelo staleTime
   });
 
   const clearImpersonation = useCallback(async () => {
@@ -80,10 +80,12 @@ export const useBarbershop = () => {
 
   return { 
     barbershop: barbershop || null, 
-    loading: isLoading || authLoading, 
+    // REGRA 2: loading = true APENAS na primeira carga real (sem dados no cache)
+    loading: (isLoading && !barbershop) || authLoading, 
     user, 
     refetch, 
     clearImpersonation,
-    isUpdating: isPlaceholderData // Útil para mostrar um loader pequeno e discreto no canto
+    isFetching, // Background sync indicator (discreto)
+    isError,
   };
 };

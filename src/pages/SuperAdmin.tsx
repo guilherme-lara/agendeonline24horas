@@ -140,7 +140,8 @@ const SuperAdmin = () => {
   }, [shops, searchQuery]);
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (authLoading || loadingShops) return (
+  // REGRA 2: Bloqueio APENAS na primeira carga sem dados no cache
+  if ((authLoading || loadingShops) && !shops.length) return (
     <div className="min-h-screen bg-[#060b18] flex flex-col items-center justify-center gap-4">
       <Loader2 className="h-10 w-10 animate-spin text-cyan-500" />
       <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Estabelecendo Conexão Nexus...</p>

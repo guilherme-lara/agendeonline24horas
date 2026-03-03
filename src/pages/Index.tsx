@@ -70,7 +70,7 @@ const Index = () => {
           </Button>
         </div>
 
-        {isLoading ? (
+        {isLoading && !services.length && !barbers.length ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-10 w-10 animate-spin text-cyan-500" />
           </div>

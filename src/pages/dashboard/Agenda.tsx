@@ -98,7 +98,8 @@ const Agenda = () => {
     });
   }, [appointments, activeTab, search]);
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" /></div>;
+  // REGRA 2: Bloqueio APENAS na primeira carga (sem dados no cache)
+  if (isLoading && !appointments.length) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="w-full min-h-screen bg-[#060b18] p-4 lg:p-8 animate-in fade-in duration-500">
