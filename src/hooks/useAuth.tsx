@@ -34,13 +34,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
       
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
-        if (isMounted) setIsAdmin(admin);
+        if (isMounted) {
+          // ATUALIZAÇÃO ATÔMICA: Avisa o sistema tudo de uma vez
+          setIsAdmin(admin);
+          setUser(currentUser);
+          setLoading(false);
+        }
+      } else {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
     // Escuta as mudanças do Supabase blindado contra "falsos logouts"
@@ -53,13 +61,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       } else if (event === 'SIGNED_IN') {
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
         if (currentUser) {
           const admin = await checkAdmin(currentUser.id);
-          if (isMounted) setIsAdmin(admin);
+          if (isMounted) {
+            // A MÁGICA ESTÁ AQUI: Só atualizamos o `user` depois de já ter a resposta do `isAdmin`.
+            // Isso impede que a tela de Login "queime a largada".
+            setIsAdmin(admin);
+            setUser(currentUser);
+          }
         }
       }
-      // NOTA MENTAL: TOKEN_REFRESHED é ignorado aqui para não piscar a UI em trocas de aba
     });
 
     return () => {
