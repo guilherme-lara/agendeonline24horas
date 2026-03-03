@@ -21,11 +21,9 @@ export const useBarbershop = () => {
   const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
-  // Pegamos o ID de impersonação para usar como chave de cache
   const impersonateId = localStorage.getItem("impersonate_barbershop_id");
 
   const { data: barbershop, isLoading, isFetching, refetch, isError } = useQuery({
-    // A chave da query garante que o cache mude se o user ou a impersonação mudar
     queryKey: ["current-barbershop", user?.id, impersonateId],
     queryFn: async (): Promise<Barbershop | null> => {
       if (!user) return null;
@@ -56,29 +54,28 @@ export const useBarbershop = () => {
       }
       return null;
     },
-    // CONFIGURAÇÕES DE RESILIÊNCIA:
-    enabled: !!user, // Evita congelamento quando authLoading oscila ao voltar da aba
-    staleTime: 1000 * 60 * 2, // Dados "quentes" por 2 minutos
-    gcTime: 1000 * 60 * 10, // Cache vivo por 10 minutos
-    retry: 1, // 1 retry apenas — evita loops
-    refetchOnWindowFocus: true, // Revalida protegido pelo staleTime
+    // RESILIÊNCIA PURA
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
+    retry: 1,
+    // FOI REMOVIDO DAQUI O `refetchOnWindowFocus: true`
+    // Agora o React Query obedece às regras do App.tsx globalmente.
   });
 
   const clearImpersonation = useCallback(async () => {
     localStorage.removeItem("impersonate_barbershop_id");
-    // Limpamos o cache global e forçamos recarregamento para o dono real
     await queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
     window.location.href = "/dashboard";
   }, [queryClient]);
 
   return { 
     barbershop: barbershop || null, 
-    // REGRA 2: loading = true APENAS na primeira carga real (sem dados no cache)
     loading: isLoading && !barbershop, 
     user, 
     refetch, 
     clearImpersonation,
-    isFetching, // Background sync indicator (discreto)
+    isFetching,
     isError,
   };
 };
