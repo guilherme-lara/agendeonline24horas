@@ -68,8 +68,15 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (!shopLoading && barbershop && !barbershop.setup_completed) {
-      navigate("/onboarding");
+    if (shopLoading) return;
+
+    const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
+
+    if (barbershop && barbershop.id) {
+      // MÁGICA: Só redireciona se for estritamente false E não for o Super Admin
+      if (barbershop.setup_completed === false && !isImpersonating) {
+        navigate("/onboarding");
+      }
     }
   }, [barbershop, shopLoading, navigate]);
 
