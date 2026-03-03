@@ -14,11 +14,11 @@ import { useBarbershop } from "@/hooks/useBarbershop";
 import { BookingProvider } from "@/contexts/BookingContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-// 4. Componentes de UI e Layout (IMPORTANTE: Verifique estes caminhos)
+// 4. Componentes de UI e Layout
 import { Loader2, ShieldAlert, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import Header from "@/components/Header"; // Correção do ReferenceError
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
 
@@ -54,15 +54,16 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-// --- CONFIGURAÇÃO INDUSTRIAL DO MOTOR DE CACHE ---
+// --- A BALA DE PRATA: CONFIGURAÇÃO BLINDADA DO CACHE ---
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: true, // Revalida ao voltar para a aba, MAS protegido pelo staleTime
-      refetchOnReconnect: 'always',
-      staleTime: 1000 * 60, // REGRA 1: 1 minuto — dados não "envelhecem" instantaneamente
-      gcTime: 1000 * 60 * 10, // REGRA 1: Cache vivo por 10 minutos
-      retry: 1, // REGRA 1: Apenas 1 retry para evitar loops
+      refetchOnWindowFocus: false, // <-- DESLIGA O GATILHO QUE TRAVAVA A ABA
+      refetchOnMount: false, // <-- Evita piscar a tela ao trocar de páginas rápido
+      refetchOnReconnect: true, // Se a internet cair e voltar, ele recarrega suavemente
+      staleTime: 1000 * 60 * 5, // 5 minutos de dados em memória (sem refetch)
+      gcTime: 1000 * 60 * 15, // 15 minutos até limpar do lixo
+      retry: 1, // Se der erro, tenta só mais uma vez
     },
   },
 });
@@ -106,21 +107,24 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   return <>{children}</>;
 };
 
-// --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
+// --- CONTEÚDO PRINCIPAL ---
 const AppContent = () => {
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
   const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin");
 
-  // --- O SEGREDO: SINCRONIA DE SESSÃO ---
+  // --- SINCRONIA DE SESSÃO SILENCIOSA ---
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Se o usuário volta na aba e o token renovou, limpamos o cache para buscar dados novos
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        queryClient.invalidateQueries(); 
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // REGRA DE OURO: Ignoramos o TOKEN_REFRESHED. 
+      // O Supabase renova a segurança invisivelmente. Não tocamos na UI.
       if (event === 'SIGNED_OUT') {
-        queryClient.clear(); // Segurança: limpa dados sensíveis ao sair
+        queryClient.clear(); // Limpa cache no logout por segurança
+      }
+      
+      // Apenas forçamos invalidate se for um Login explícito
+      if (event === 'SIGNED_IN') {
+         queryClient.invalidateQueries();
       }
     });
 
