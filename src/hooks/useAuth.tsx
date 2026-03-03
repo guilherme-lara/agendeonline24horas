@@ -63,9 +63,6 @@ export const useAuth = () => {
             if (isMounted) setIsAdmin(admin);
           }
         }
-        // O SEGREDO ESTÁ AQUI: 
-        // Removemos o 'TOKEN_REFRESHED' do condicional principal.
-        // O Supabase cuida da segurança em background. Não precisamos avisar a UI.
       }
     );
 
