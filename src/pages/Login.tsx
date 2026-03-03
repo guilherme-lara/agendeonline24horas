@@ -4,7 +4,6 @@ import { Scissors, Mail, Lock, Loader2, Eye, EyeOff, User, ArrowRight, ShieldChe
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -16,39 +15,23 @@ const Login = () => {
   const queryClient = useQueryClient();
   
   const { user, loading: authLoading, isAdmin } = useAuth();
-  const { barbershop, loading: shopLoading } = useBarbershop() as any;
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "", name: "" });
 
-  // --- LÓGICA DE REDIRECIONAMENTO BLINDADA ---
+  // Se o cara JÁ TIVER LOGADO e tentar acessar a tela de login pela URL, tira ele de lá
   useEffect(() => {
-    // 1. Se ainda está carregando a autenticação básica, aguarde.
-    if (authLoading) return;
-
-    // 2. Se não tem ninguém logado, apenas fica na tela de login esperando a ação do usuário.
-    if (!user) return;
-
-    // 3. É SUPER ADMIN? 
-    // O Passe Livre: Redireciona NA HORA. Ignoramos o shopLoading, pois Admin não tem barbearia carregada.
-    if (isAdmin) {
-      navigate("/super-admin", { replace: true });
-      return; 
+    if (!authLoading && user) {
+      if (isAdmin) {
+        navigate("/super-admin", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     }
+  }, [user, isAdmin, authLoading, navigate]);
 
-    // 4. É USUÁRIO COMUM (BARBEIRO)?
-    // Aí sim precisamos esperar a busca da barbearia terminar para saber o destino (Onboarding ou Dashboard).
-    if (shopLoading) return;
-
-    if (barbershop) {
-      navigate("/dashboard", { replace: true });
-    } else {
-      navigate("/onboarding", { replace: true });
-    }
-  }, [user, isAdmin, barbershop, authLoading, shopLoading, navigate]);
-
-  // --- MUTAÇÃO: LOGIN / CADASTRO ---
+  // --- MUTAÇÃO: LOGIN / CADASTRO COM ROTEAMENTO IMPERATIVO (FORÇADO) ---
   const authMutation = useMutation({
     mutationFn: async () => {
       const email = formData.email.trim();
@@ -71,19 +54,53 @@ const Login = () => {
         return { type: 'login', data };
       }
     },
-    onSuccess: (res) => {
-      // Invalida as queries de usuário e barbearia para forçar o recarregamento na nova tela
-      queryClient.invalidateQueries({ queryKey: ["session"] });
-      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+    onSuccess: async (res) => {
+      // 1. Limpa qualquer lixo de memória de outro usuário que logou antes
+      queryClient.clear();
 
       if (res.type === 'signup') {
-        toast({ 
-          title: "Conta criada!", 
-          description: "Verifique seu e-mail para confirmar o acesso." 
-        });
+        toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar o acesso." });
         setIsSignUp(false);
-      } else {
-        toast({ title: "Bem-vindo ao sistema!" });
+        return;
+      }
+
+      toast({ title: "Acesso autorizado. Carregando painel..." });
+
+      const loggedUser = res.data.user;
+      if (!loggedUser) return;
+
+      try {
+        // 2. O GPS MANUAL: Descobre quem é o cara direto na fonte (Banco de Dados)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", loggedUser.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        // É O SUPER ADMIN? Redireciona na hora e morre a execução aqui.
+        if (roleData) {
+          window.location.href = "/super-admin";
+          return;
+        }
+
+        // NÃO É O ADMIN. Vamos ver se ele já configurou a barbearia.
+        const { data: shopData } = await supabase
+          .from("barbershops")
+          .select("id")
+          .eq("owner_id", loggedUser.id)
+          .maybeSingle();
+
+        if (shopData) {
+          // Tem barbearia -> Painel Normal
+          window.location.href = "/dashboard";
+        } else {
+          // Não tem barbearia -> Fazer Onboarding
+          window.location.href = "/onboarding";
+        }
+
+      } catch (error) {
+        toast({ title: "Erro no roteamento", description: "Tente recarregar a página.", variant: "destructive" });
       }
     },
     onError: (err: any) => {
