@@ -2,6 +2,8 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -55,22 +57,33 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-// --- CONFIGURAÇÃO BLINDADA DO CACHE ---
+// --- CONFIGURAÇÃO DE PERSISTÊNCIA (SOLUÇÃO PARA TRAVAMENTO) ---
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       networkMode: 'always',
-      refetchOnWindowFocus: false,  // GLOBAL: Nenhuma query refaz ao voltar pra aba
-      refetchOnMount: false,
+      refetchOnWindowFocus: true, // Ativado para garantir refresh ao voltar da aba
+      refetchOnMount: true,
       refetchOnReconnect: true,
-      staleTime: 1000 * 60 * 5,     // 5 minutos
-      gcTime: 1000 * 60 * 15,       // 15 minutos
-      retry: 1,
+      staleTime: 1000 * 30,       // 30 segundos de dados frescos
+      gcTime: 1000 * 60 * 60 * 24, // 24 horas de cache persistente no disco
+      retry: 2,
     },
     mutations: {
       networkMode: 'always',
     }
   },
+});
+
+// Cria o persistidor que salva o cache no localStorage do navegador
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+});
+
+// Faz o link entre o QueryClient e o LocalStorage
+persistQueryClient({
+  queryClient,
+  persister,
 });
 
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
@@ -117,12 +130,15 @@ const RealtimeReconnector = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Reconecta WebSockets do Supabase ao voltar para a aba
+        // 1. Acorda o Realtime do Supabase
         try {
           supabase.realtime.connect();
         } catch (e) {
-          // Silencioso - não crashar por causa de reconexão
+          console.warn("Falha ao reconectar Realtime:", e);
         }
+        
+        // 2. Força o React Query a checar as queries ativas imediatamente
+        queryClient.invalidateQueries();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
