@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, Wallet, AlertTriangle, 
-  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle
+  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +31,7 @@ const PublicBooking = () => {
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [success, setSuccess] = useState(false); 
   const [signalPending, setSignalPending] = useState(false);
-  const [cancelled, setCancelled] = useState(false); // NOVO ESTADO DE CANCELAMENTO
+  const [cancelled, setCancelled] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
   const realtimeChannelRef = useRef<any>(null);
@@ -101,14 +101,12 @@ const PublicBooking = () => {
         (payload: any) => {
           const newStatus = payload.new?.status;
           if (newStatus === 'confirmed' || newStatus === 'pending') {
-            // Admin confirmou o pagamento!
             setSignalPending(false);
             setSuccess(true);
             setStep(5);
           } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
-            // Admin RECUSOU o pagamento / cancelou
             setSignalPending(false);
-            setCancelled(true); // GATILHO DA TELA DE ERRO
+            setCancelled(true);
             toast({ title: "Pagamento Recusado", description: "O estabelecimento cancelou este agendamento.", variant: "destructive" });
           }
         }
@@ -255,7 +253,7 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* STEP 1: SERVIÇOS */}
+        {/* STEP 1: SERVIÇOS (COM AVISO DE SINAL) */}
         {step === 1 && !cancelled && !success && !signalPending && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">O que vamos fazer hoje?</h3>
@@ -263,10 +261,20 @@ const PublicBooking = () => {
                 <div className="grid gap-3">
                     {shopResources?.services.map((s: any) => (
                         <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-start">
                                 <div>
                                     <p className="font-bold text-lg text-foreground">{s.name}</p>
                                     <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
+                                    
+                                    {/* AVISO DE SINAL OBRIGATÓRIO NO CARD DO SERVIÇO */}
+                                    {s.requires_advance_payment && (
+                                        <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
+                                            <AlertTriangle className="h-3 w-3 text-amber-500" />
+                                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">
+                                              Requer Sinal de R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 <p className="text-xl font-black text-primary">R$ {Number(s.price).toFixed(2)}</p>
                             </div>
@@ -328,10 +336,10 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* STEP 4: FINALIZAÇÃO E CONFIRMAÇÃO */}
+        {/* STEP 4: PREENCHER DADOS E GERAR AGENDAMENTO */}
         {step === 4 && !cancelled && !success && !signalPending && (
             <div className="animate-in fade-in zoom-in-95">
-                <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalizar Reserva</h3>
+                <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Seus Dados</h3>
                 <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-card space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
@@ -373,9 +381,70 @@ const PublicBooking = () => {
                           disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
                           className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                       >
-                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><Check className="mr-2 h-5 w-5" /> Confirmar</>}
+                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><Check className="mr-2 h-5 w-5" /> Confirmar Horário</>}
                       </Button>
                     </div>
+                </div>
+            </div>
+        )}
+
+        {/* TELA FINAL: AGUARDANDO SINAL (O NOVO "STEP 5" DE CHECKOUT) */}
+        {signalPending && !cancelled && (
+            <div className="animate-in fade-in zoom-in-95">
+                <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Pagamento do Sinal</h3>
+                
+                <div className="bg-card border border-border rounded-[2.5rem] p-6 shadow-card space-y-6">
+                  
+                  {/* ALERTA DE INSTRUÇÃO */}
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-start gap-3">
+                    <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-600 dark:text-amber-500">Quase lá!</p>
+                      <p className="text-[10px] text-amber-600/80 dark:text-amber-500/80 mt-1">
+                        Seu horário está pré-reservado. Realize o pagamento do sinal e envie o comprovante para finalizarmos sua reserva.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* SEÇÃO PIX */}
+                  {pixKey ? (
+                    <div className="space-y-4">
+                      <div className="bg-secondary/50 border border-border rounded-2xl p-4 text-center">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Valor a pagar agora</p>
+                        <p className="text-3xl font-black text-primary">
+                          R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Chave Pix ({pixBeneficiary})</p>
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border flex items-center">
+                            {pixKey}
+                          </div>
+                          <Button onClick={handleCopyPix} className="h-auto bg-primary text-primary-foreground px-4 shrink-0 hover:bg-primary/90 rounded-xl">
+                            {copiedPix ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="pt-4 border-t border-border space-y-4">
+                    {/* BOTÃO WHATSAPP */}
+                    <Button 
+                      onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}?text=Olá! Acabei de pagar o sinal do meu agendamento. Meu nome é ${clientData.name}. Segue o comprovante:`, "_blank")} 
+                      className="bg-[#25D366] hover:bg-[#20bd5a] text-white h-14 rounded-xl font-black shadow-lg w-full flex items-center justify-center gap-2"
+                    >
+                        <MessageCircle className="h-5 w-5" /> Enviar Comprovante no WhatsApp
+                    </Button>
+
+                    {/* BOTÃO BLOQUEADO (AGUARDANDO) */}
+                    <Button disabled className="w-full h-16 rounded-2xl font-black bg-secondary text-muted-foreground opacity-100 border border-border">
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Aguardando confirmação do salão...
+                    </Button>
+                  </div>
                 </div>
             </div>
         )}
@@ -389,74 +458,6 @@ const PublicBooking = () => {
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
                 <p className="text-muted-foreground mb-10 max-w-xs mx-auto">Sua vaga está garantida. Te esperamos no horário marcado!</p>
                 <Button onClick={() => navigate(`/${slug}/success`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Ver Resumo</Button>
-            </div>
-        )}
-        
-        {/* TELA FINAL: AGUARDANDO SINAL */}
-        {signalPending && !cancelled && (
-            <div className="animate-in fade-in zoom-in-95 text-center py-8 px-4">
-                <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                    <Clock className="h-10 w-10 text-primary animate-pulse" />
-                </div>
-                <h1 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Aguardando Confirmação</h1>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm">
-                  Este serviço exige um sinal de <b className="text-primary">R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</b> para confirmar a reserva.
-                </p>
-
-                {/* SEÇÃO PIX */}
-                {pixKey ? (
-                  <div className="bg-card border border-border rounded-3xl p-6 text-left space-y-5 shadow-card max-w-sm mx-auto mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <QrCode className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-foreground uppercase tracking-tight">Pague via Pix</p>
-                        <p className="text-[10px] text-muted-foreground">Copie a chave abaixo e faça a transferência</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Beneficiário</p>
-                      <p className="text-sm font-bold text-foreground">{pixBeneficiary}</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chave Pix</p>
-                      <div className="flex gap-2">
-                        <div className="flex-1 bg-secondary rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border">
-                          {pixKey}
-                        </div>
-                        <Button variant="outline" onClick={handleCopyPix} className="border-border px-3 shrink-0 hover:bg-secondary">
-                          {copiedPix ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Valor do Sinal</p>
-                      <p className="text-2xl font-black text-primary">
-                        R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground justify-center pt-2">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="font-bold uppercase tracking-widest">Monitorando pagamento em tempo real...</span>
-                    </div>
-                  </div>
-                ) : null}
-
-                <Button 
-                  onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} 
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white h-14 px-10 rounded-2xl font-black shadow-xl w-full max-w-sm mx-auto flex items-center justify-center gap-2"
-                >
-                    <MessageCircle className="h-5 w-5" /> Enviar Comprovante via WhatsApp
-                </Button>
-
-                <p className="text-[10px] text-muted-foreground mt-6 max-w-xs mx-auto">
-                  Assim que o estabelecimento confirmar o recebimento, esta tela será atualizada automaticamente.
-                </p>
             </div>
         )}
 
@@ -474,7 +475,7 @@ const PublicBooking = () => {
                 <div className="space-y-4 max-w-sm mx-auto">
                     <Button 
                       onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} 
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white h-14 w-full rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                      className="bg-[#25D366] hover:bg-[#20bd5a] text-white h-14 w-full rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95"
                     >
                         <MessageCircle className="h-5 w-5" /> Falar com o Suporte
                     </Button>
