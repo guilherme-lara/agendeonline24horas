@@ -36,7 +36,7 @@ const PublicBooking = () => {
   const [copiedPix, setCopiedPix] = useState(false);
   const realtimeChannelRef = useRef<any>(null);
 
-  // --- QUERIES ---
+  // --- QUERIES BLINDADAS CONTRA CACHE ---
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
@@ -45,10 +45,15 @@ const PublicBooking = () => {
         .select("id, name, slug, address, logo_url, phone, settings")
         .eq("slug", slug!)
         .maybeSingle();
+      
       if (error) throw error;
+      console.log("=== DADOS DO BANCO CHEGARAM ===", publicData); // Verifica se o settings veio
       return publicData;
     },
     enabled: !!slug,
+    staleTime: 0, // Mata o cache local, obriga a buscar sempre
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: shopResources } = useQuery({
@@ -64,6 +69,7 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
+  // --- BUSCA DE SLOTS (ATUALIZA A CADA 5 SEGUNDOS) ---
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
     queryFn: async () => {
@@ -82,6 +88,7 @@ const PublicBooking = () => {
       return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
+    refetchInterval: 5000, // MÁGICA 1: Fica checando o banco de 5 em 5 segundos silenciosamente
   });
 
   // --- REALTIME: Escuta confirmação do pagamento ---
@@ -120,7 +127,7 @@ const PublicBooking = () => {
     };
   }, [appointmentId, signalPending, toast]);
 
-  // --- MUTAÇÃO ---
+  // --- MUTAÇÃO DO AGENDAMENTO ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -129,6 +136,7 @@ const PublicBooking = () => {
 
       const requiresSignal = selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0;
 
+      // O backend lança erro aqui se o horário já tiver sido pego no milissegundo exato
       const { data: apptId, error } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -160,7 +168,15 @@ const PublicBooking = () => {
       }
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: "Esse horário acabou de ser ocupado. Tente outro.", variant: "destructive" });
+      // MÁGICA 2: Volta o usuário para o calendário na hora se bater o conflito de agendamento!
+      toast({ 
+        title: "Horário Indisponível", 
+        description: "Poxa, alguém acabou de reservar este exato horário. Por favor, escolha outro.", 
+        variant: "destructive" 
+      });
+      setStep(3); // Joga de volta pro passo 3 (calendário)
+      setSelectedTime(null); // Limpa o horário escolhido
+      queryClient.invalidateQueries({ queryKey: ["slots"] }); // Força atualizar a tela de slots
     }
   });
 
@@ -273,7 +289,6 @@ const PublicBooking = () => {
                                     <p className="font-bold text-lg text-foreground">{s.name}</p>
                                     <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
                                     
-                                    {/* AVISO DE SINAL OBRIGATÓRIO NO CARD DO SERVIÇO */}
                                     {s.requires_advance_payment && (
                                         <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
                                             <AlertTriangle className="h-3 w-3 text-amber-500" />
