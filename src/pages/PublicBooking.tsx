@@ -395,7 +395,7 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: AGUARDANDO SINAL */}
+        {/* TELA FINAL: AGUARDANDO SINAL (O NOVO "STEP 5" DE CHECKOUT) */}
         {signalPending && !cancelled && (
             <div className="animate-in fade-in zoom-in-95">
                 <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Pagamento do Sinal</h3>
