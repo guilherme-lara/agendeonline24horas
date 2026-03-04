@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, Wallet, AlertTriangle, 
-  MessageCircle, MapPin, ArrowLeft 
+  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,9 +18,8 @@ const BUFFER_MINUTES = 10;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // O FAMOSO QUERY CLIENT QUE ESTAVA DANDO ERRO
   const queryClient = useQueryClient();
 
   // --- ESTADOS DE NAVEGAÇÃO ---
@@ -30,38 +29,24 @@ const PublicBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
-  
-  // OS ESTADOS QUE FALTAVAM E QUEBRAVAM A TELA
   const [success, setSuccess] = useState(false); 
   const [signalPending, setSignalPending] = useState(false);
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
+  const realtimeChannelRef = useRef<any>(null);
 
   // --- QUERIES ---
-  // Usa a view pública + busca logo_url e phone separadamente se autenticado
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
-      // Busca dados públicos seguros
       const { data: publicData, error } = await supabase
-        .from("barbershops_public")
-        .select("*")
+        .from("barbershops")
+        .select("id, name, slug, address, logo_url, phone, settings")
         .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
       if (!publicData) return null;
-      
-      // Busca logo_url e phone (campos não-sensíveis) diretamente
-      // Isso é seguro pois são campos públicos por natureza
-      const { data: extraData } = await supabase
-        .from("barbershops")
-        .select("logo_url, phone")
-        .eq("id", publicData.id!)
-        .maybeSingle();
-      
-      return {
-        ...publicData,
-        logo_url: extraData?.logo_url || null,
-        phone: extraData?.phone || null,
-      };
+      return publicData;
     },
     enabled: !!slug,
   });
@@ -72,7 +57,6 @@ const PublicBooking = () => {
       const [servs, hours, barbers] = await Promise.all([
         supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
-        // Usa view segura que NÃO expõe email/phone
         supabase.from("barbers_public" as any).select("*").eq("barbershop_id", shop!.id),
       ]);
       return { services: servs.data || [], hours: hours.data || [], barbers: barbers.data || [] };
@@ -80,7 +64,6 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
-  // Usa view segura que NÃO expõe dados de pagamento/cliente
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
     queryFn: async () => {
@@ -101,6 +84,42 @@ const PublicBooking = () => {
     enabled: !!shop?.id && !!selectedDate,
   });
 
+  // --- REALTIME: Escuta confirmação do pagamento ---
+  useEffect(() => {
+    if (!appointmentId || !signalPending) return;
+
+    const channel = supabase
+      .channel(`appointment-${appointmentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'appointments',
+          filter: `id=eq.${appointmentId}`,
+        },
+        (payload: any) => {
+          const newStatus = payload.new?.status;
+          if (newStatus === 'confirmed' || newStatus === 'pending') {
+            // Admin confirmou o pagamento!
+            setSignalPending(false);
+            setSuccess(true);
+            setStep(5);
+          } else if (newStatus === 'cancelled') {
+            setSignalPending(false);
+            toast({ title: "Agendamento cancelado", description: "O estabelecimento cancelou este agendamento.", variant: "destructive" });
+          }
+        }
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [appointmentId, signalPending, toast]);
+
   // --- MUTAÇÃO ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
@@ -110,7 +129,6 @@ const PublicBooking = () => {
 
       const requiresSignal = selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0;
 
-      // ATENÇÃO: Confirme se executou o DROP FUNCTION lá no Supabase!
       const { data: apptId, error } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -134,6 +152,7 @@ const PublicBooking = () => {
     },
     onSuccess: (res) => {
       if (res.type === 'signal') {
+        setAppointmentId(res.id);
         setSignalPending(true);
       } else {
         setSuccess(true);
@@ -181,42 +200,54 @@ const PublicBooking = () => {
     return slots;
   }, [selectedDate, selectedService, shopResources, existingAppts]);
 
-  if (loadingShop) return <div className="min-h-screen bg-[#0b1224] flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500 h-10 w-10" /></div>;
+  const handleCopyPix = () => {
+    const key = (shop?.settings as any)?.pix_key;
+    if (!key) return;
+    navigator.clipboard.writeText(key);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 2000);
+  };
+
+  if (loadingShop) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
 
   if (errorShop || !shop) return (
-    <div className="min-h-screen bg-[#0b1224] flex flex-col items-center justify-center p-6 text-center">
-      <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
-      <h1 className="text-2xl font-black text-white">Barbearia Não Encontrada</h1>
-      <Button onClick={() => window.location.reload()} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8">Recarregar</Button>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+      <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
+      <h1 className="text-2xl font-black text-foreground font-display">Barbearia Não Encontrada</h1>
+      <Button onClick={() => window.location.reload()} className="mt-4 gold-gradient text-primary-foreground font-bold px-8">Recarregar</Button>
     </div>
   );
 
+  const shopSettings = (shop.settings || {}) as any;
+  const pixKey = shopSettings.pix_key || "";
+  const pixBeneficiary = shopSettings.pix_beneficiary || shop.name;
+
   return (
-    <div className="min-h-screen bg-[#0b1224] text-white selection:bg-cyan-500/30 pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-20">
       {/* HEADER DINÂMICO */}
-      <div className="border-b border-slate-800 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50">
+      <div className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-             <div className="h-12 w-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden">
-                {shop.logo_url ? <img src={shop.logo_url} className="h-full w-full object-cover" alt="Logo" /> : <Scissors className="text-cyan-400 h-6 w-6" />}
+             <div className="h-12 w-12 rounded-2xl bg-secondary border border-border flex items-center justify-center overflow-hidden">
+                {shop.logo_url ? <img src={shop.logo_url} className="h-full w-full object-cover" alt="Logo" /> : <Scissors className="text-primary h-6 w-6" />}
              </div>
              <div>
-                <h2 className="font-black text-lg truncate leading-none mb-1">{shop.name}</h2>
-                <p className="text-[10px] text-slate-500 flex items-center gap-1 uppercase tracking-tighter">
+                <h2 className="font-black text-lg truncate leading-none mb-1 font-display">{shop.name}</h2>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-tighter">
                    <MapPin className="h-3 w-3" /> {shop.address || "Endereço profissional"}
                 </p>
              </div>
           </div>
-          <Button variant="ghost" onClick={() => window.location.href='/meus-agendamentos'} className="text-[10px] font-black uppercase text-slate-400 hover:text-cyan-400">Minha Agenda</Button>
+          <Button variant="ghost" onClick={() => window.location.href='/meus-agendamentos'} className="text-[10px] font-black uppercase text-muted-foreground hover:text-primary">Minha Agenda</Button>
         </div>
       </div>
 
       <div className="container max-w-2xl mt-8 px-4">
-        {/* STEP INDICATOR - SEGURO */}
+        {/* STEP INDICATOR */}
         {!success && !signalPending && (
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" : "bg-slate-800"}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "gold-gradient shadow-gold" : "bg-secondary"}`} />
               ))}
             </div>
         )}
@@ -224,17 +255,17 @@ const PublicBooking = () => {
         {/* STEP 1: SERVIÇOS */}
         {step === 1 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black mb-1 tracking-tight text-white">O que vamos fazer hoje?</h3>
-                <p className="text-sm text-slate-500 mb-8 font-medium">Selecione o serviço para agendamento.</p>
+                <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">O que vamos fazer hoje?</h3>
+                <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o serviço para agendamento.</p>
                 <div className="grid gap-3">
                     {shopResources?.services.map((s: any) => (
-                        <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 text-left hover:border-cyan-500/40 transition-all active:scale-[0.98]">
+                        <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <p className="font-bold text-lg text-white">{s.name}</p>
-                                    <p className="text-xs text-slate-500 uppercase tracking-widest">{s.duration} min</p>
+                                    <p className="font-bold text-lg text-foreground">{s.name}</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
                                 </div>
-                                <p className="text-xl font-black text-emerald-400">R$ {Number(s.price).toFixed(2)}</p>
+                                <p className="text-xl font-black text-primary">R$ {Number(s.price).toFixed(2)}</p>
                             </div>
                         </button>
                     ))}
@@ -245,27 +276,27 @@ const PublicBooking = () => {
         {/* STEP 2: BARBEIRO */}
         {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-4">
-                <h3 className="text-2xl font-black mb-8 text-white">Quem vai te atender?</h3>
+                <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
                 <div className="grid grid-cols-2 gap-4">
                     {shopResources?.barbers.map((b: any) => (
-                        <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-[2rem] border border-slate-800 bg-slate-900/40 p-6 text-center hover:border-cyan-500/40 transition-all">
-                            <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-slate-800 group-hover:border-cyan-500/50 transition-all">
+                        <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-[2rem] border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
+                            <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
                                 <AvatarImage src={b.avatar_url} />
-                                <AvatarFallback className="font-black text-xl">{b.name.slice(0,2).toUpperCase()}</AvatarFallback>
+                                <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <p className="font-bold text-white group-hover:text-cyan-400 transition-colors">{b.name}</p>
+                            <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
                         </button>
                     ))}
                 </div>
-                <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-slate-500 font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
+                <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
             </div>
         )}
 
         {/* STEP 3: DATA E HORA */}
         {step === 3 && (
             <div className="animate-in fade-in slide-in-from-right-4">
-                <h3 className="text-2xl font-black mb-8 text-white">Data e Horário</h3>
-                <div className="bg-slate-900/40 border border-slate-800 rounded-[2rem] p-4 mb-8 flex justify-center backdrop-blur-sm shadow-xl">
+                <h3 className="text-2xl font-black mb-8 text-foreground font-display">Data e Horário</h3>
+                <div className="bg-card border border-border rounded-[2rem] p-4 mb-8 flex justify-center shadow-card">
                     <Calendar 
                       mode="single" 
                       selected={selectedDate || undefined} 
@@ -278,60 +309,60 @@ const PublicBooking = () => {
                 {selectedDate && (
                     <div className="grid grid-cols-4 gap-2">
                         {loadingSlots ? (
-                          <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-cyan-500" /></div>
+                          <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
                         ) : timeSlots.length === 0 ? (
-                          <p className="col-span-4 text-center text-sm text-red-400 font-bold py-4">Sem horários para este dia.</p>
+                          <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horários para este dia.</p>
                         ) : (
                           timeSlots.map(t => (
-                              <button key={t} onClick={() => { setSelectedTime(t); setStep(4); }} className="h-12 rounded-xl border border-slate-800 bg-slate-950/50 text-xs font-black text-white hover:border-cyan-500/50 hover:text-cyan-400 transition-all">
+                              <button key={t} onClick={() => { setSelectedTime(t); setStep(4); }} className="h-12 rounded-xl border border-border bg-secondary/50 text-xs font-black text-foreground hover:border-primary/50 hover:text-primary transition-all">
                                   {t}
                               </button>
                           ))
                         )}
                     </div>
                 )}
-                <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-slate-500 font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
+                <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
             </div>
         )}
 
         {/* STEP 4: FINALIZAÇÃO E CONFIRMAÇÃO */}
         {step === 4 && (
             <div className="animate-in fade-in zoom-in-95">
-                <h3 className="text-2xl font-black mb-8 text-white text-center tracking-tight">Finalizar Reserva</h3>
-                <div className="bg-slate-900/60 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6 backdrop-blur-xl">
+                <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalizar Reserva</h3>
+                <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-card space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Seu Nome</label>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome</label>
                             <Input 
                               value={clientData.name} 
                               onChange={(e) => setClientData({...clientData, name: e.target.value})} 
                               placeholder="Ex: João Silva" 
-                              className="bg-slate-950 border-slate-800 h-14 text-white font-bold" 
+                              className="bg-background border-border h-14 text-foreground font-bold" 
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">WhatsApp</label>
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">WhatsApp</label>
                             <Input 
                               value={clientData.phone} 
                               onChange={(e) => setClientData({...clientData, phone: e.target.value})} 
                               placeholder="(00) 00000-0000" 
-                              className="bg-slate-950 border-slate-800 h-14 text-white font-mono" 
+                              className="bg-background border-border h-14 text-foreground font-mono" 
                             />
                         </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 rounded-3xl p-6 border border-slate-800 space-y-3">
-                        <div className="flex justify-between items-center"><span className="text-xs text-slate-500 uppercase font-black">Serviço</span><span className="font-bold text-white text-right">{selectedService.name}</span></div>
-                        <div className="flex justify-between items-center"><span className="text-xs text-slate-500 uppercase font-black">Horário</span><span className="font-bold text-cyan-400">{format(selectedDate!, "dd/MM")} às {selectedTime}</span></div>
-                        <div className="pt-3 border-t border-slate-800 flex justify-between items-center"><span className="text-sm font-black uppercase text-slate-400">Valor</span><span className="text-2xl font-black text-emerald-400">R$ {Number(selectedService.price).toFixed(2).replace(".", ",")}</span></div>
+                    <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
+                        <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
+                        <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
+                        <div className="pt-3 border-t border-border flex justify-between items-center"><span className="text-sm font-black uppercase text-muted-foreground">Valor</span><span className="text-2xl font-black text-primary">R$ {selectedService && Number(selectedService.price).toFixed(2).replace(".", ",")}</span></div>
                     </div>
 
                     <div className="pt-4 flex items-center justify-between gap-4">
-                      <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-slate-500 rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
+                      <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
                       <Button 
                           onClick={() => bookingMutation.mutate()} 
                           disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.length < 10} 
-                          className="flex-1 h-16 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-xl shadow-cyan-900/20 active:scale-95 transition-all"
+                          className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                       >
                           {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><Check className="mr-2 h-5 w-5" /> Confirmar</>}
                       </Button>
@@ -340,28 +371,83 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELAS FINAIS: SUCESSO OU SINAL */}
+        {/* TELA FINAL: SUCESSO */}
         {success && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
-                <div className="h-24 w-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+                <div className="h-24 w-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
                     <Check className="h-12 w-12 text-emerald-500" />
                 </div>
-                <h1 className="text-3xl font-black text-white mb-4 tracking-tight">Agendamento Realizado!</h1>
-                <p className="text-slate-500 mb-10 max-w-xs mx-auto">Sua vaga está garantida. Te esperamos no horário marcado!</p>
-                <Button onClick={() => window.location.href = `/${slug}/success`} className="bg-cyan-600 hover:bg-cyan-500 text-white h-14 px-10 rounded-2xl font-black shadow-xl w-full max-w-xs mx-auto">Ver Resumo</Button>
+                <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
+                <p className="text-muted-foreground mb-10 max-w-xs mx-auto">Sua vaga está garantida. Te esperamos no horário marcado!</p>
+                <Button onClick={() => navigate(`/${slug}/success`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Ver Resumo</Button>
             </div>
         )}
         
+        {/* TELA FINAL: AGUARDANDO SINAL (COM PIX + REALTIME) */}
         {signalPending && (
-            <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
-                <div className="h-24 w-24 bg-amber-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-                    <Wallet className="h-12 w-12 text-amber-500" />
+            <div className="animate-in fade-in zoom-in-95 text-center py-8 px-4">
+                <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                    <Clock className="h-10 w-10 text-primary animate-pulse" />
                 </div>
-                <h1 className="text-3xl font-black text-white mb-4 tracking-tight">Aguardando Pagamento</h1>
-                <p className="text-slate-500 mb-10 max-w-xs mx-auto">Este serviço exige um sinal de <b>R$ {Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</b> para confirmar.</p>
-                <Button onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} className="bg-green-600 hover:bg-green-500 text-white h-14 px-10 rounded-2xl font-black shadow-xl w-full max-w-xs mx-auto flex items-center justify-center gap-2">
-                    <MessageCircle className="h-5 w-5" /> Enviar Comprovante
+                <h1 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Aguardando Confirmação</h1>
+                <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm">
+                  Este serviço exige um sinal de <b className="text-primary">R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</b> para confirmar a reserva.
+                </p>
+
+                {/* SEÇÃO PIX */}
+                {pixKey ? (
+                  <div className="bg-card border border-border rounded-3xl p-6 text-left space-y-5 shadow-card max-w-sm mx-auto mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <QrCode className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-foreground uppercase tracking-tight">Pague via Pix</p>
+                        <p className="text-[10px] text-muted-foreground">Copie a chave abaixo e faça a transferência</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Beneficiário</p>
+                      <p className="text-sm font-bold text-foreground">{pixBeneficiary}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chave Pix</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 bg-secondary rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border">
+                          {pixKey}
+                        </div>
+                        <Button variant="outline" onClick={handleCopyPix} className="border-border px-3 shrink-0">
+                          {copiedPix ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Valor do Sinal</p>
+                      <p className="text-2xl font-black text-primary">
+                        R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground justify-center pt-2">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="font-bold uppercase tracking-widest">Monitorando pagamento em tempo real...</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <Button 
+                  onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} 
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white h-14 px-10 rounded-2xl font-black shadow-xl w-full max-w-sm mx-auto flex items-center justify-center gap-2"
+                >
+                    <MessageCircle className="h-5 w-5" /> Enviar Comprovante via WhatsApp
                 </Button>
+
+                <p className="text-[10px] text-muted-foreground mt-6 max-w-xs mx-auto">
+                  Assim que o estabelecimento confirmar o recebimento, esta tela será atualizada automaticamente.
+                </p>
             </div>
         )}
       </div>

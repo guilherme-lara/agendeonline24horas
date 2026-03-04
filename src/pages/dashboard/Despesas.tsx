@@ -75,7 +75,6 @@ const Despesas = () => {
       return data as Expense[];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Auto-sincronia ao voltar para a aba
   });
 
   // --- MUTAÇÃO: CRIAR DESPESA ---

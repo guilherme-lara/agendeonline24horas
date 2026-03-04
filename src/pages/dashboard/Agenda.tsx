@@ -53,7 +53,6 @@ const Agenda = () => {
       return data || [];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true,
   });
 
   // --- BUSCA DE SERVIÇOS (PARA O QUICKBOOKING) ---

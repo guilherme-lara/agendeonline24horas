@@ -44,7 +44,6 @@ const AprovacaoSinais = () => {
       return data as PendingSignal[];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Auto-update ao voltar para a aba
   });
 
   // --- MUTAÇÕES DE AÇÃO ---

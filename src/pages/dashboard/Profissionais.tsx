@@ -26,7 +26,6 @@ const Profissionais = () => {
       return data?.plan_name || "essential";
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Sincronia ativa ao voltar para a aba
   });
 
   // Função para tentar carregar tudo novamente

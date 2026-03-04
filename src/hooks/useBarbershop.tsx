@@ -54,13 +54,8 @@ export const useBarbershop = () => {
       }
       return null;
     },
-    // RESILIÊNCIA PURA
     enabled: !!user,
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 10,
-    retry: 1,
-    // FOI REMOVIDO DAQUI O `refetchOnWindowFocus: true`
-    // Agora o React Query obedece às regras do App.tsx globalmente.
+    // Herda tudo do global (App.tsx). ZERO overrides locais.
   });
 
   const clearImpersonation = useCallback(async () => {

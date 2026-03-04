@@ -49,8 +49,7 @@ const Aniversarios = () => {
       });
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Auto-update ao voltar para a aba
-    staleTime: 1000 * 60 * 30, // Considera os aniversariantes "frescos" por 30 minutos
+    staleTime: 1000 * 60 * 30,
   });
 
   const sendWhatsApp = (phone: string, name: string) => {
