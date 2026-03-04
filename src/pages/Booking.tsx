@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
-  ArrowLeft, ArrowRight, Loader2, CheckCircle2, Copy
+  ArrowLeft, ArrowRight, Loader2, AlertCircle, RefreshCw, CheckCircle2 
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 
 const Booking = () => {
-  const { slug } = useParams();
+  const { slug } = useParams(); // Identificador da barbearia na URL
   const navigate = useNavigate();
   const booking = useBooking();
   const { toast } = useToast();
@@ -30,8 +30,7 @@ const Booking = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("barbershops")
-        // 👇 ADICIONADO: 'settings' PARA PUXAR O PIX
-        .select("id, name, slug, settings") 
+        .select("id, name, slug")
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
@@ -54,7 +53,7 @@ const Booking = () => {
       return data;
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true, // Sincroniza preços se o cliente mudar de aba
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---
@@ -72,9 +71,10 @@ const Booking = () => {
     enabled: !!barbershop?.id,
   });
 
-  // --- MUTAÇÃO: CONFIRMAR AGENDAMENTO ---
+  // --- MUTAÇÃO: CONFIRMAR AGENDAMENTO (BLINDADA) ---
   const confirmMutation = useMutation({
     mutationFn: async () => {
+      // 1. Health Check de disponibilidade (Futuramente você pode checar se o horário ainda está vago)
       if (!barbershop?.id) throw new Error("Barbearia não identificada.");
 
       const payload = {
@@ -83,14 +83,14 @@ const Booking = () => {
         client_phone: booking.customerPhone,
         barber_id: booking.selectedBarber?.id,
         barber_name: booking.selectedBarber?.name,
-        service_id: booking.selectedServices[0]?.id,
+        service_id: booking.selectedServices[0]?.id, // Simplificado para o primeiro serviço
         service_name: booking.selectedServices.map(s => s.name).join(", "),
         price: booking.totalPrice,
         scheduled_at: new Date(
           `${format(booking.selectedDate!, "yyyy-MM-dd")}T${booking.selectedTime}:00`
         ).toISOString(),
         payment_method: booking.paymentMethod,
-        status: "pending", 
+        status: "pending", // Inicializa como pendente até aprovação ou sinal
       };
 
       const { data, error } = await supabase.from("appointments").insert([payload]).select().single();
@@ -142,7 +142,7 @@ const Booking = () => {
         <StepIndicator currentStep={booking.currentStep} />
       </div>
 
-      {/* STEP 1: SERVIÇOS */}
+      {/* STEP 1: SERVIÇOS REAIS DO BANCO */}
       {booking.currentStep === 1 && (
         <div className="animate-in slide-in-from-right-4 duration-300">
           <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Escolha os Serviços</h2>
@@ -160,7 +160,7 @@ const Booking = () => {
         </div>
       )}
 
-      {/* STEP 2: PROFISSIONAIS */}
+      {/* STEP 2: PROFISSIONAIS REAIS */}
       {booking.currentStep === 2 && (
         <div className="animate-in slide-in-from-right-4 duration-300">
           <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Quem vai te atender?</h2>
@@ -201,7 +201,7 @@ const Booking = () => {
                  Horários disponíveis para {format(booking.selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                </p>
                <TimeSlotPicker
-                  slots={[]} // Atualize caso busque slots reais do banco
+                  slots={[]}
                   selectedTime={booking.selectedTime}
                   onSelect={(time) => booking.setTime(time)}
                 />
@@ -210,19 +210,15 @@ const Booking = () => {
         </div>
       )}
 
-      {/* STEP 4 E 5: INFO E PAGAMENTO */}
+      {/* STEP 4 E 5: INFO E PAGAMENTO (COMPONENTES ISOLADOS) */}
       {booking.currentStep === 4 && <CustomerInfoStep />}
-      {booking.currentStep === 5 && (
-        // Passando a chave PIX para o componente PaymentStep caso precise exibir lá também
-        <PaymentStep pixKey={barbershop?.settings?.pix_key} />
-      )}
+      {booking.currentStep === 5 && <PaymentStep />}
 
-      {/* STEP 6: RESUMO FINAL */}
+      {/* STEP 6: RESUMO FINAL (REATIVO AOS DADOS DO BANCO) */}
       {booking.currentStep === 6 && (
         <div className="animate-in zoom-in-95 duration-300">
           <h2 className="text-2xl font-black text-white mb-6 tracking-tight">Quase lá! Confira tudo:</h2>
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl backdrop-blur-md">
-            
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Serviços</p>
@@ -254,48 +250,11 @@ const Booking = () => {
                     <span className="font-bold text-white">{booking.selectedBarber?.name}</span>
                 </div>
             </div>
-
-            {/* 👇 BLOCO DO PIX NO RESUMO */}
-            {booking.paymentMethod === 'pix' && barbershop?.settings?.pix_key && (
-              <div className="pt-6 border-t border-slate-800 animate-in fade-in duration-500">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
-                  Chave Pix da Barbearia
-                </p>
-                
-                {barbershop.settings.pix_beneficiary && (
-                  <p className="text-xs text-slate-400 mb-2">
-                    Beneficiário: <strong className="text-white">{barbershop.settings.pix_beneficiary}</strong>
-                  </p>
-                )}
-                
-                <div className="flex items-center justify-between gap-3 bg-emerald-950/20 p-3 rounded-2xl border border-emerald-900/50">
-                    <span className="font-mono text-sm font-bold text-emerald-400 break-all select-all">
-                      {barbershop.settings.pix_key}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-emerald-800 text-emerald-400 hover:bg-emerald-900/40 whitespace-nowrap"
-                      onClick={() => {
-                        navigator.clipboard.writeText(barbershop.settings.pix_key);
-                        toast({ title: "Pix copiado!", description: "Chave copiada para a área de transferência." });
-                      }}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copiar
-                    </Button>
-                </div>
-                <p className="text-[10px] text-emerald-500/70 mt-3 text-center">
-                  Copie a chave acima e realize o pagamento no app do seu banco.
-                </p>
-              </div>
-            )}
-
           </div>
         </div>
       )}
 
-      {/* NAVEGAÇÃO FIXA */}
+      {/* NAVEGAÇÃO FIXA PREMIUM */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800 p-6 z-50">
         <div className="container max-w-2xl flex gap-4">
           {booking.currentStep > 1 && (
