@@ -40,25 +40,13 @@ const PublicBooking = () => {
     queryKey: ["public-shop", slug],
     queryFn: async () => {
       const { data: publicData, error } = await supabase
-        .from("barbershops_public" as any)
-        .select("*")
+        .from("barbershops")
+        .select("id, name, slug, address, logo_url, phone, settings")
         .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
       if (!publicData) return null;
-      
-      const { data: extraData } = await supabase
-        .from("barbershops")
-        .select("logo_url, phone, settings")
-        .eq("id", publicData.id!)
-        .maybeSingle();
-      
-      return {
-        ...publicData,
-        logo_url: extraData?.logo_url || null,
-        phone: extraData?.phone || null,
-        settings: extraData?.settings || {},
-      };
+      return publicData;
     },
     enabled: !!slug,
   });
