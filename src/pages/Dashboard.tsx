@@ -38,7 +38,6 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true,
   });
 
   // --- BUSCA 2: COMANDAS PDV (PARA RECEITA REAL E PRODUTOS) ---
@@ -55,7 +54,6 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true,
   });
 
   const { data: announcement = "" } = useQuery({

@@ -1,7 +1,7 @@
 // 1. Core React e Bibliotecas Externas
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -55,21 +55,20 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-// --- A BALA DE PRATA: CONFIGURAÇÃO BLINDADA DO CACHE ---
-// --- A BALA DE PRATA: CONFIGURAÇÃO BLINDADA DO CACHE ---
+// --- CONFIGURAÇÃO BLINDADA DO CACHE ---
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      networkMode: 'always', // <-- A CURA: Ignora o falso "Offline" do navegador e força o disparo
-      refetchOnWindowFocus: false, 
-      refetchOnMount: false, 
-      refetchOnReconnect: true, 
-      staleTime: 1000 * 60 * 5, 
-      gcTime: 1000 * 60 * 15, 
-      retry: 1, 
+      networkMode: 'always',
+      refetchOnWindowFocus: false,  // GLOBAL: Nenhuma query refaz ao voltar pra aba
+      refetchOnMount: false,
+      refetchOnReconnect: true,
+      staleTime: 1000 * 60 * 5,     // 5 minutos
+      gcTime: 1000 * 60 * 15,       // 15 minutos
+      retry: 1,
     },
     mutations: {
-      networkMode: 'always', // <-- A CURA: Impede que botões (como o "Adicionar Produto") fiquem girando eternamente
+      networkMode: 'always',
     }
   },
 });
@@ -81,8 +80,8 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-500 mb-2" />
-        <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Validando Licença...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Validando Licença...</p>
       </div>
     );
   }
@@ -93,16 +92,16 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   if (planRank[currentPlan] < planRank[minPlan]) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-300">
-        <div className="bg-amber-500/10 p-6 rounded-[2rem] mb-6 border border-amber-500/20">
-          <ShieldAlert className="h-12 w-12 text-amber-500" />
+        <div className="bg-primary/10 p-6 rounded-[2rem] mb-6 border border-primary/20">
+          <ShieldAlert className="h-12 w-12 text-primary" />
         </div>
-        <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Recurso Premium</h2>
-        <p className="text-slate-400 max-w-md mb-8 text-sm">
-          O acesso a este módulo está disponível apenas nos planos <span className="text-cyan-400 font-bold">Growth</span> ou <span className="text-amber-400 font-bold">Pro</span>.
+        <h2 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Recurso Premium</h2>
+        <p className="text-muted-foreground max-w-md mb-8 text-sm">
+          O acesso a este módulo está disponível apenas nos planos <span className="text-primary font-bold">Growth</span> ou <span className="text-primary font-bold">Pro</span>.
         </p>
         <Button 
           onClick={() => window.location.href = '/dashboard/configuracoes'} 
-          className="bg-amber-500 hover:bg-amber-400 text-black font-black px-10 h-14 rounded-2xl shadow-xl shadow-amber-900/20"
+          className="gold-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-gold"
         >
           <Rocket className="h-5 w-5 mr-2" /> Fazer Upgrade Agora
         </Button>
@@ -113,12 +112,29 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   return <>{children}</>;
 };
 
+// --- LISTENER GLOBAL DE RECONEXÃO REALTIME ---
+const RealtimeReconnector = () => {
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Reconecta WebSockets do Supabase ao voltar para a aba
+        try {
+          supabase.realtime.connect();
+        } catch (e) {
+          // Silencioso - não crashar por causa de reconexão
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+  return null;
+};
+
 // --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
   const { pathname } = useLocation();
   const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin");
-
-  // 👉 O useEffect que apagava o cache foi REMOVIDO DAQUI!
 
   return (
     <>
@@ -181,12 +197,13 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <RealtimeReconnector />
           <BrowserRouter>
-            <AuthProvider>      {/* <--- ADICIONE ESTA LINHA */}
+            <AuthProvider>
               <BookingProvider>
                 <AppContent />
               </BookingProvider>
-            </AuthProvider>     {/* <--- ADICIONE ESTA LINHA */}
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

@@ -55,7 +55,6 @@ const Pacotes = () => {
       return data as Package[];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Sincroniza ao voltar para a aba
   });
 
   const { data: services = [] } = useQuery({

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -9,14 +9,13 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-// 1. Cria o Contexto Global (A Única Fonte da Verdade)
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// 2. O Provider que vai proteger a aplicação
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -30,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    // Busca inicial ao carregar a página
+    // Busca inicial
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       const currentUser = session?.user ?? null;
@@ -38,20 +37,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
         if (isMounted) {
-          // ATUALIZAÇÃO ATÔMICA: Avisa o sistema tudo de uma vez
           setIsAdmin(admin);
           setUser(currentUser);
           setLoading(false);
+          initializedRef.current = true;
         }
       } else {
         if (isMounted) {
           setUser(null);
           setLoading(false);
+          initializedRef.current = true;
         }
       }
     });
 
-    // Escuta as mudanças do Supabase blindado contra "falsos logouts"
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
@@ -64,13 +63,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (currentUser) {
           const admin = await checkAdmin(currentUser.id);
           if (isMounted) {
-            // A MÁGICA ESTÁ AQUI: Só atualizamos o `user` depois de já ter a resposta do `isAdmin`.
-            // Isso impede que a tela de Login "queime a largada".
             setIsAdmin(admin);
             setUser(currentUser);
+            setLoading(false);
           }
         }
+      } else if (event === 'TOKEN_REFRESHED') {
+        // SILENCIOSA: Atualiza o user sem resetar loading
+        // Isso impede que a troca de aba congele a interface
+        if (session?.user && isMounted) {
+          setUser(session.user);
+          // Nunca setLoading(true) aqui - os dados já estão na tela
+        }
       }
+      // INITIAL_SESSION é tratado pelo getSession acima
     });
 
     return () => {
@@ -97,5 +103,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// 3. Exporta o hook mantendo a compatibilidade com o resto do sistema
 export const useAuth = () => useContext(AuthContext);

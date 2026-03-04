@@ -54,7 +54,6 @@ const Servicos = () => {
       return data as Service[];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Sincronia ativa ao voltar para a aba
   });
 
   // --- MUTAÇÃO: SALVAR / EDITAR SERVIÇO ---

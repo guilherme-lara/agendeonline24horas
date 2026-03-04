@@ -54,7 +54,6 @@ const SuperAdmin = () => {
       return data;
     },
     enabled: !!user && isAdmin,
-    refetchOnWindowFocus: true, // Atualiza ao voltar para a aba
   });
 
   const { data: plans = [] } = useQuery({
