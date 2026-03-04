@@ -43,17 +43,27 @@ const Configuracoes = () => {
   const [pixBeneficiary, setPixBeneficiary] = useState("");
   const [copiedPix, setCopiedPix] = useState(false);
 
+  // --- PARSER SEGURO DE CONFIGURAÇÕES ---
+  const getParsedSettings = (rawSettings: any) => {
+    if (typeof rawSettings === "string") {
+      try { return JSON.parse(rawSettings); } catch (e) { return {}; }
+    }
+    return rawSettings || {};
+  };
+
   // Sincroniza o formulário sempre que os dados da barbearia mudarem
   useEffect(() => {
     if (barbershop) {
       setCompanyName(barbershop.name || "");
       setPhone(barbershop.phone || "");
       setAddress(barbershop.address || "");
-      const settings = barbershop.settings || {};
-      setCnpjCpf(settings.cnpj_cpf || "");
-      setPixKey(settings.pix_key || "");
-      setPixKeyType(settings.pix_key_type || "cpf");
-      setPixBeneficiary(settings.pix_beneficiary || "");
+      
+      const parsedSettings = getParsedSettings(barbershop.settings);
+      
+      setCnpjCpf(parsedSettings.cnpj_cpf || "");
+      setPixKey(parsedSettings.pix_key || "");
+      setPixKeyType(parsedSettings.pix_key_type || "cpf");
+      setPixBeneficiary(parsedSettings.pix_beneficiary || "");
     }
   }, [barbershop]);
 
@@ -70,29 +80,44 @@ const Configuracoes = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada. Recarregando...");
 
-      const { error: updateError } = await supabase
+      const currentSettings = getParsedSettings(barbershop.settings);
+
+      const payload = {
+        name: companyName.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        settings: {
+          ...currentSettings,
+          cnpj_cpf: cnpjCpf.trim(),
+          pix_key: pixKey.trim(),
+          pix_key_type: pixKeyType,
+          pix_beneficiary: pixBeneficiary.trim(),
+        },
+      };
+
+      console.log("Enviando Payload para o Supabase:", payload);
+
+      const { data, error: updateError } = await supabase
         .from("barbershops")
-        .update({
-          name: companyName.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          settings: {
-            ...(barbershop.settings || {}),
-            cnpj_cpf: cnpjCpf.trim(),
-            pix_key: pixKey.trim(),
-            pix_key_type: pixKeyType,
-            pix_beneficiary: pixBeneficiary.trim(),
-          },
-        })
-        .eq("id", barbershop.id);
+        .update(payload)
+        .eq("id", barbershop.id)
+        .select(); // FORÇA o banco a devolver a linha atualizada
 
       if (updateError) throw updateError;
+      
+      // Se data voltar vazio, significa que o RLS bloqueou a edição (o usuário não tem permissão)
+      if (!data || data.length === 0) {
+          throw new Error("Permissão negada. Você não tem autorização para editar este estabelecimento.");
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
       toast({ title: "Configurações Atualizadas!", description: "As mudanças já estão em vigor em todo o sistema." });
     },
     onError: (err: any) => {
+      console.error("Erro ao salvar:", err);
       toast({ 
         title: "Falha ao salvar", 
         description: err.message || "Verifique sua conexão.", 
