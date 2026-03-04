@@ -17,7 +17,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // 1. MUDANÇA CRUCIAL: 'prompt' impede que a página atualize sozinha 
+      // e quebre o fluxo de pagamento do cliente.
+      registerType: "prompt", 
       manifest: {
         name: "AgendeOnline24horas",
         short_name: "AgendeOnline",
@@ -32,10 +34,30 @@ export default defineConfig(({ mode }) => ({
             sizes: "64x64",
             type: "image/x-icon",
           },
+          // 2. ADICIONADO: Ícones padrão para um PWA "classudo" ser aceito 
+          // corretamente no iOS e Android.
+          {
+            src: "/logo-agenda-CPNscrQt.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/logo-agenda-CPNscrQt.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
         ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
+        // 3. OTIMIZAÇÃO DE RETORNO: Garante que o app não fique "pendurado"
+        // esperando o Service Worker antigo morrer.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+      },
+      devOptions: {
+        enabled: true, // Permite testar o PWA no seu localhost:8080
       },
     }),
   ].filter(Boolean),
