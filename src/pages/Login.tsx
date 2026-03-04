@@ -119,76 +119,90 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1224] flex items-center justify-center px-6 relative overflow-hidden">
-      {/* EFEITOS DE FUNDO */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      
+      {/* BACKGROUND SUTIL E ELEGANTE */}
+      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center opacity-[0.03] mix-blend-overlay" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950" />
+      
+      {/* LUZ DE FUNDO PREMIUM (DOURADO SUAVE) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-900/10 blur-[150px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-full max-w-[420px] z-10 animate-in fade-in zoom-in-[0.98] duration-700">
+        
+        {/* HEADER / LOGO */}
         <div className="text-center mb-10">
-          <div className="mx-auto mb-6 relative group">
-            <div className="absolute inset-0 bg-cyan-500/20 blur-2xl group-hover:bg-cyan-500/40 transition-all rounded-full" />
-            <div className="relative h-20 w-20 mx-auto flex items-center justify-center rounded-[2rem] bg-slate-900 border border-slate-800 shadow-2xl transition-transform group-hover:scale-110">
-              <Scissors className="h-10 w-10 text-cyan-400" />
+          <div className="mx-auto mb-8 relative">
+            <div className="relative h-24 w-24 mx-auto flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 shadow-2xl">
+              <Scissors className="h-10 w-10 text-amber-500/80" />
             </div>
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">
-            {isSignUp ? "Agende" : "System"}<span className="text-cyan-500">Online</span>
+          <h1 className="text-4xl font-normal text-white tracking-tight font-display mb-3">
+            {isSignUp ? "Criar Conta" : "Bem-vindo de volta."}
           </h1>
-          <p className="text-slate-500 text-sm mt-2 font-bold uppercase tracking-widest">
-            Plataforma SaaS para Barbearias
+          <p className="text-zinc-500 text-xs font-semibold uppercase tracking-[0.2em]">
+            Acesso Restrito ao Sistema
           </p>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] backdrop-blur-xl shadow-2xl relative">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* CARD DO FORMULÁRIO */}
+        <div className="bg-zinc-900/60 border border-zinc-800/50 p-8 sm:p-10 rounded-3xl backdrop-blur-2xl shadow-2xl shadow-black/50 relative">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
             {isSignUp && (
-              <div className="space-y-1.5 animate-in slide-in-from-top-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
+              <div className="space-y-2 animate-in slide-in-from-top-4 duration-500">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Proprietário</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input
-                    placeholder="Como quer ser chamado?"
+                    placeholder="Seu nome completo"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-slate-950 border-slate-800 pl-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    className="bg-zinc-950/50 border-zinc-800/50 pl-12 h-14 rounded-2xl text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-amber-500/30 focus-visible:border-amber-500/50 transition-all"
                     required
                   />
                 </div>
               </div>
             )}
             
-            <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">E-mail de Acesso</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+            <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">E-mail</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-amber-500/80 transition-colors" />
                   <Input
                     type="email"
-                    placeholder="seu@exemplo.com"
+                    placeholder="contato@barbearia.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="bg-slate-950 border-slate-800 pl-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    className="bg-zinc-950/50 border-zinc-800/50 pl-12 h-14 rounded-2xl text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-amber-500/30 focus-visible:border-amber-500/50 transition-all"
                     required
                   />
                 </div>
             </div>
 
-            <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Sua Senha</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+            <div className="space-y-2">
+                <div className="flex justify-between items-end ml-1">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Senha</label>
+                  {!isSignUp && (
+                    <button type="button" className="text-[10px] font-semibold text-zinc-500 hover:text-amber-500 transition-colors">
+                      Esqueceu a senha?
+                    </button>
+                  )}
+                </div>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-amber-500/80 transition-colors" />
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="bg-slate-950 border-slate-800 pl-11 pr-11 h-12 text-white focus-visible:ring-cyan-500/50"
+                    className="bg-zinc-950/50 border-zinc-800/50 pl-12 pr-12 h-14 rounded-2xl text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-amber-500/30 focus-visible:border-amber-500/50 transition-all"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -198,33 +212,38 @@ const Login = () => {
             <Button
               type="submit"
               disabled={authMutation.isPending || authLoading}
-              className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black h-14 rounded-2xl shadow-xl shadow-cyan-900/20 transition-all active:scale-95 group"
+              className="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-bold h-14 rounded-2xl shadow-xl transition-all active:scale-[0.98] group mt-8"
             >
               {authMutation.isPending ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Autenticando...</>
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin text-zinc-500" /> Autenticando...</>
               ) : (
-                <>{isSignUp ? "Criar Minha Conta" : "Entrar no Painel"} <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+                <>{isSignUp ? "Solicitar Acesso" : "Entrar no Sistema"} <ArrowRight className="ml-2 h-4 w-4 opacity-50 group-hover:translate-x-1 group-hover:opacity-100 transition-all" /></>
               )}
             </Button>
           </form>
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-800"></span></div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-[#0b1224] px-4 text-slate-600 tracking-[0.3em]">Ou</span></div>
+          {/* DIVISOR */}
+          <div className="relative mt-10 mb-8">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-zinc-800/80"></span></div>
+            <div className="relative flex justify-center text-[9px] uppercase font-bold">
+              <span className="bg-zinc-900 px-4 text-zinc-600 tracking-[0.3em]">Ou</span>
+            </div>
           </div>
 
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest"
+            className="w-full text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
           >
-            {isSignUp ? "Já tem acesso? Faça Login" : "Novo por aqui? Criar Barbeira"}
+            {isSignUp ? "Já possui uma conta? Entrar" : "Nova barbearia? Criar uma conta"}
           </button>
         </div>
         
-        <div className="mt-12 flex items-center justify-center gap-2 opacity-40">
-            <ShieldCheck className="h-3 w-3 text-slate-500" />
-            <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">
-              Ambiente Seguro &bull; Guilherme Lara Ecosystem 2026
+        {/* FOOTER */}
+        <div className="mt-12 flex flex-col items-center justify-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-zinc-700" />
+            <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-[0.2em] text-center">
+              Ambiente Criptografado <br/>
+              <span className="opacity-50 mt-1 block">&copy; Guilherme Lara 2026</span>
             </p>
         </div>
       </div>
