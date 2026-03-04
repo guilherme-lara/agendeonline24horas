@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  Scissors, Loader2, Check, Wallet, AlertTriangle, 
+  Scissors, Loader2, Check, AlertTriangle, 
   MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -107,7 +107,7 @@ const PublicBooking = () => {
           } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
             setSignalPending(false);
             setCancelled(true);
-            toast({ title: "Pagamento Recusado", description: "O estabelecimento cancelou este agendamento.", variant: "destructive" });
+            toast({ title: "Pagamento Recusado", description: "O estabelecimento não confirmou o agendamento.", variant: "destructive" });
           }
         }
       )
@@ -200,10 +200,21 @@ const PublicBooking = () => {
     return slots;
   }, [selectedDate, selectedService, shopResources, existingAppts]);
 
+  // --- PARSER DE CONFIGURAÇÕES SEGURO ---
+  const rawSettings = shop?.settings;
+  let shopSettings: any = {};
+  if (typeof rawSettings === "string") {
+    try { shopSettings = JSON.parse(rawSettings); } catch (e) {}
+  } else if (rawSettings) {
+    shopSettings = rawSettings;
+  }
+  
+  const pixKey = shopSettings?.pix_key || "";
+  const pixBeneficiary = shopSettings?.pix_beneficiary || shop?.name || "Estabelecimento";
+
   const handleCopyPix = () => {
-    const key = (shop?.settings as any)?.pix_key;
-    if (!key) return;
-    navigator.clipboard.writeText(key);
+    if (!pixKey) return;
+    navigator.clipboard.writeText(pixKey);
     setCopiedPix(true);
     toast({ title: "Pix Copiado!", description: "A chave foi copiada para a área de transferência." });
     setTimeout(() => setCopiedPix(false), 2000);
@@ -218,10 +229,6 @@ const PublicBooking = () => {
       <Button onClick={() => window.location.reload()} className="mt-4 gold-gradient text-primary-foreground font-bold px-8">Recarregar</Button>
     </div>
   );
-
-  const shopSettings = (shop.settings || {}) as any;
-  const pixKey = shopSettings.pix_key || "";
-  const pixBeneficiary = shopSettings.pix_beneficiary || shop.name;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
@@ -388,7 +395,7 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: AGUARDANDO SINAL (O NOVO "STEP 5" DE CHECKOUT) */}
+        {/* TELA FINAL: AGUARDANDO SINAL */}
         {signalPending && !cancelled && (
             <div className="animate-in fade-in zoom-in-95">
                 <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Pagamento do Sinal</h3>
@@ -406,7 +413,7 @@ const PublicBooking = () => {
                     </div>
                   </div>
 
-                  {/* SEÇÃO PIX */}
+                  {/* SEÇÃO PIX GARANTIDA */}
                   {pixKey ? (
                     <div className="space-y-4">
                       <div className="bg-secondary/50 border border-border rounded-2xl p-4 text-center">
@@ -428,7 +435,12 @@ const PublicBooking = () => {
                         </div>
                       </div>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-center">
+                      <p className="text-sm font-bold text-red-500">A chave Pix não foi configurada pelo estabelecimento.</p>
+                      <p className="text-[10px] text-red-500/80 mt-1">Entre em contato via WhatsApp para finalizar o pagamento.</p>
+                    </div>
+                  )}
 
                   <div className="pt-4 border-t border-border space-y-4">
                     {/* BOTÃO WHATSAPP */}
