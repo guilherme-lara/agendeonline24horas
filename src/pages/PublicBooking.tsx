@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, Wallet, AlertTriangle, 
-  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock
+  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ const PublicBooking = () => {
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [success, setSuccess] = useState(false); 
   const [signalPending, setSignalPending] = useState(false);
+  const [cancelled, setCancelled] = useState(false); // NOVO ESTADO DE CANCELAMENTO
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
   const realtimeChannelRef = useRef<any>(null);
@@ -45,7 +46,6 @@ const PublicBooking = () => {
         .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
-      if (!publicData) return null;
       return publicData;
     },
     enabled: !!slug,
@@ -105,9 +105,11 @@ const PublicBooking = () => {
             setSignalPending(false);
             setSuccess(true);
             setStep(5);
-          } else if (newStatus === 'cancelled') {
+          } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
+            // Admin RECUSOU o pagamento / cancelou
             setSignalPending(false);
-            toast({ title: "Agendamento cancelado", description: "O estabelecimento cancelou este agendamento.", variant: "destructive" });
+            setCancelled(true); // GATILHO DA TELA DE ERRO
+            toast({ title: "Pagamento Recusado", description: "O estabelecimento cancelou este agendamento.", variant: "destructive" });
           }
         }
       )
@@ -205,6 +207,7 @@ const PublicBooking = () => {
     if (!key) return;
     navigator.clipboard.writeText(key);
     setCopiedPix(true);
+    toast({ title: "Pix Copiado!", description: "A chave foi copiada para a área de transferência." });
     setTimeout(() => setCopiedPix(false), 2000);
   };
 
@@ -244,7 +247,7 @@ const PublicBooking = () => {
 
       <div className="container max-w-2xl mt-8 px-4">
         {/* STEP INDICATOR */}
-        {!success && !signalPending && (
+        {!success && !signalPending && !cancelled && (
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "gold-gradient shadow-gold" : "bg-secondary"}`} />
@@ -253,206 +256,6 @@ const PublicBooking = () => {
         )}
 
         {/* STEP 1: SERVIÇOS */}
-        {step === 1 && (
+        {step === 1 && !cancelled && !success && !signalPending && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">O que vamos fazer hoje?</h3>
-                <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o serviço para agendamento.</p>
-                <div className="grid gap-3">
-                    {shopResources?.services.map((s: any) => (
-                        <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-bold text-lg text-foreground">{s.name}</p>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                </div>
-                                <p className="text-xl font-black text-primary">R$ {Number(s.price).toFixed(2)}</p>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        )}
-
-        {/* STEP 2: BARBEIRO */}
-        {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-right-4">
-                <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    {shopResources?.barbers.map((b: any) => (
-                        <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-[2rem] border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
-                            <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
-                                <AvatarImage src={b.avatar_url} />
-                                <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
-                        </button>
-                    ))}
-                </div>
-                <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
-            </div>
-        )}
-
-        {/* STEP 3: DATA E HORA */}
-        {step === 3 && (
-            <div className="animate-in fade-in slide-in-from-right-4">
-                <h3 className="text-2xl font-black mb-8 text-foreground font-display">Data e Horário</h3>
-                <div className="bg-card border border-border rounded-[2rem] p-4 mb-8 flex justify-center shadow-card">
-                    <Calendar 
-                      mode="single" 
-                      selected={selectedDate || undefined} 
-                      onSelect={(d) => d && setSelectedDate(d)} 
-                      disabled={(d) => d < startOfDay(new Date())} 
-                      locale={ptBR} 
-                      className="mx-auto" 
-                    />
-                </div>
-                {selectedDate && (
-                    <div className="grid grid-cols-4 gap-2">
-                        {loadingSlots ? (
-                          <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
-                        ) : timeSlots.length === 0 ? (
-                          <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horários para este dia.</p>
-                        ) : (
-                          timeSlots.map(t => (
-                              <button key={t} onClick={() => { setSelectedTime(t); setStep(4); }} className="h-12 rounded-xl border border-border bg-secondary/50 text-xs font-black text-foreground hover:border-primary/50 hover:text-primary transition-all">
-                                  {t}
-                              </button>
-                          ))
-                        )}
-                    </div>
-                )}
-                <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
-            </div>
-        )}
-
-        {/* STEP 4: FINALIZAÇÃO E CONFIRMAÇÃO */}
-        {step === 4 && (
-            <div className="animate-in fade-in zoom-in-95">
-                <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalizar Reserva</h3>
-                <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-card space-y-6">
-                    <div className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome</label>
-                            <Input 
-                              value={clientData.name} 
-                              onChange={(e) => setClientData({...clientData, name: e.target.value})} 
-                              placeholder="Ex: João Silva" 
-                              className="bg-background border-border h-14 text-foreground font-bold" 
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">WhatsApp</label>
-                            <Input 
-                              value={clientData.phone} 
-                              onChange={(e) => setClientData({...clientData, phone: e.target.value})} 
-                              placeholder="(00) 00000-0000" 
-                              className="bg-background border-border h-14 text-foreground font-mono" 
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
-                        <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
-                        <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
-                        <div className="pt-3 border-t border-border flex justify-between items-center"><span className="text-sm font-black uppercase text-muted-foreground">Valor</span><span className="text-2xl font-black text-primary">R$ {selectedService && Number(selectedService.price).toFixed(2).replace(".", ",")}</span></div>
-                    </div>
-
-                    <div className="pt-4 flex items-center justify-between gap-4">
-                      <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
-                      <Button 
-                          onClick={() => bookingMutation.mutate()} 
-                          disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.length < 10} 
-                          className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
-                      >
-                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><Check className="mr-2 h-5 w-5" /> Confirmar</>}
-                      </Button>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* TELA FINAL: SUCESSO */}
-        {success && (
-            <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
-                <div className="h-24 w-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-                    <Check className="h-12 w-12 text-emerald-500" />
-                </div>
-                <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
-                <p className="text-muted-foreground mb-10 max-w-xs mx-auto">Sua vaga está garantida. Te esperamos no horário marcado!</p>
-                <Button onClick={() => navigate(`/${slug}/success`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Ver Resumo</Button>
-            </div>
-        )}
-        
-        {/* TELA FINAL: AGUARDANDO SINAL (COM PIX + REALTIME) */}
-        {signalPending && (
-            <div className="animate-in fade-in zoom-in-95 text-center py-8 px-4">
-                <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                    <Clock className="h-10 w-10 text-primary animate-pulse" />
-                </div>
-                <h1 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Aguardando Confirmação</h1>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm">
-                  Este serviço exige um sinal de <b className="text-primary">R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</b> para confirmar a reserva.
-                </p>
-
-                {/* SEÇÃO PIX */}
-                {pixKey ? (
-                  <div className="bg-card border border-border rounded-3xl p-6 text-left space-y-5 shadow-card max-w-sm mx-auto mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                        <QrCode className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-foreground uppercase tracking-tight">Pague via Pix</p>
-                        <p className="text-[10px] text-muted-foreground">Copie a chave abaixo e faça a transferência</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Beneficiário</p>
-                      <p className="text-sm font-bold text-foreground">{pixBeneficiary}</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chave Pix</p>
-                      <div className="flex gap-2">
-                        <div className="flex-1 bg-secondary rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border">
-                          {pixKey}
-                        </div>
-                        <Button variant="outline" onClick={handleCopyPix} className="border-border px-3 shrink-0">
-                          {copiedPix ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-center">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Valor do Sinal</p>
-                      <p className="text-2xl font-black text-primary">
-                        R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground justify-center pt-2">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="font-bold uppercase tracking-widest">Monitorando pagamento em tempo real...</span>
-                    </div>
-                  </div>
-                ) : null}
-
-                <Button 
-                  onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} 
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white h-14 px-10 rounded-2xl font-black shadow-xl w-full max-w-sm mx-auto flex items-center justify-center gap-2"
-                >
-                    <MessageCircle className="h-5 w-5" /> Enviar Comprovante via WhatsApp
-                </Button>
-
-                <p className="text-[10px] text-muted-foreground mt-6 max-w-xs mx-auto">
-                  Assim que o estabelecimento confirmar o recebimento, esta tela será atualizada automaticamente.
-                </p>
-            </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default PublicBooking;
