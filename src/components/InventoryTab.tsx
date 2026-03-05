@@ -76,7 +76,7 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
   const handleAddItem = async () => {
     if (!newName.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("inventory").insert({
+    const { error } = await (supabase.from("inventory") as any).insert({
       barbershop_id: barbershopId,
       name: newName.trim(),
       quantity: parseInt(newQty) || 0,
