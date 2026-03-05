@@ -17,12 +17,12 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("barbershops")
+    (supabase
+      .from("barbershops") as any)
       .select("settings")
       .eq("id", barbershopId)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data?.settings && typeof data.settings === "object") {
           setApiKey((data.settings as Record<string, any>).abacate_pay_api_key || "");
         }
