@@ -42,8 +42,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const limit = PLAN_LIMITS[planName] ?? 2;
 
   const fetchBarbers = async () => {
-    const { data } = await supabase
-      .from("barbers")
+    const { data } = await (supabase
+      .from("barbers") as any)
       .select("*")
       .eq("barbershop_id", barbershopId)
       .order("created_at");
