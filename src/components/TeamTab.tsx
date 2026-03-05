@@ -106,8 +106,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
 
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(filePath);
 
-    const { error: updateError } = await supabase
-      .from("barbers")
+    const { error: updateError } = await (supabase
+      .from("barbers") as any)
       .update({ avatar_url: urlData.publicUrl })
       .eq("id", barberId);
 

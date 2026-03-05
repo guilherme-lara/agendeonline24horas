@@ -54,8 +54,8 @@ const PixPaymentModal = ({
     if (!open || !appointmentId || paymentConfirmed) return;
 
     const checkStatus = async () => {
-      const { data } = await supabase
-        .from("appointments")
+      const { data } = await (supabase
+        .from("appointments") as any)
         .select("payment_status, status")
         .eq("id", appointmentId)
         .maybeSingle();

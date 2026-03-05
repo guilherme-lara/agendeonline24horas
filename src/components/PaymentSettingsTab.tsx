@@ -32,16 +32,16 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
 
   const handleSave = async () => {
     setSaving(true);
-    const { data: current } = await supabase
-      .from("barbershops")
+    const { data: current } = await (supabase
+      .from("barbershops") as any)
       .select("settings")
       .eq("id", barbershopId)
       .single();
 
     const existingSettings = (current?.settings && typeof current.settings === "object") ? current.settings as Record<string, any> : {};
 
-    const { error } = await supabase
-      .from("barbershops")
+    const { error } = await (supabase
+      .from("barbershops") as any)
       .update({
         settings: { ...existingSettings, abacate_pay_api_key: apiKey.trim() },
       })
