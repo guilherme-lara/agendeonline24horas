@@ -73,16 +73,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Cria o persistidor que salva o cache no localStorage do navegador
-const persister = createSyncStoragePersister({
-  storage: window.localStorage,
-});
-
-// Faz o link entre o QueryClient e o LocalStorage
-persistQueryClient({
-  queryClient,
-  persister,
-});
+// Persistência removida para evitar conflitos de tipo e travamentos
 
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
 const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: 'essential' | 'growth' | 'pro' }) => {
