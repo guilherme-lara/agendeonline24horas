@@ -18,6 +18,9 @@ interface Customer {
 const Aniversarios = () => {
   const { barbershop } = useBarbershop();
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DE DADOS (TANSTACK QUERY) ---
   const { data: customers = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["birthdays", barbershop?.id],
@@ -65,7 +68,7 @@ const Aniversarios = () => {
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
 
   // --- TELAS DE PROTEÇÃO ---
-  if (isLoading && !customers.length) {
+  if (isLoading && queryEnabled && !customers.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

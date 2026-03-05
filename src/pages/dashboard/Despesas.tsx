@@ -50,6 +50,9 @@ const Despesas = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // Estados de UI
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [monthFilter, setMonthFilter] = useState(format(new Date(), "yyyy-MM"));
@@ -136,7 +139,7 @@ const Despesas = () => {
   };
 
   // --- TELAS DE PROTEÇÃO ---
-  if (isLoading && !expenses.length) {
+  if (isLoading && queryEnabled && !expenses.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

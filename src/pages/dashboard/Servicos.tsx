@@ -39,6 +39,9 @@ const Servicos = () => {
   const [requiresAdvance, setRequiresAdvance] = useState(false);
   const [advanceValue, setAdvanceValue] = useState("");
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DE SERVIÇOS (TANSTACK QUERY) ---
   const { data: services = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["services", barbershop?.id],
@@ -137,7 +140,7 @@ const Servicos = () => {
   };
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (isLoading && !services.length) {
+  if (isLoading && queryEnabled && !services.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

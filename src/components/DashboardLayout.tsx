@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -12,6 +12,7 @@ const DashboardLayout = () => {
   const { barbershop, loading: shopLoading } = useBarbershop();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading && !user) return;
@@ -22,9 +23,10 @@ const DashboardLayout = () => {
     if (isAdmin && !barbershop && !isImpersonating) {
       navigate("/super-admin", { replace: true });
     }
-  }, [user, isAdmin, barbershop, isImpersonating, authLoading, shopLoading, navigate]);
+    initializedRef.current = true;
+  }, [user, isAdmin, barbershop, isImpersonating, authLoading, navigate]);
 
-  if (authLoading && !user) return <DashboardSkeleton />;
+  if (authLoading && !initializedRef.current) return <DashboardSkeleton />;
   if (!user) return <DashboardSkeleton />;
   if (isAdmin && !barbershop && !isImpersonating) return <DashboardSkeleton />;
 

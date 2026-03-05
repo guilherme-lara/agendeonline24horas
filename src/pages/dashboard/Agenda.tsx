@@ -40,6 +40,9 @@ const Agenda = () => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [editModal, setEditModal] = useState({ open: false, appt: null as any });
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DE AGENDAMENTOS ---
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ["appointments", barbershop?.id],
@@ -97,8 +100,8 @@ const Agenda = () => {
     });
   }, [appointments, activeTab, search]);
 
-  // REGRA 2: Bloqueio APENAS na primeira carga (sem dados no cache)
-  if (isLoading && !appointments.length) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" /></div>;
+  // REGRA 2: Bloqueio APENAS na primeira carga (sem dados no cache) E se query está ativa
+  if (isLoading && queryEnabled && !appointments.length) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="w-full min-h-screen bg-[#060b18] p-4 lg:p-8 animate-in fade-in duration-500">

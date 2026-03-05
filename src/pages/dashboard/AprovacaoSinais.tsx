@@ -27,6 +27,9 @@ const AprovacaoSinais = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DE DADOS (TANSTACK QUERY) ---
   const { data: appointments = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["pending-signals", barbershop?.id],
@@ -83,7 +86,7 @@ const AprovacaoSinais = () => {
   };
 
   // --- TELAS DE PROTEÇÃO ---
-  if (isLoading && !appointments.length) {
+  if (isLoading && queryEnabled && !appointments.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

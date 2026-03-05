@@ -45,6 +45,9 @@ const Comandas = () => {
   const [itemPrice, setItemPrice] = useState("");
   const [draftItems, setDraftItems] = useState<{ name: string; price: number; qty: number }[]>([]);
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DE COMANDAS (TANSTACK QUERY) ---
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["orders", barbershop?.id],
@@ -126,7 +129,7 @@ const Comandas = () => {
   const draftTotal = useMemo(() => draftItems.reduce((s, i) => s + i.price * i.qty, 0), [draftItems]);
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (isLoading && !orders.length) {
+  if (isLoading && queryEnabled && !orders.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
