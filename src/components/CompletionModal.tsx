@@ -40,14 +40,14 @@ const CompletionModal = ({ open, onClose, barbershopId, appointmentId, onComplet
 
   useEffect(() => {
     if (!open) return;
-    supabase
-      .from("inventory")
+    (supabase
+      .from("inventory") as any)
       .select("id, name, quantity, sell_price")
       .eq("barbershop_id", barbershopId)
       .eq("active", true)
       .gt("quantity", 0)
       .order("name")
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         setItems((data as InventoryItem[]) || []);
         setSales([]);
         setLoading(false);
