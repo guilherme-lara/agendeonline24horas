@@ -23,7 +23,6 @@ const Index = () => {
       if (error) throw error;
       return data;
     },
-    refetchOnWindowFocus: true, // Auto-sincronia de preços
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---

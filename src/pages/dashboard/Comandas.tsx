@@ -60,7 +60,6 @@ const Comandas = () => {
       return data as unknown as Order[];
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Sincroniza ao voltar para a aba
   });
 
   // --- MUTAÇÃO: CRIAR COMANDA ---

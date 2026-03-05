@@ -11,10 +11,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
+interface AuthState {
+  user: User | null;
+  loading: boolean;
+  isAdmin: boolean;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    loading: true,
+    isAdmin: false,
+  });
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -33,19 +41,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       const currentUser = session?.user ?? null;
-      
+
       if (currentUser) {
         const admin = await checkAdmin(currentUser.id);
         if (isMounted) {
-          setIsAdmin(admin);
-          setUser(currentUser);
-          setLoading(false);
+          setState({
+            user: currentUser,
+            isAdmin: admin,
+            loading: false,
+          });
           initializedRef.current = true;
         }
       } else {
         if (isMounted) {
-          setUser(null);
-          setLoading(false);
+          setState({
+            user: null,
+            isAdmin: false,
+            loading: false,
+          });
           initializedRef.current = true;
         }
       }
@@ -53,30 +66,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsAdmin(false);
-        setLoading(false);
-      } else if (event === 'SIGNED_IN') {
+
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         const currentUser = session?.user ?? null;
         if (currentUser) {
           const admin = await checkAdmin(currentUser.id);
           if (isMounted) {
-            setIsAdmin(admin);
-            setUser(currentUser);
-            setLoading(false);
+            setState({
+              user: currentUser,
+              isAdmin: admin,
+              loading: false,
+            });
           }
         }
-      } else if (event === 'TOKEN_REFRESHED') {
-        // SILENCIOSA: Atualiza o user sem resetar loading
-        // Isso impede que a troca de aba congele a interface
-        if (session?.user && isMounted) {
-          setUser(session.user);
-          // Nunca setLoading(true) aqui - os dados já estão na tela
-        }
       }
-      // INITIAL_SESSION é tratado pelo getSession acima
+      // IMPORTANTE:
+      // - SIGNED_OUT e INITIAL_SESSION não limpam o estado aqui.
+      // - A limpeza total de sessão acontece apenas via signOut() explícito.
     });
 
     return () => {
@@ -86,18 +92,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    setLoading(true);
     await supabase.auth.signOut();
-    setUser(null);
-    setIsAdmin(false);
-    setLoading(false);
+    setState({
+      user: null,
+      isAdmin: false,
+      loading: false,
+    });
     localStorage.clear();
     sessionStorage.clear();
     window.location.href = "/auth";
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user: state.user, loading: state.loading, isAdmin: state.isAdmin, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -53,7 +53,6 @@ const Booking = () => {
       return data;
     },
     enabled: !!barbershop?.id,
-    refetchOnWindowFocus: true, // Sincroniza preços se o cliente mudar de aba
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---

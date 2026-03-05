@@ -51,9 +51,7 @@ const PublicBooking = () => {
       return publicData;
     },
     enabled: !!slug,
-    staleTime: 0, // Mata o cache local, obriga a buscar sempre
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: shopResources } = useQuery({

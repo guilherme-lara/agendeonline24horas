@@ -55,17 +55,14 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-// --- CONFIGURAÇÃO DE PERSISTÊNCIA (SOLUÇÃO PARA TRAVAMENTO) ---
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       networkMode: 'always',
-      refetchOnWindowFocus: true, // Ativado para garantir refresh ao voltar da aba
-      refetchOnMount: true,
-      refetchOnReconnect: true,
-      staleTime: 1000 * 30,       // 30 segundos de dados frescos
-      gcTime: 1000 * 60 * 60 * 24, // 24 horas de cache persistente no disco
-      retry: 2,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60 * 24,
+      retry: 1,
     },
     mutations: {
       networkMode: 'always',
@@ -119,13 +116,18 @@ const RealtimeReconnector = () => {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        try { supabase.realtime.connect(); } catch {}
-        qc.refetchQueries({ type: 'active', stale: true });
+      if (document.visibilityState === "visible") {
+        supabase.auth.getSession().catch(() => {});
+        try {
+          supabase.realtime.connect();
+        } catch {
+          // silêncio total em caso de erro de reconexão
+        }
+        qc.refetchQueries({ type: "active", stale: true });
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [qc]);
   return null;
 };

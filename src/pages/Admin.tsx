@@ -55,7 +55,6 @@ const Admin = () => {
       return data as Subscriber[];
     },
     enabled: !!user && isAdmin,
-    refetchOnWindowFocus: true, // Sincronia instantânea ao voltar para a aba
   });
 
   // --- CÁLCULOS DE KPI ---

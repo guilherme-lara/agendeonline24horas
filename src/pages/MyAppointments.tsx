@@ -57,7 +57,6 @@ const MyAppointments = () => {
       return data as AppointmentResult[];
     },
     enabled: phone.replace(/\D/g, "").length >= 10,
-    refetchOnWindowFocus: true, // Sincroniza fidelidade ao voltar para a aba
   });
 
   // --- LÓGICA DE FILTROS E FIDELIDADE ---
