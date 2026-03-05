@@ -1,21 +1,23 @@
 // 1. Core React e Bibliotecas Externas
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import { AuthProvider } from "@/hooks/useAuth";
-// 2. Supabase e Integrações
+// 2. Singleton QueryClient - Criado FORA de qualquer componente React
+import { queryClient } from "@/lib/queryClient";
+
+// 3. Supabase e Integrações
 import { supabase } from "@/integrations/supabase/client";
 
-// 3. Hooks e Contextos Global
-import { useBarbershop } from "@/hooks/useBarbershop";
+// 4. Hooks e Contextos Global
+import { AuthProvider } from "@/hooks/useAuth";
 import { BookingProvider } from "@/contexts/BookingContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-// 4. Componentes de UI e Layout
+// 5. Componentes de UI e Layout
 import { Loader2, ShieldAlert, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -23,7 +25,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
 
-// 5. Páginas Públicas e Autenticação
+// 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
@@ -34,11 +36,11 @@ import BookingSuccess from "./pages/BookingSuccess";
 import MyAppointments from "./pages/MyAppointments";
 import NotFound from "./pages/NotFound";
 
-// 6. Páginas Administrativas
+// 7. Páginas Administrativas
 import SuperAdmin from "./pages/SuperAdmin";
 import Admin from "./pages/Admin";
 
-// 7. Sub-páginas do Dashboard
+// 8. Sub-páginas do Dashboard
 import Dashboard from "./pages/Dashboard";
 import Agenda from "./pages/dashboard/Agenda";
 import Clientes from "./pages/dashboard/Clientes";
@@ -55,12 +57,13 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-import { queryClient } from "@/lib/queryClient";
+// 9. Hook da Barbearia (para o PlanGate)
+import { useBarbershop } from "@/hooks/useBarbershop";
 
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
 const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: 'essential' | 'growth' | 'pro' }) => {
   const { barbershop, loading } = useBarbershop() as any;
-  
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -72,7 +75,7 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
 
   const planRank = { essential: 0, growth: 1, pro: 2 };
   const currentPlan = (barbershop?.plan_name?.toLowerCase() || 'essential') as keyof typeof planRank;
-  
+
   if (planRank[currentPlan] < planRank[minPlan]) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-300">
@@ -83,8 +86,8 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
         <p className="text-muted-foreground max-w-md mb-8 text-sm">
           O acesso a este módulo está disponível apenas nos planos <span className="text-primary font-bold">Growth</span> ou <span className="text-primary font-bold">Pro</span>.
         </p>
-        <Button 
-          onClick={() => window.location.href = '/dashboard/configuracoes'} 
+        <Button
+          onClick={() => window.location.href = '/dashboard/configuracoes'}
           className="gold-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-gold"
         >
           <Rocket className="h-5 w-5 mr-2" /> Fazer Upgrade Agora
@@ -96,18 +99,24 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
   return <>{children}</>;
 };
 
-const RealtimeReconnector = () => {
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        supabase.auth.getSession().catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
-  return null;
-};
+// --- RECONECTOR GLOBAL DE VISIBILIDADE ---
+// REMOVIDO: estava causando conflitos com React Query
+// O React Query agora está configurado para não refazer queries ao voltar foco
+// const GlobalVisibilityReconnector = () => {
+//   useEffect(() => {
+//     const handleVisibilityChange = () => {
+//       if (document.visibilityState === "visible") {
+//         // REMOVIDO: estava causando flickering
+//         // supabase.auth.getSession().catch(() => {});
+//       }
+//     };
+
+//     document.addEventListener("visibilitychange", handleVisibilityChange);
+//     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+//   }, []);
+
+//   return null;
+// };
 
 // --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
@@ -147,7 +156,7 @@ const AppContent = () => {
           <Route path="profissionais" element={<Profissionais />} />
           <Route path="configuracoes" element={<Configuracoes />} />
           <Route path="agendamento-online" element={<AgendamentoOnline />} />
-          
+
           {/* Growth Tier + */}
           <Route path="caixa" element={<PlanGate minPlan="growth"><Caixa /></PlanGate>} />
           <Route path="relatorios" element={<PlanGate minPlan="growth"><Relatorios /></PlanGate>} />
@@ -168,6 +177,7 @@ const AppContent = () => {
   );
 };
 
+// --- APP PRINCIPAL - ARQUITETURA DE NÍVEL ENTERPRISE ---
 const App = () => (
   <ErrorBoundary>
     <ThemeProvider>
@@ -175,7 +185,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <RealtimeReconnector />
+          {/* Reconector Global REMOVIDO - estava causando conflitos */}
           <BrowserRouter>
             <AuthProvider>
               <BookingProvider>

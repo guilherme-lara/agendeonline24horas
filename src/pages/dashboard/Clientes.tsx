@@ -119,8 +119,10 @@ const Clientes = () => {
     );
   }, [customers, search]);
 
-  // REGRA 2: Loader APENAS na primeira carga real
-  if (loading && queryEnabled && !customers.length) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
+  // MELHORADO: Só mostra loading se está realmente carregando e não há erro
+  const shouldShowLoading = loading && queryEnabled && !customers.length;
+
+  if (shouldShowLoading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">

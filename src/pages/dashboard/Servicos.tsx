@@ -140,7 +140,10 @@ const Servicos = () => {
   };
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (isLoading && queryEnabled && !services.length) {
+  // MELHORADO: Só mostra loading se query está realmente carregando e não há erro
+  const shouldShowLoading = isLoading && queryEnabled && !services.length && !isError;
+
+  if (shouldShowLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

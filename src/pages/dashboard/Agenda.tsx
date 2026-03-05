@@ -9,7 +9,7 @@ import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { format, compareAsc, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -44,7 +44,7 @@ const Agenda = () => {
   const queryEnabled = !!barbershop?.id;
 
   // --- BUSCA DE AGENDAMENTOS ---
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: appointments = [], isLoading, isError, error } = useQuery({
     queryKey: ["appointments", barbershop?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,8 +55,15 @@ const Agenda = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!barbershop?.id,
-  });
+    enabled: queryEnabled,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    gcTime: 1000 * 60 * 5, // 5 minutos
+    retry: (failureCount, error) => {
+      if (failureCount >= 2) return false; // Máximo 2 retries
+      return true;
+    },
+    refetchOnWindowFocus: false, // Não refaz ao voltar foco
+  }); // CORREÇÃO: Ponto de fechamento correto sem sujeira embaixo
 
   // --- BUSCA DE SERVIÇOS (PARA O QUICKBOOKING) ---
   const { data: services = [] } = useQuery({
@@ -71,7 +78,7 @@ const Agenda = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!barbershop?.id,
+    enabled: queryEnabled, // CORREÇÃO: Usando a variável de proteção correta
   });
 
   // Mutação de Edição
@@ -100,8 +107,24 @@ const Agenda = () => {
     });
   }, [appointments, activeTab, search]);
 
-  // REGRA 2: Bloqueio APENAS na primeira carga (sem dados no cache) E se query está ativa
-  if (isLoading && queryEnabled && !appointments.length) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-cyan-500" /></div>;
+  // REGRA MELHORADA: Só mostra loading se:
+  // 1. Query está carregando ATIVAMENTE
+  // 2. Query está habilitada
+  // 3. Não há dados ainda
+  // 4. Não há erro (se erro, mostra conteúdo vazio)
+  const shouldShowLoading = isLoading && queryEnabled && !appointments.length && !isError;
+
+  // Só mostra loading se todas as condições forem verdadeiras
+  if (shouldShowLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin text-cyan-500 h-8 w-8 mx-auto mb-4" />
+          <p className="text-slate-400">Carregando agendamentos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#060b18] p-4 lg:p-8 animate-in fade-in duration-500">
@@ -231,7 +254,6 @@ const Agenda = () => {
         <CalendarView 
           appointments={filtered} 
           barbershopId={barbershop?.id}
-          // AQUI ESTÁ A ATUALIZAÇÃO:
           onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
         />
       )}

@@ -1,129 +1,240 @@
+// 1. Core React e Tipos
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 
-interface AuthContextType {
+// 2. Supabase Client
+import { supabase } from "@/integrations/supabase/client";
+
+// 3. Tipos de Estado de Autenticação
+interface AuthState {
   user: User | null;
-  loading: boolean;
   isAdmin: boolean;
+  loading: boolean;
+}
+
+interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
 }
 
+// 4. Contexto Global de Autenticação
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-interface AuthState {
-  user: User | null;
-  loading: boolean;
-  isAdmin: boolean;
-}
-
+// 5. PROVIDER DE AUTENTICAÇÃO - ARQUITETURA DE NÍVEL ENTERPRISE
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<AuthState>({
+  // Estado React - apenas para re-renders controlados
+  const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    loading: true,
     isAdmin: false,
+    loading: true,
   });
+
+  // Refs para proteção contra flickering - ESTADO ESTÁVEL
+  const stableStateRef = useRef<AuthState>({
+    user: null,
+    isAdmin: false,
+    loading: true,
+  });
+
   const initializedRef = useRef(false);
+  const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Função auxiliar para verificar se usuário é admin
+  const checkAdminStatus = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
 
-    const checkAdmin = async (userId: string) => {
-      try {
-        const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-        return !!data;
-      } catch {
+      if (error) {
+        console.warn("[AuthProvider] Erro ao verificar admin:", error.message);
         return false;
       }
-    };
 
-    // Busca inicial
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return;
-      const currentUser = session?.user ?? null;
+      return !!data;
+    } catch (error) {
+      console.warn("[AuthProvider] Falha na verificação de admin:", error);
+      return false;
+    }
+  };
 
-      if (currentUser) {
-        const admin = await checkAdmin(currentUser.id);
-        if (isMounted) {
-          setState({
+  // Função para atualizar estado de forma ATÔMICA e PROTEGIDA
+  const updateAuthState = (updates: Partial<AuthState>) => {
+    if (!isMountedRef.current) return;
+
+    // Atualiza o estado estável primeiro (proteção contra flickering)
+    stableStateRef.current = { ...stableStateRef.current, ...updates };
+
+    // Só atualiza React state se houver mudança REAL
+    setAuthState(prevState => {
+      const newState = { ...prevState, ...updates };
+      // Evita re-render se o estado for idêntico
+      return JSON.stringify(prevState) === JSON.stringify(newState) ? prevState : newState;
+    });
+  };
+
+  // Handler para eventos de mudança de auth - PROTEGIDO contra flickering
+  const handleAuthChange = async (event: AuthChangeEvent, session: Session | null) => {
+    if (!isMountedRef.current) return;
+
+    console.log(`[AuthProvider] Auth event: ${event}`, { hasSession: !!session });
+
+    const currentUser = session?.user ?? null;
+    if (
+      (event === "INITIAL_SESSION" || event === "SIGNED_IN") &&
+      stableStateRef.current.user?.id === currentUser?.id
+    ) {
+      console.log("[AuthProvider] 🛡️ Ignorando recarga falsa da aba. Mantendo cache.");
+      if (stableStateRef.current.loading) {
+        updateAuthState({ loading: false });
+      }
+      return;
+    }
+
+    // LÓGICA DE STALE-WHILE-REVALIDATE para auth state
+    switch (event) {
+      case "INITIAL_SESSION": // <-- Adicionamos isso aqui para cobrir a primeira carga oficial
+      case "SIGNED_IN":
+      case "USER_UPDATED":
+        if (currentUser) {
+          // Mantém estado anterior enquanto valida (stale-while-revalidate)
+          const isAdmin = await checkAdminStatus(currentUser.id);
+          updateAuthState({
             user: currentUser,
-            isAdmin: admin,
+            isAdmin,
             loading: false,
           });
           initializedRef.current = true;
+        } else {
+          updateAuthState({ loading: false });
         }
-      } else {
-        if (isMounted) {
-          setState({
+        break;
+
+      case "TOKEN_REFRESHED":
+        // IGNORADO COMPLETAMENTE - evita qualquer flickering
+        // O token foi renovado em background, mas não muda o estado do usuário
+        return;
+
+      case "SIGNED_OUT":
+        // Limpeza controlada - só quando explicitamente solicitado
+        if (initializedRef.current) {
+          updateAuthState({
             user: null,
             isAdmin: false,
             loading: false,
           });
-          initializedRef.current = true;
         }
-      }
-    });
+        break;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
+      default:
+        // Outros eventos - mantém estado atual
+        break;
+    }
+  };
 
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        const currentUser = session?.user ?? null;
-        if (currentUser) {
-          const admin = await checkAdmin(currentUser.id);
-          if (isMounted) {
-            setState({
-              user: currentUser,
-              isAdmin: admin,
-              loading: false,
-            });
-          }
-        }
-      } else if (event === "TOKEN_REFRESHED") {
-        // Ignorar TOKEN_REFRESHED se já houver usuário para evitar piscadas
-        if (initializedRef.current && state.user) {
+  // SETUP INICIAL - Uma única vez por montagem
+  useEffect(() => {
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
+    const initializeAuth = async () => {
+      try {
+        // Busca sessão inicial
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.warn("[AuthProvider] Erro ao buscar sessão inicial:", error.message);
+          updateAuthState({ loading: false });
           return;
         }
+
         const currentUser = session?.user ?? null;
+
         if (currentUser) {
-          const admin = await checkAdmin(currentUser.id);
-          if (isMounted) {
-            setState({
-              user: currentUser,
-              isAdmin: admin,
-              loading: false,
-            });
-          }
+          const isAdmin = await checkAdminStatus(currentUser.id);
+          updateAuthState({
+            user: currentUser,
+            isAdmin,
+            loading: false,
+          });
+        } else {
+          updateAuthState({ loading: false });
         }
+
+        initializedRef.current = true;
+
+        // Inscreve para mudanças futuras - APENAS UMA VEZ
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+        authSubscription = subscription;
+
+      } catch (error) {
+        console.error("[AuthProvider] Erro na inicialização:", error);
+        updateAuthState({ loading: false });
       }
-      // IMPORTANTE:
-      // - SIGNED_OUT não limpa o estado aqui.
-      // - A limpeza total de sessão acontece apenas via signOut() explícito.
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
     };
-  }, []);
 
+    initializeAuth();
+
+    // Cleanup
+    return () => {
+      isMountedRef.current = false;
+      authSubscription?.unsubscribe();
+    };
+  }, []); // Array de dependências vazio - executa apenas uma vez
+
+  // Função de logout - Limpeza total e controlada
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setState({
-      user: null,
-      isAdmin: false,
-      loading: false,
-    });
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/auth";
+    try {
+      await supabase.auth.signOut();
+
+      // Limpeza forçada de estado
+      updateAuthState({
+        user: null,
+        isAdmin: false,
+        loading: false,
+      });
+
+      // Limpeza de storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Redirect forçado
+      window.location.href = "/auth";
+    } catch (error) {
+      console.error("[AuthProvider] Erro no logout:", error);
+      // Mesmo com erro, força limpeza
+      updateAuthState({
+        user: null,
+        isAdmin: false,
+        loading: false,
+      });
+      window.location.href = "/auth";
+    }
+  };
+
+  // Valor do contexto - sempre consistente
+  const contextValue: AuthContextType = {
+    user: authState.user,
+    isAdmin: authState.isAdmin,
+    loading: authState.loading,
+    signOut,
   };
 
   return (
-    <AuthContext.Provider value={{ user: state.user, loading: state.loading, isAdmin: state.isAdmin, signOut }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// 6. Hook de consumo - Type-safe e otimizado
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
+
+  return context;
+};
