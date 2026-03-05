@@ -79,8 +79,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   };
 
   const handleArchive = async (id: string, currentActive: boolean) => {
-    const { error } = await supabase
-      .from("barbers")
+    const { error } = await (supabase
+      .from("barbers") as any)
       .update({ active: !currentActive })
       .eq("id", id);
     if (error) {
