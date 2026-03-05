@@ -42,8 +42,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const limit = PLAN_LIMITS[planName] ?? 2;
 
   const fetchBarbers = async () => {
-    const { data } = await supabase
-      .from("barbers")
+    const { data } = await (supabase
+      .from("barbers") as any)
       .select("*")
       .eq("barbershop_id", barbershopId)
       .order("created_at");
@@ -61,7 +61,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       return;
     }
     setAdding(true);
-    const { error } = await supabase.from("barbers").insert({
+    const { error } = await (supabase.from("barbers") as any).insert({
       barbershop_id: barbershopId,
       name: name.trim(),
       phone: phone.trim(),
@@ -79,8 +79,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   };
 
   const handleArchive = async (id: string, currentActive: boolean) => {
-    const { error } = await supabase
-      .from("barbers")
+    const { error } = await (supabase
+      .from("barbers") as any)
       .update({ active: !currentActive })
       .eq("id", id);
     if (error) {
@@ -106,8 +106,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
 
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(filePath);
 
-    const { error: updateError } = await supabase
-      .from("barbers")
+    const { error: updateError } = await (supabase
+      .from("barbers") as any)
       .update({ avatar_url: urlData.publicUrl })
       .eq("id", barberId);
 

@@ -40,8 +40,8 @@ const LogoUpload = ({ barbershopId, currentUrl, onUploaded }: LogoUploadProps) =
     const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
     const publicUrl = urlData.publicUrl + "?t=" + Date.now();
 
-    const { error: updateError } = await supabase
-      .from("barbershops")
+    const { error: updateError } = await (supabase
+      .from("barbershops") as any)
       .update({ logo_url: publicUrl })
       .eq("id", barbershopId);
 
