@@ -61,8 +61,8 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
   const [newCategory, setNewCategory] = useState("geral");
 
   const fetchItems = async () => {
-    const { data } = await supabase
-      .from("inventory")
+    const { data } = await (supabase
+      .from("inventory") as any)
       .select("*")
       .eq("barbershop_id", barbershopId)
       .eq("active", true)
