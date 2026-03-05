@@ -32,6 +32,9 @@ const Pacotes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // Estados de UI para o formulário
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Package | null>(null);
@@ -147,7 +150,7 @@ const Pacotes = () => {
   };
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (loadingPkgs && !packages.length) {
+  if (loadingPkgs && queryEnabled && !packages.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

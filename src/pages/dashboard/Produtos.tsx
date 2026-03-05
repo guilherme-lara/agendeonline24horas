@@ -7,8 +7,11 @@ const Produtos = () => {
   // Pegamos o estado do hook blindado com TanStack Query
   const { barbershop, loading, isError, refetch } = useBarbershop() as any;
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- RENDERS DE PROTEÇÃO ---
-  if (loading && !barbershop) {
+  if (loading && queryEnabled && !barbershop) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

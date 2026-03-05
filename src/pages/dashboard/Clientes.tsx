@@ -26,6 +26,9 @@ const Clientes = () => {
   const { barbershop } = useBarbershop() as any;
   const { toast } = useToast();
   
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+  
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -117,7 +120,7 @@ const Clientes = () => {
   }, [customers, search]);
 
   // REGRA 2: Loader APENAS na primeira carga real
-  if (loading && !customers.length) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
+  if (loading && queryEnabled && !customers.length) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">

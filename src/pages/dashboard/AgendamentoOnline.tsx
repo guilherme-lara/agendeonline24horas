@@ -10,6 +10,9 @@ const AgendamentoOnline = () => {
   const { barbershop, loading, isError } = useBarbershop() as any;
   const [copied, setCopied] = useState(false);
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   const handleCopy = () => {
     if (!barbershop?.slug) return;
     const bookingUrl = `${window.location.origin}/agendamentos/${barbershop.slug}`;
@@ -19,7 +22,7 @@ const AgendamentoOnline = () => {
   };
 
   // Carregamento inicial limpo e reativo
-  if (loading && !barbershop) {
+  if (loading && queryEnabled && !barbershop) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

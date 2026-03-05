@@ -9,6 +9,9 @@ const Profissionais = () => {
   // Pegamos a barbearia do hook blindado
   const { barbershop, loading: barberLoading, isError: barberError, refetch: refetchBarber } = useBarbershop() as any;
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // --- BUSCA DO PLANO (TANSTACK QUERY) ---
   const { data: planName = "essential", isLoading: loadingPlan, isError: errorPlan, refetch: refetchPlan } = useQuery({
     queryKey: ["saas-plan", barbershop?.id],
@@ -35,7 +38,7 @@ const Profissionais = () => {
   };
 
   // --- RENDERS DE PROTEÇÃO ---
-  if ((barberLoading || loadingPlan) && !barbershop) {
+  if ((barberLoading || loadingPlan) && queryEnabled && !barbershop) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />

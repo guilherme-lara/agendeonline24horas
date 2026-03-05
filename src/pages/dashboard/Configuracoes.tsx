@@ -31,6 +31,9 @@ const Configuracoes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Proteção contra loading infinito
+  const queryEnabled = !!barbershop?.id;
+
   // Estados locais para controle dos inputs do formulário
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
@@ -127,7 +130,7 @@ const Configuracoes = () => {
   });
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (barberLoading && !barbershop) {
+  if (barberLoading && queryEnabled && !barbershop) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
