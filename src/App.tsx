@@ -115,23 +115,18 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
 };
 
 const RealtimeReconnector = () => {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // 1. Reconecta o socket de forma leve
-        if (supabase.realtime.status !== 'joined') {
-          supabase.realtime.connect();
-        }
-        
-        // 2. EM VEZ DE INVALIDATE ALL: Refetch apenas das queries ATIVAS na tela
-        queryClient.refetchQueries({ type: 'active', stale: true });
+        try { supabase.realtime.connect(); } catch {}
+        qc.refetchQueries({ type: 'active', stale: true });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [queryClient]);
+  }, [qc]);
   return null;
 };
 

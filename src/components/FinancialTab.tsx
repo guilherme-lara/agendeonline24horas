@@ -81,13 +81,13 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
 
   const fetchData = async () => {
     const [barbersRes, apptsRes, expRes, ordRes] = await Promise.all([
-      supabase.from("barbers").select("id, name, commission_pct, avatar_url").eq("barbershop_id", barbershopId),
-      supabase.from("appointments").select("id, barber_name, price, status, scheduled_at")
+      (supabase.from("barbers") as any).select("id, name, commission_pct, avatar_url").eq("barbershop_id", barbershopId),
+      (supabase.from("appointments") as any).select("id, barber_name, price, status, scheduled_at")
         .eq("barbershop_id", barbershopId)
         .eq("status", "completed"),
-      supabase.from("expenses").select("id, amount, description, date, category")
+      (supabase.from("expenses") as any).select("id, amount, description, date, category")
         .eq("barbershop_id", barbershopId),
-      supabase.from("orders").select("id, total, status, created_at")
+      (supabase.from("orders") as any).select("id, total, status, created_at")
         .eq("barbershop_id", barbershopId)
         .eq("status", "closed"),
     ]);

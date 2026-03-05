@@ -72,19 +72,19 @@ const CompletionModal = ({ open, onClose, barbershopId, appointmentId, onComplet
     setSaving(true);
     try {
       // Mark appointment as completed
-      await supabase
-        .from("appointments")
+      await (supabase
+        .from("appointments") as any)
         .update({ status: "completed" })
         .eq("id", appointmentId);
 
       // Deduct stock for each sold product
       for (const sale of sales) {
-        await supabase
-          .from("inventory")
+        await (supabase
+          .from("inventory") as any)
           .update({ quantity: items.find((i) => i.id === sale.inventoryId)!.quantity - sale.qty })
           .eq("id", sale.inventoryId);
 
-        await supabase.from("stock_movements").insert({
+        await (supabase.from("stock_movements") as any).insert({
           barbershop_id: barbershopId,
           inventory_id: sale.inventoryId,
           type: "out",

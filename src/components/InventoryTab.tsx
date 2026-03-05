@@ -108,14 +108,14 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
     const newQuantity = movementType === "entry" ? movementItem.quantity + qty : movementItem.quantity - qty;
 
     const [movRes, updRes] = await Promise.all([
-      supabase.from("stock_movements").insert({
+      (supabase.from("stock_movements") as any).insert({
         barbershop_id: barbershopId,
         inventory_id: movementItem.id,
         type: movementType,
         quantity: qty,
         notes: movementNotes.trim(),
       }),
-      supabase.from("inventory").update({ quantity: newQuantity }).eq("id", movementItem.id),
+      (supabase.from("inventory") as any).update({ quantity: newQuantity }).eq("id", movementItem.id),
     ]);
 
     if (movRes.error || updRes.error) {

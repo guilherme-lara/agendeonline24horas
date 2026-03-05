@@ -46,8 +46,8 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
   // --- MUTAÇÃO OTIMISTA (INSTANTÂNEA) ---
   const rescheduleMutation = useMutation({
     mutationFn: async ({ id, newDateStr }: { id: string; newDateStr: string }) => {
-      const { error } = await supabase
-        .from("appointments")
+      const { error } = await (supabase
+        .from("appointments") as any)
         .update({ scheduled_at: newDateStr })
         .eq("id", id);
       if (error) throw error;
