@@ -61,7 +61,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       return;
     }
     setAdding(true);
-    const { error } = await supabase.from("barbers").insert({
+    const { error } = await (supabase.from("barbers") as any).insert({
       barbershop_id: barbershopId,
       name: name.trim(),
       phone: phone.trim(),
