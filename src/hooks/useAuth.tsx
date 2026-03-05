@@ -67,7 +67,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        const currentUser = session?.user ?? null;
+        if (currentUser) {
+          const admin = await checkAdmin(currentUser.id);
+          if (isMounted) {
+            setState({
+              user: currentUser,
+              isAdmin: admin,
+              loading: false,
+            });
+          }
+        }
+      } else if (event === "TOKEN_REFRESHED") {
+        // Ignorar TOKEN_REFRESHED se já houver usuário para evitar piscadas
+        if (initializedRef.current && state.user) {
+          return;
+        }
         const currentUser = session?.user ?? null;
         if (currentUser) {
           const admin = await checkAdmin(currentUser.id);
@@ -81,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       // IMPORTANTE:
-      // - SIGNED_OUT e INITIAL_SESSION não limpam o estado aqui.
+      // - SIGNED_OUT não limpa o estado aqui.
       // - A limpeza total de sessão acontece apenas via signOut() explícito.
     });
 

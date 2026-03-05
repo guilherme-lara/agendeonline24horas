@@ -1,7 +1,7 @@
 // 1. Core React e Bibliotecas Externas
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -55,22 +55,7 @@ import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
 import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      networkMode: 'always',
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60 * 24,
-      retry: 1,
-    },
-    mutations: {
-      networkMode: 'always',
-    }
-  },
-});
-
-// Persistência removida para evitar conflitos de tipo e travamentos
+import { queryClient } from "@/lib/queryClient";
 
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
 const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: 'essential' | 'growth' | 'pro' }) => {
@@ -112,23 +97,15 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
 };
 
 const RealtimeReconnector = () => {
-  const qc = useQueryClient();
-
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         supabase.auth.getSession().catch(() => {});
-        try {
-          supabase.realtime.connect();
-        } catch {
-          // silêncio total em caso de erro de reconexão
-        }
-        qc.refetchQueries({ type: "active", stale: true });
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [qc]);
+  }, []);
   return null;
 };
 
