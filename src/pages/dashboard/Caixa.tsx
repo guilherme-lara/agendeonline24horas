@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle, RefreshCw, X, Minus, Eye, CreditCard, Banknote, QrCode, Copy, Check
+  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle, RefreshCw, X, Minus, Eye, CreditCard, Banknote, QrCode, Copy, Check, DollarSign
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -84,18 +84,38 @@ const Caixa = () => {
     enabled: !!barbershop?.id,
   });
 
+  // O Total do carrinho agora pode dar número negativo se o desconto for maior (por segurança limitamos a 0 no render)
   const cartTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (Number(item.price) * item.qty), 0);
   }, [cart]);
 
+  // Função para montar a comanda inicial com o serviço E o desconto do sinal, se houver.
+  const handleSelectAppt = (appt: any) => {
+    setSelectedAppt(appt);
+    const initialCart = [{ name: appt.service_name, price: appt.price, qty: 1, type: "service" }];
+    
+    // 🚨 A MÁGICA DO ABATIMENTO DE SINAL: Injeta um "item" negativo na comanda!
+    if (appt.has_signal && appt.signal_value > 0) {
+       initialCart.push({
+           name: "Desconto (Sinal Adiantado)",
+           price: -Math.abs(appt.signal_value), // Força a ser negativo
+           qty: 1,
+           type: "discount"
+       });
+    }
+    setCart(initialCart);
+  };
+
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       if (!selectedAppt || !barbershop) return;
+      const finalTotal = cartTotal < 0 ? 0 : cartTotal; // Previne cobrança negativa
+      
       const { error: orderError } = await supabase.from("orders").insert({
         barbershop_id: barbershop.id,
         appointment_id: selectedAppt.id,
         items: cart,
-        total: cartTotal,
+        total: finalTotal,
         payment_method: payMethod,
         status: "closed"
       });
@@ -103,7 +123,7 @@ const Caixa = () => {
       await supabase.from("appointments").update({
         status: "completed",
         payment_status: "paid",
-        total_price: cartTotal
+        total_price: finalTotal
       }).eq("id", selectedAppt.id);
       for (const item of cart) {
         if (item.type === "product") {
@@ -117,7 +137,8 @@ const Caixa = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
-      toast({ title: "Venda Processada!", description: `Valor Total: R$ ${cartTotal.toFixed(2)}` });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] }); // Atualiza os blocos da agenda pra verde
+      toast({ title: "Venda Processada!", description: `Valor Total: R$ ${Math.max(0, cartTotal).toFixed(2)}` });
       setSelectedAppt(null);
       setCart([]);
     }
@@ -194,7 +215,12 @@ const Caixa = () => {
                   {a.client_name}
                   {a.status === 'completed' && <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />}
                 </p>
-                <p className="text-[10px] text-muted-foreground uppercase font-black">{a.service_name} &bull; R$ {a.status === 'completed' ? a.total_price : a.price}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-[10px] text-muted-foreground uppercase font-black">{a.service_name} &bull; R$ {a.status === 'completed' ? a.total_price : a.price}</p>
+                  {a.has_signal && a.status !== 'completed' && (
+                     <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">- R$ {a.signal_value} (Sinal)</Badge>
+                  )}
+                </div>
               </div>
               
               {a.status === 'completed' ? (
@@ -207,7 +233,7 @@ const Caixa = () => {
                 </Button>
               ) : (
                 <Button 
-                  onClick={() => { setSelectedAppt(a); setCart([{ name: a.service_name, price: a.price, qty: 1, type: "service" }]); }}
+                  onClick={() => handleSelectAppt(a)}
                   className="gold-gradient text-primary-foreground font-bold rounded-xl h-9 px-6 shadow-gold"
                 >
                   Cobrar
@@ -232,18 +258,22 @@ const Caixa = () => {
 
             <div className="space-y-3 mb-8">
               {cart.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-background rounded-2xl border border-border">
+                <div key={idx} className={`flex items-center justify-between p-4 bg-background rounded-2xl border border-border ${item.type === 'discount' ? 'border-amber-500/30 bg-amber-500/5' : ''}`}>
                   <div>
-                    <p className="text-sm font-bold text-foreground">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">R$ {item.price.toFixed(2)} un.</p>
+                    <p className={`text-sm font-bold ${item.type === 'discount' ? 'text-amber-500' : 'text-foreground'}`}>{item.name}</p>
+                    {item.type !== 'discount' && <p className="text-[10px] text-muted-foreground">R$ {item.price.toFixed(2)} un.</p>}
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-card rounded-lg p-1 border border-border">
-                      <button onClick={() => setCart(prev => prev.map((it, i) => i === idx ? {...it, qty: Math.max(1, it.qty - 1)} : it))} className="p-1 hover:text-primary"><Minus className="h-3 w-3" /></button>
-                      <span className="w-8 text-center text-xs font-black text-foreground">{item.qty}</span>
-                      <button onClick={() => setCart(prev => prev.map((it, i) => i === idx ? {...it, qty: it.qty + 1} : it))} className="p-1 hover:text-primary"><Plus className="h-3 w-3" /></button>
-                    </div>
-                    <p className="text-sm font-black text-foreground w-20 text-right">R$ {(item.price * item.qty).toFixed(2)}</p>
+                    {item.type !== 'discount' && (
+                      <div className="flex items-center bg-card rounded-lg p-1 border border-border">
+                        <button onClick={() => setCart(prev => prev.map((it, i) => i === idx ? {...it, qty: Math.max(1, it.qty - 1)} : it))} className="p-1 hover:text-primary"><Minus className="h-3 w-3" /></button>
+                        <span className="w-8 text-center text-xs font-black text-foreground">{item.qty}</span>
+                        <button onClick={() => setCart(prev => prev.map((it, i) => i === idx ? {...it, qty: it.qty + 1} : it))} className="p-1 hover:text-primary"><Plus className="h-3 w-3" /></button>
+                      </div>
+                    )}
+                    <p className={`text-sm font-black w-20 text-right ${item.type === 'discount' ? 'text-amber-500' : 'text-foreground'}`}>
+                      {item.type === 'discount' ? '- ' : ''}R$ {Math.abs(item.price * item.qty).toFixed(2)}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -279,8 +309,10 @@ const Caixa = () => {
                 </Select>
               </div>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-black text-foreground">Total</span>
-                <span className="text-4xl font-black text-primary tracking-tighter">R$ {cartTotal.toFixed(2).replace(".", ",")}</span>
+                <span className="text-xl font-black text-foreground">Restante a Pagar</span>
+                <span className="text-4xl font-black text-primary tracking-tighter">
+                   R$ {Math.max(0, cartTotal).toFixed(2).replace(".", ",")}
+                </span>
               </div>
               <Button 
                 onClick={() => checkoutMutation.mutate()}
@@ -341,25 +373,27 @@ const Caixa = () => {
                   <div className="space-y-3">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] border-b border-border pb-2">Itens Cobrados</p>
                     {orderDetails.items?.map((item: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center text-sm">
+                      <div key={i} className={`flex justify-between items-center text-sm ${item.type === 'discount' ? 'text-amber-500' : 'text-foreground'}`}>
                         <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground font-bold">{item.qty}x</span>
-                          <span className="text-foreground">{item.name}</span>
+                          {item.type !== 'discount' && <span className="text-muted-foreground font-bold">{item.qty}x</span>}
+                          <span className="font-bold">{item.name}</span>
                         </div>
-                        <span className="font-bold text-foreground/80">R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}</span>
+                        <span className="font-bold">
+                          {item.type === 'discount' ? '- ' : ''}R$ {Math.abs(item.price * item.qty).toFixed(2).replace(".", ",")}
+                        </span>
                       </div>
                     ))}
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground font-bold uppercase">Pagamento</span>
+                      <span className="text-xs text-muted-foreground font-bold uppercase">Pagamento do Restante</span>
                       <div className="flex items-center gap-1.5 bg-card px-2 py-1 rounded-md border border-border">
                         {getPaymentIcon(orderDetails.payment_method)}
                         <span className="text-xs font-bold text-foreground">{getPaymentName(orderDetails.payment_method)}</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center pt-3 border-t border-border/50">
-                      <span className="text-sm font-black text-foreground">TOTAL PAGO</span>
+                      <span className="text-sm font-black text-foreground">TOTAL FINAL PAGO</span>
                       <span className="text-2xl font-black text-emerald-500 tracking-tighter">
                         R$ {Number(orderDetails.total).toFixed(2).replace(".", ",")}
                       </span>
