@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, AlertTriangle, 
-  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info
+  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info, Timer
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const BUFFER_MINUTES = 10;
+const SIGNAL_TIMER_SECONDS = 90;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -31,24 +32,25 @@ const PublicBooking = () => {
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [success, setSuccess] = useState(false); 
   const [signalPending, setSignalPending] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(SIGNAL_TIMER_SECONDS);
   const realtimeChannelRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // --- QUERIES BLINDADAS CONTRA CACHE ---
+  // --- QUERIES ---
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
-      const { data: publicData, error } = await supabase
+      const { data, error } = await supabase
         .from("barbershops")
         .select("id, name, slug, address, logo_url, phone, settings")
         .eq("slug", slug!)
         .maybeSingle();
-      
       if (error) throw error;
-      console.log("=== DADOS DO BANCO CHEGARAM ===", publicData); // Verifica se o settings veio
-      return publicData;
+      return data;
     },
     enabled: !!slug,
     staleTime: 0,
@@ -67,31 +69,67 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
-  // --- BUSCA DE SLOTS (ATUALIZA A CADA 5 SEGUNDOS) ---
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
     queryFn: async () => {
       const dayStart = startOfDay(selectedDate!).toISOString();
       const dayEnd = new Date(selectedDate!);
       dayEnd.setHours(23, 59, 59);
-
       const { data, error } = await supabase
         .from("appointments_public" as any)
         .select("scheduled_at, service_name, status")
         .eq("barbershop_id", shop!.id)
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd.toISOString());
-      
       if (error) throw error;
       return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
-    refetchInterval: 5000, // MÁGICA 1: Fica checando o banco de 5 em 5 segundos silenciosamente
+    refetchInterval: 5000,
   });
+
+  // --- TIMER DE 90 SEGUNDOS ---
+  const startTimer = useCallback(() => {
+    setTimerSeconds(SIGNAL_TIMER_SECONDS);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimerSeconds(prev => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // Quando timer zera, transiciona para pending_approval
+  useEffect(() => {
+    if (timerSeconds === 0 && signalPending && appointmentId) {
+      handleTransitionToApproval();
+    }
+  }, [timerSeconds, signalPending, appointmentId]);
+
+  const handleTransitionToApproval = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    // Atualiza status no banco
+    if (appointmentId) {
+      await supabase.from("appointments").update({ status: "pending_approval" }).eq("id", appointmentId);
+    }
+    setSignalPending(false);
+    setPendingApproval(true);
+  };
 
   // --- REALTIME: Escuta confirmação do pagamento ---
   useEffect(() => {
-    if (!appointmentId || !signalPending) return;
+    if (!appointmentId || (!signalPending && !pendingApproval)) return;
 
     const channel = supabase
       .channel(`appointment-${appointmentId}`)
@@ -106,11 +144,15 @@ const PublicBooking = () => {
         (payload: any) => {
           const newStatus = payload.new?.status;
           if (newStatus === 'confirmed' || newStatus === 'pending') {
+            if (timerRef.current) clearInterval(timerRef.current);
             setSignalPending(false);
+            setPendingApproval(false);
             setSuccess(true);
             setStep(5);
           } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
+            if (timerRef.current) clearInterval(timerRef.current);
             setSignalPending(false);
+            setPendingApproval(false);
             setCancelled(true);
             toast({ title: "Pagamento Recusado", description: "O estabelecimento não confirmou o agendamento.", variant: "destructive" });
           }
@@ -119,11 +161,8 @@ const PublicBooking = () => {
       .subscribe();
 
     realtimeChannelRef.current = channel;
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [appointmentId, signalPending, toast]);
+    return () => { supabase.removeChannel(channel); };
+  }, [appointmentId, signalPending, pendingApproval, toast]);
 
   // --- MUTAÇÃO DO AGENDAMENTO ---
   const bookingMutation = useMutation({
@@ -134,7 +173,6 @@ const PublicBooking = () => {
 
       const requiresSignal = selectedService.requires_advance_payment && (selectedService.advance_payment_value || 0) > 0;
 
-      // O backend lança erro aqui se o horário já tiver sido pego no milissegundo exato
       const { data: apptId, error } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -146,7 +184,6 @@ const PublicBooking = () => {
       });
 
       if (error) throw error;
-
       await supabase.from("appointments").update({ barber_name: selectedBarber.name }).eq("id", apptId);
 
       if (requiresSignal) {
@@ -160,21 +197,21 @@ const PublicBooking = () => {
       if (res.type === 'signal') {
         setAppointmentId(res.id);
         setSignalPending(true);
+        startTimer(); // Inicia timer de 90s
       } else {
         setSuccess(true);
         setStep(5);
       }
     },
-    onError: (err: any) => {
-      // MÁGICA 2: Volta o usuário para o calendário na hora se bater o conflito de agendamento!
+    onError: () => {
       toast({ 
         title: "Horário Indisponível", 
-        description: "Poxa, alguém acabou de reservar este exato horário. Por favor, escolha outro.", 
+        description: "Alguém acabou de reservar este horário. Escolha outro.", 
         variant: "destructive" 
       });
-      setStep(3); // Joga de volta pro passo 3 (calendário)
-      setSelectedTime(null); // Limpa o horário escolhido
-      queryClient.invalidateQueries({ queryKey: ["slots"] }); // Força atualizar a tela de slots
+      setStep(3);
+      setSelectedTime(null);
+      queryClient.invalidateQueries({ queryKey: ["slots"] });
     }
   });
 
@@ -193,19 +230,15 @@ const PublicBooking = () => {
     for (let h = openH; h <= closeH; h++) {
       for (let m = (h === openH ? openM : 0); m < 60; m += 30) {
         if (h === closeH && m >= closeM) break;
-        
         const slotStart = new Date(selectedDate);
         slotStart.setHours(h, m, 0, 0);
-        
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
-        
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
         const hasConflict = existingAppts.some((appt: any) => {
           const aStart = new Date(appt.scheduled_at);
-          const aEnd = addMinutes(aStart, 40); 
+          const aEnd = addMinutes(aStart, 40);
           return slotStart < aEnd && slotEnd > aStart;
         });
-
         if (!hasConflict) {
           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
@@ -214,7 +247,7 @@ const PublicBooking = () => {
     return slots;
   }, [selectedDate, selectedService, shopResources, existingAppts]);
 
-  // --- PARSER DE CONFIGURAÇÕES SEGURO ---
+  // --- PARSER DE CONFIGURAÇÕES ---
   const rawSettings = shop?.settings;
   let shopSettings: any = {};
   if (typeof rawSettings === "string") {
@@ -222,7 +255,6 @@ const PublicBooking = () => {
   } else if (rawSettings) {
     shopSettings = rawSettings;
   }
-  
   const pixKey = shopSettings?.pix_key || "";
   const pixBeneficiary = shopSettings?.pix_beneficiary || shop?.name || "Estabelecimento";
 
@@ -230,12 +262,18 @@ const PublicBooking = () => {
     if (!pixKey) return;
     navigator.clipboard.writeText(pixKey);
     setCopiedPix(true);
-    toast({ title: "Pix Copiado!", description: "A chave foi copiada para a área de transferência." });
+    toast({ title: "Pix Copiado!", description: "A chave foi copiada." });
     setTimeout(() => setCopiedPix(false), 2000);
   };
 
-  if (loadingShop) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
+  // --- FORMATAÇÃO DO TIMER ---
+  const formatTimer = (s: number) => {
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${min}:${String(sec).padStart(2, "0")}`;
+  };
 
+  if (loadingShop) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
   if (errorShop || !shop) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
       <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
@@ -246,7 +284,7 @@ const PublicBooking = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* HEADER DINÂMICO */}
+      {/* HEADER */}
       <div className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -266,7 +304,7 @@ const PublicBooking = () => {
 
       <div className="container max-w-2xl mt-8 px-4">
         {/* STEP INDICATOR */}
-        {!success && !signalPending && !cancelled && (
+        {!success && !signalPending && !pendingApproval && !cancelled && (
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "gold-gradient shadow-gold" : "bg-secondary"}`} />
@@ -274,8 +312,8 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* STEP 1: SERVIÇOS (COM AVISO DE SINAL) */}
-        {step === 1 && !cancelled && !success && !signalPending && (
+        {/* STEP 1: SERVIÇOS */}
+        {step === 1 && !cancelled && !success && !signalPending && !pendingApproval && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">O que vamos fazer hoje?</h3>
                 <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o serviço para agendamento.</p>
@@ -286,7 +324,6 @@ const PublicBooking = () => {
                                 <div>
                                     <p className="font-bold text-lg text-foreground">{s.name}</p>
                                     <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                    
                                     {s.requires_advance_payment && (
                                         <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
                                             <AlertTriangle className="h-3 w-3 text-amber-500" />
@@ -305,12 +342,12 @@ const PublicBooking = () => {
         )}
 
         {/* STEP 2: BARBEIRO */}
-        {step === 2 && !cancelled && !success && !signalPending && (
+        {step === 2 && !cancelled && !success && !signalPending && !pendingApproval && (
             <div className="animate-in fade-in slide-in-from-right-4">
                 <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
                 <div className="grid grid-cols-2 gap-4">
                     {shopResources?.barbers.map((b: any) => (
-                        <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-[2rem] border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
+                        <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
                             <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
                                 <AvatarImage src={b.avatar_url} />
                                 <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
@@ -324,10 +361,10 @@ const PublicBooking = () => {
         )}
 
         {/* STEP 3: DATA E HORA */}
-        {step === 3 && !cancelled && !success && !signalPending && (
+        {step === 3 && !cancelled && !success && !signalPending && !pendingApproval && (
             <div className="animate-in fade-in slide-in-from-right-4">
                 <h3 className="text-2xl font-black mb-8 text-foreground font-display">Data e Horário</h3>
-                <div className="bg-card border border-border rounded-[2rem] p-4 mb-8 flex justify-center shadow-card">
+                <div className="bg-card border border-border rounded-3xl p-4 mb-8 flex justify-center shadow-card">
                     <Calendar 
                       mode="single" 
                       selected={selectedDate || undefined} 
@@ -356,11 +393,11 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* STEP 4: PREENCHER DADOS E GERAR AGENDAMENTO */}
-        {step === 4 && !cancelled && !success && !signalPending && (
+        {/* STEP 4: DADOS DO CLIENTE */}
+        {step === 4 && !cancelled && !success && !signalPending && !pendingApproval && (
             <div className="animate-in fade-in zoom-in-95">
                 <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Seus Dados</h3>
-                <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-card space-y-6">
+                <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome</label>
@@ -408,25 +445,34 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: AGUARDANDO SINAL (O NOVO "STEP 5" DE CHECKOUT) */}
-        {signalPending && !cancelled && (
+        {/* === TELA DE PAGAMENTO DO SINAL COM TIMER 90s === */}
+        {signalPending && !cancelled && !pendingApproval && (
             <div className="animate-in fade-in zoom-in-95">
                 <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Pagamento do Sinal</h3>
                 
-                <div className="bg-card border border-border rounded-[2.5rem] p-6 shadow-card space-y-6">
+                <div className="bg-card border border-border rounded-3xl p-6 shadow-card space-y-6">
                   
-                  {/* ALERTA DE INSTRUÇÃO */}
-                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-start gap-3">
-                    <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  {/* TIMER VISUAL */}
+                  <div className="flex items-center justify-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
+                    <Timer className="h-6 w-6 text-amber-500 animate-pulse" />
+                    <div className="text-center">
+                      <p className="text-3xl font-black text-amber-500 font-mono">{formatTimer(timerSeconds)}</p>
+                      <p className="text-[10px] text-amber-600/80 uppercase font-bold tracking-widest">Tempo para pagamento</p>
+                    </div>
+                  </div>
+
+                  {/* INSTRUÇÃO */}
+                  <div className="bg-secondary/50 border border-border p-4 rounded-2xl flex items-start gap-3">
+                    <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-bold text-amber-600 dark:text-amber-500">Quase lá!</p>
-                      <p className="text-[10px] text-amber-600/80 dark:text-amber-500/80 mt-1">
-                        Seu horário está pré-reservado. Realize o pagamento do sinal e envie o comprovante para finalizarmos sua reserva.
+                      <p className="text-xs font-bold text-foreground">Quase lá!</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Seu horário está pré-reservado. Realize o pagamento do sinal e envie o comprovante.
                       </p>
                     </div>
                   </div>
 
-                  {/* SEÇÃO PIX GARANTIDA */}
+                  {/* SEÇÃO PIX */}
                   {pixKey ? (
                     <div className="space-y-4">
                       <div className="bg-secondary/50 border border-border rounded-2xl p-4 text-center">
@@ -435,23 +481,20 @@ const PublicBooking = () => {
                           R$ {selectedService && Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}
                         </p>
                       </div>
-
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Chave Pix ({pixBeneficiary})</p>
                         <div className="flex gap-2">
-                          <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border flex items-center">
-                            {pixKey}
-                          </div>
-                          <Button onClick={handleCopyPix} className="h-auto bg-primary text-primary-foreground px-4 shrink-0 hover:bg-primary/90 rounded-xl">
+                          <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-xs text-foreground break-all border border-border flex items-center">{pixKey}</div>
+                          <Button onClick={handleCopyPix} className="h-auto gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
                             {copiedPix ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-center">
-                      <p className="text-sm font-bold text-red-500">A chave Pix não foi configurada pelo estabelecimento.</p>
-                      <p className="text-[10px] text-red-500/80 mt-1">Entre em contato via WhatsApp para finalizar o pagamento.</p>
+                    <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-2xl text-center">
+                      <p className="text-sm font-bold text-destructive">A chave Pix não foi configurada pelo estabelecimento.</p>
+                      <p className="text-[10px] text-destructive/80 mt-1">Entre em contato via WhatsApp.</p>
                     </div>
                   )}
 
@@ -464,20 +507,47 @@ const PublicBooking = () => {
                         <MessageCircle className="h-5 w-5" /> Enviar Comprovante no WhatsApp
                     </Button>
 
-                    {/* BOTÃO BLOQUEADO (AGUARDANDO) */}
-                    <Button disabled className="w-full h-16 rounded-2xl font-black bg-secondary text-muted-foreground opacity-100 border border-border">
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Aguardando confirmação do salão...
+                    {/* BOTÃO "JÁ PAGUEI" */}
+                    <Button 
+                      onClick={handleTransitionToApproval} 
+                      variant="outline"
+                      className="w-full h-14 rounded-2xl font-black border-border hover:bg-secondary transition-all"
+                    >
+                        <Check className="h-5 w-5 mr-2" /> Já paguei / Enviar comprovante
                     </Button>
                   </div>
                 </div>
             </div>
         )}
 
+        {/* === TELA DE APROVAÇÃO PENDENTE (SUCESSO OTIMISTA) === */}
+        {pendingApproval && !cancelled && !success && (
+            <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
+                <div className="h-24 w-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-primary/20">
+                    <Clock className="h-12 w-12 text-primary" />
+                </div>
+                <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Recebemos sua solicitação! 🕒</h1>
+                <p className="text-muted-foreground mb-4 max-w-sm mx-auto leading-relaxed">
+                  Aguardando aprovação do estabelecimento. Iremos enviar uma mensagem no seu WhatsApp para confirmar seu agendamento.
+                </p>
+                <div className="bg-card border border-border rounded-2xl p-4 max-w-xs mx-auto mb-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary mx-auto mb-2" />
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Esperando confirmação em tempo real...</p>
+                </div>
+                <Button 
+                  onClick={() => navigate(`/agendamentos/${slug}`)} 
+                  variant="ghost" 
+                  className="text-muted-foreground hover:text-foreground font-bold"
+                >
+                  Voltar ao Início
+                </Button>
+            </div>
+        )}
+
         {/* TELA FINAL: SUCESSO */}
         {success && !cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
-                <div className="h-24 w-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+                <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
                     <Check className="h-12 w-12 text-emerald-500" />
                 </div>
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
@@ -486,17 +556,16 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: CANCELADO / RECUSADO */}
+        {/* TELA FINAL: CANCELADO */}
         {cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
-                <div className="h-24 w-24 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
-                    <XCircle className="h-12 w-12 text-red-500" />
+                <div className="h-24 w-24 bg-destructive/10 border border-destructive/20 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                    <XCircle className="h-12 w-12 text-destructive" />
                 </div>
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Reserva Não Confirmada</h1>
                 <p className="text-muted-foreground mb-10 max-w-xs mx-auto">
                   Houve um problema com a confirmação do seu pagamento ou o horário ficou indisponível.
                 </p>
-                
                 <div className="space-y-4 max-w-sm mx-auto">
                     <Button 
                       onClick={() => window.open(`https://wa.me/55${shop.phone?.replace(/\D/g, "")}`, "_blank")} 
@@ -504,7 +573,6 @@ const PublicBooking = () => {
                     >
                         <MessageCircle className="h-5 w-5" /> Falar com o Suporte
                     </Button>
-                    
                     <Button 
                       variant="outline"
                       onClick={() => window.location.reload()} 
