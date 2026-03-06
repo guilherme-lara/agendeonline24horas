@@ -189,7 +189,12 @@ const PublicBooking = () => {
       await supabase.from("appointments").update({ barber_name: selectedBarber.name }).eq("id", apptId);
 
       if (requiresSignal) {
-        await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", apptId);
+        // Grava no banco que possui sinal e o valor exato!
+        await supabase.from("appointments").update({ 
+          status: "pendente_sinal",
+          has_signal: true,
+          signal_value: selectedService.advance_payment_value
+        }).eq("id", apptId);
         return { id: apptId, type: 'signal' };
       }
 
