@@ -25,6 +25,45 @@ const Dashboard = () => {
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
+  // --- SISTEMA 100% LIVE (WebSockets) ---
+  useEffect(() => {
+    if (!barbershop?.id) return;
+
+    const channel = supabase
+      .channel('live-dashboard')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'appointments', 
+          filter: `barbershop_id=eq.${barbershop.id}` 
+        },
+        () => {
+          // Atualiza as queries do dashboard e da agenda sem piscar a tela
+          queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders', 
+          filter: `barbershop_id=eq.${barbershop.id}` 
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [barbershop?.id, queryClient]);
+
   const { data: appointments = [], isLoading: loadingAppts, isError: errorAppts } = useQuery({
     queryKey: ["dashboard-appointments", barbershop?.id],
     queryFn: async () => {
