@@ -6,30 +6,26 @@ import { Menu } from "lucide-react";
 // 2. Hooks de Estado Global
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { useAuth } from "@/hooks/useAuth";
+import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 
 // 3. Componentes de UI
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 
-// 4. DASHBOARD LAYOUT - VERSÃO SIMPLIFICADA E ESTÁVEL
 const DashboardLayout = () => {
   const navigate = useNavigate();
-
-  // Estado global
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { barbershop, loading: shopLoading, isImpersonating } = useBarbershop();
 
-  // Estado local
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Flag simples: só mostra loading na PRIMEIRA carga absoluta
   const isInitialLoadRef = useRef(true);
 
-  // Lógica de navegação - só executa uma vez
+  // ÉPICO 2: Realtime silencioso — escuta mudanças na tabela appointments
+  useLiveAppointments((barbershop as any)?.id);
+
   useEffect(() => {
     if (isInitialLoadRef.current) {
       if (!authLoading && !shopLoading) {
-        // Dados carregados, pode navegar se necessário
         if (!user) {
           navigate("/auth", { replace: true });
           return;
@@ -38,25 +34,21 @@ const DashboardLayout = () => {
           navigate("/super-admin", { replace: true });
           return;
         }
-        // Marca que inicialização terminou
         isInitialLoadRef.current = false;
       }
     }
   }, [user, isAdmin, barbershop, isImpersonating, authLoading, shopLoading, navigate]);
 
-  // MOSTRA LOADING APENAS na carga inicial absoluta
   if (isInitialLoadRef.current && (authLoading || shopLoading)) {
     return <DashboardSkeleton />;
   }
 
-  // APÓS CARGA INICIAL, SEMPRE RENDERIZA O LAYOUT
-  // Nunca mais volta para loading, independente do que acontecer
   return (
     <div className="flex min-h-screen w-full">
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        barbershopSlug={barbershop?.slug}
+        barbershopSlug={(barbershop as any)?.slug}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -68,7 +60,7 @@ const DashboardLayout = () => {
             <Menu className="h-5 w-5" />
           </button>
           <span className="text-sm font-semibold text-muted-foreground">
-            {barbershop?.name || "Dashboard"}
+            {(barbershop as any)?.name || "Dashboard"}
           </span>
         </div>
 
