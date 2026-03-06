@@ -23,7 +23,7 @@ interface PendingSignal {
 }
 
 const AprovacaoSinais = () => {
-  const { barbershop } = useBarbershop();
+  const { barbershop } = useBarbershop() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -64,8 +64,9 @@ const AprovacaoSinais = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pending-signals"] });
-      // Também invalidamos a agenda para que o novo agendamento apareça lá na hora
+      // Invalida a agenda e o dashboard para o agendamento brotar lá na hora
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
       
       const isApproved = variables.newStatus === "confirmed";
       toast({ 
