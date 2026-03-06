@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { format, isSameDay, addDays, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface Appointment {
   id: string;
@@ -14,15 +15,18 @@ interface Appointment {
   scheduled_at: string;
   price: number;
   status: string;
+  has_signal?: boolean;
+  barber_name?: string;
 }
 
 interface CalendarViewProps {
   appointments: Appointment[];
   barbershopId?: string;
   onRefresh?: () => void;
+  onEventClick?: (appt: any) => void;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7:00 - 19:00
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 8:00 - 21:00
 
 const statusConfig: Record<string, { bg: string; border: string; text: string }> = {
   confirmed: { bg: "bg-primary/15", border: "border-primary/40", text: "text-primary" },
@@ -31,9 +35,9 @@ const statusConfig: Record<string, { bg: string; border: string; text: string }>
   cancelled: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
 };
 
-const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewProps) => {
+const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: CalendarViewProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // <-- Motor do cache local adicionado
+  const queryClient = useQueryClient();
   
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [draggingApptId, setDraggingApptId] = useState<string | null>(null);
@@ -52,12 +56,9 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
         .eq("id", id);
       if (error) throw error;
     },
-    // O que acontece no exato milissegundo que você solta o card:
     onMutate: async ({ id, newDateStr }) => {
-      // 1. Para buscas em andamento para não sobrescrever nosso drag
       await queryClient.cancelQueries({ queryKey: ["appointments"] });
 
-      // 2. Atualiza a tela NA HORA, movendo o card sem esperar o servidor
       queryClient.setQueryData(["appointments", barbershopId], (oldData: any) => {
         if (!oldData) return oldData;
         return oldData.map((appt: any) => 
@@ -71,11 +72,9 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
       toast({ title: "Horário atualizado!", description: "Remarcado com sucesso." });
     },
     onError: (err: any) => {
-      // Se a internet cair, ele avisa e puxa o dado original de volta
       toast({ title: "Falha na conexão", description: "Não foi possível remarcar.", variant: "destructive" });
     },
     onSettled: () => {
-      // Depois de tudo, sincroniza com o banco para garantir a verdade absoluta
       if (onRefresh) onRefresh();
     }
   });
@@ -96,11 +95,9 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
     const apptId = e.dataTransfer.getData("appt_id");
     if (!apptId) return;
 
-    // Calcula a nova data/hora com base no bloco onde foi solto
     const newDate = new Date(day);
     newDate.setHours(hour, 0, 0, 0);
 
-    // Se o cara soltou no mesmo lugar, não faz nada
     const draggedAppt = appointments.find(a => a.id === apptId);
     if (draggedAppt && new Date(draggedAppt.scheduled_at).getTime() === newDate.getTime()) {
       setDraggingApptId(null);
@@ -127,7 +124,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[700px]">
+        <div className="min-w-[800px]">
           {/* Day headers */}
           <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border bg-card">
             <div className="p-2" />
@@ -147,68 +144,75 @@ const CalendarView = ({ appointments, barbershopId, onRefresh }: CalendarViewPro
           </div>
 
           {/* Time grid */}
-          {HOURS.map((hour) => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50 min-h-[60px]">
-              <div className="p-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right pr-3 pt-2">
-                {String(hour).padStart(2, "0")}:00
-              </div>
-              
-              {days.map((day) => {
-                const dayAppts = getAppointmentsForDay(day).filter((a) => {
-                  const h = new Date(a.scheduled_at).getHours();
-                  return h === hour;
-                });
+          <div className="relative">
+            {HOURS.map((hour) => (
+              <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50 min-h-[60px] group">
+                <div className="p-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right pr-3 pt-2">
+                  {String(hour).padStart(2, "0")}:00
+                </div>
                 
-                return (
-                  <div 
-                    key={day.toISOString()} 
-                    className="border-l border-border/50 p-1 relative transition-colors hover:bg-primary/5 data-[is-dragover=true]:bg-primary/20"
-                    
-                    // EVENTOS DE DROP ZONE (RECEBER O CARD)
-                    onDragOver={handleDragOver}
-                    onDragEnter={(e) => e.currentTarget.setAttribute('data-is-dragover', 'true')}
-                    onDragLeave={(e) => e.currentTarget.removeAttribute('data-is-dragover')}
-                    onDrop={(e) => {
-                      e.currentTarget.removeAttribute('data-is-dragover');
-                      handleDrop(e, day, hour);
-                    }}
-                  >
-                    {dayAppts.map((a) => {
-                      const cfg = statusConfig[a.status] || statusConfig.pending;
-                      const isDraggingThis = draggingApptId === a.id;
+                {days.map((day) => {
+                  const dayAppts = getAppointmentsForDay(day).filter((a) => {
+                    const h = new Date(a.scheduled_at).getHours();
+                    return h === hour;
+                  });
+                  
+                  return (
+                    <div 
+                      key={day.toISOString()} 
+                      className="border-l border-border/50 p-1 relative transition-colors hover:bg-primary/5 data-[is-dragover=true]:bg-primary/20"
                       
-                      return (
-                        <div
-                          key={a.id}
-                          
-                          // EVENTOS DE DRAG (ARRASTAR O CARD)
-                          draggable={true}
-                          onDragStart={(e) => handleDragStart(e, a.id)}
-                          onDragEnd={() => setDraggingApptId(null)}
-                          
-                          className={`rounded-lg px-2 py-1.5 mb-1 border shadow-sm transition-all
-                            ${cfg.bg} ${cfg.border} ${cfg.text} 
-                            cursor-grab active:cursor-grabbing
-                            hover:brightness-110 hover:scale-[1.02]
-                            ${isDraggingThis ? "opacity-30 scale-95 border-dashed" : "opacity-100"}
-                          `}
-                          title={`${a.client_name} - ${a.service_name}`}
-                        >
-                          <div className="flex items-center justify-between gap-1 mb-0.5 pointer-events-none">
-                            <span className="font-black text-[9px] tracking-widest uppercase bg-background/50 px-1 rounded-sm">
-                              {format(new Date(a.scheduled_at), "HH:mm")}
-                            </span>
+                      // EVENTOS DE DROP ZONE
+                      onDragOver={handleDragOver}
+                      onDragEnter={(e) => e.currentTarget.setAttribute('data-is-dragover', 'true')}
+                      onDragLeave={(e) => e.currentTarget.removeAttribute('data-is-dragover')}
+                      onDrop={(e) => {
+                        e.currentTarget.removeAttribute('data-is-dragover');
+                        handleDrop(e, day, hour);
+                      }}
+                    >
+                      {dayAppts.map((a) => {
+                        const cfg = statusConfig[a.status] || statusConfig.pending;
+                        const isDraggingThis = draggingApptId === a.id;
+                        
+                        return (
+                          <div
+                            key={a.id}
+                            
+                            // DRAG AND DROP & ON CLICK
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, a.id)}
+                            onDragEnd={() => setDraggingApptId(null)}
+                            onClick={() => onEventClick && onEventClick(a)}
+                            
+                            className={`rounded-lg px-2 py-1.5 mb-1 border shadow-sm transition-all
+                              ${cfg.bg} ${cfg.border} ${cfg.text} 
+                              cursor-grab active:cursor-grabbing
+                              hover:brightness-110 hover:scale-[1.02]
+                              ${isDraggingThis ? "opacity-30 scale-95 border-dashed" : "opacity-100"}
+                            `}
+                            title={`${a.client_name} - ${a.service_name}`}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-0.5 pointer-events-none">
+                              <span className="font-black text-[9px] tracking-widest uppercase bg-background/50 px-1 rounded-sm">
+                                {format(new Date(a.scheduled_at), "HH:mm")}
+                              </span>
+                            </div>
+                            <p className="font-bold text-xs truncate leading-tight pointer-events-none">{a.client_name}</p>
+                            <p className="text-[9px] font-medium truncate opacity-80 pointer-events-none">{a.service_name}</p>
+                            <div className="flex flex-wrap items-center gap-1 mt-1 pointer-events-none">
+                               {a.barber_name && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-foreground/10 text-foreground/60">{a.barber_name.split(' ')[0]}</Badge>}
+                               {a.has_signal && <Badge className="bg-amber-500 text-white text-[8px] px-1 py-0 h-4 border-none flex items-center gap-0.5"><DollarSign className="h-2 w-2"/> Sinal</Badge>}
+                            </div>
                           </div>
-                          <p className="font-bold text-xs truncate leading-tight pointer-events-none">{a.client_name}</p>
-                          <p className="text-[9px] font-medium truncate opacity-80 pointer-events-none">{a.service_name}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
