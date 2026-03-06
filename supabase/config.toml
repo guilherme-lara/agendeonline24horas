@@ -2,6 +2,3 @@ project_id = "whtlqimtclodchfdljcg"
 
 [functions.create-pix-charge]
 verify_jwt = false
-
-[functions.abacatepay-webhook]
-verify_jwt = false
