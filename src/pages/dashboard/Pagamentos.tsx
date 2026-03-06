@@ -48,7 +48,7 @@ const Pagamentos = () => {
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight">Pagamentos</h1>
           <p className="text-slate-500 text-sm font-medium">
-            Configure o recebimento de sinais e integração com Mercado Pago.
+            Configure o recebimento de sinais e a integração com a InfinitePay.
           </p>
         </div>
       </div>
