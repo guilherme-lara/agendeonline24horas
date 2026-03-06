@@ -49,6 +49,7 @@ const Agenda = () => {
         .from("appointments")
         .select("*")
         .eq("barbershop_id", barbershop?.id)
+        .neq("status", "pendente_sinal") // 🚨 A MÁGICA: Oculta os não aprovados da agenda principal
         .order("scheduled_at", { ascending: true });
       if (error) throw error;
       return data || [];
