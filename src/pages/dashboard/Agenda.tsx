@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Loader2, Search, Clock, LayoutGrid, List,
   Check, XCircle, Play, Phone, MessageSquare, QrCode, User,
-  Pencil, AlertTriangle, History, ArrowRight
+  Pencil, AlertTriangle, History, ArrowRight, DollarSign
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -15,12 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import CalendarView from "@/components/CalendarView";
 import QuickBooking from "@/components/QuickBooking";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusBadgeConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
@@ -42,6 +37,7 @@ const Agenda = () => {
 
   const queryEnabled = !!barbershop?.id;
 
+  // Busca Agendamentos
   const { data: appointments = [], isLoading, isError } = useQuery({
     queryKey: ["appointments", barbershop?.id],
     queryFn: async () => {
@@ -49,7 +45,7 @@ const Agenda = () => {
         .from("appointments")
         .select("*")
         .eq("barbershop_id", barbershop?.id)
-        .neq("status", "pendente_sinal") // 🚨 A MÁGICA: Oculta os não aprovados da agenda principal
+        .neq("status", "pendente_sinal")
         .order("scheduled_at", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -61,24 +57,38 @@ const Agenda = () => {
     refetchOnWindowFocus: false,
   });
 
+  // Busca Serviços (Para o Modal de Edição)
   const { data: services = [] } = useQuery({
     queryKey: ["services", barbershop?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .eq("barbershop_id", barbershop?.id)
-        .eq("active", true)
-        .order("sort_order");
+      const { data, error } = await supabase.from("services").select("*").eq("barbershop_id", barbershop?.id).eq("active", true).order("sort_order");
       if (error) throw error;
       return data || [];
     },
     enabled: queryEnabled,
   });
 
+  // Busca Barbeiros (Para o Modal de Edição)
+  const { data: barbers = [] } = useQuery({
+    queryKey: ["barbers", barbershop?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("barbers" as any).select("*").eq("barbershop_id", barbershop?.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: queryEnabled,
+  });
+
+  // MUTAÇÃO DE UPDATE COMPLETA
   const updateMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const { id, ...updates } = payload;
+      const { id, scheduled_date, scheduled_time, ...updates } = payload;
+      
+      // Reconstrói a data completa a partir dos inputs separados
+      if (scheduled_date && scheduled_time) {
+        updates.scheduled_at = new Date(`${scheduled_date}T${scheduled_time}:00`).toISOString();
+      }
+
       const { error } = await supabase.from("appointments").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -99,6 +109,19 @@ const Agenda = () => {
       return tabMatch && searchMatch;
     });
   }, [appointments, activeTab, search]);
+
+  // Função para abrir o modal formatando a data e hora corretamente
+  const handleOpenEdit = (appt: any) => {
+    const d = parseISO(appt.scheduled_at);
+    setEditModal({
+      open: true,
+      appt: {
+        ...appt,
+        scheduled_date: format(d, 'yyyy-MM-dd'),
+        scheduled_time: format(d, 'HH:mm')
+      }
+    });
+  };
 
   const shouldShowLoading = isLoading && queryEnabled && !appointments.length && !isError;
 
@@ -129,18 +152,10 @@ const Agenda = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-card border border-border p-1 rounded-2xl">
-            <Button 
-              variant="ghost" size="sm" 
-              onClick={() => setActiveTab("active")}
-              className={`rounded-xl px-6 ${activeTab === "active" ? "gold-gradient text-primary-foreground shadow-gold" : "text-muted-foreground"}`}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-xl px-6 ${activeTab === "active" ? "gold-gradient text-primary-foreground shadow-gold" : "text-muted-foreground"}`}>
               <Clock className="h-4 w-4 mr-2" /> Ativos
             </Button>
-            <Button 
-              variant="ghost" size="sm" 
-              onClick={() => setActiveTab("completed")}
-              className={`rounded-xl px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-xl px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}>
               <History className="h-4 w-4 mr-2" /> Histórico
             </Button>
           </div>
@@ -148,19 +163,11 @@ const Agenda = () => {
           <div className="h-8 w-[1px] bg-border mx-2 hidden xl:block" />
 
           <div className="flex bg-card border border-border p-1 rounded-2xl">
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-xl ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground"}`}>
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-xl ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground"}`}>
-              <List className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-xl ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-xl ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><List className="h-4 w-4" /></Button>
           </div>
           
-          <QuickBooking 
-            barbershopId={barbershop?.id} 
-            services={services} 
-            onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} 
-          />
+          <QuickBooking barbershopId={barbershop?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
         </div>
       </div>
 
@@ -168,14 +175,13 @@ const Agenda = () => {
       <div className="relative mb-8">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
         <input 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)}
+          value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Pesquisar por cliente, serviço ou barbeiro..." 
           className="w-full bg-card border border-border h-14 pl-12 rounded-2xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground"
         />
       </div>
 
-      {/* TABLE VIEW */}
+      {/* VIEW RENDERER */}
       {viewMode === "list" ? (
         <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-card">
           <div className="overflow-x-auto">
@@ -202,6 +208,9 @@ const Agenda = () => {
                       <p className="text-foreground/80 text-sm font-medium">{a.service_name}</p>
                       <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground uppercase font-black">
                         <User className="h-3 w-3" /> {a.barber_name || "Geral"}
+                        {a.has_signal && (
+                           <Badge className="ml-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">SINAL PAGO</Badge>
+                        )}
                       </div>
                     </td>
                     <td className="px-8 py-5 font-bold text-emerald-500 text-sm">R$ {Number(a.price).toFixed(2)}</td>
@@ -214,7 +223,7 @@ const Agenda = () => {
                       <div className="flex justify-end gap-2">
                         <Button 
                           variant="ghost" size="icon" 
-                          onClick={() => setEditModal({ open: true, appt: { ...a } })}
+                          onClick={() => handleOpenEdit(a)}
                           className="h-10 w-10 rounded-xl hover:bg-secondary text-muted-foreground hover:text-primary"
                         >
                           <Pencil className="h-4 w-4" />
@@ -248,12 +257,13 @@ const Agenda = () => {
           appointments={filtered} 
           barbershopId={barbershop?.id}
           onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
+          onEventClick={handleOpenEdit} // Passando o gancho para o calendário abrir o modal
         />
       )}
 
-      {/* MODAL DE EDIÇÃO */}
+      {/* SUPER MODAL DE EDIÇÃO COMPLETA */}
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
-        <DialogContent className="bg-card border-border text-foreground max-w-lg rounded-3xl">
+        <DialogContent className="bg-card border-border text-foreground max-w-2xl rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-2 font-display">
               <Pencil className="text-primary h-6 w-6" /> Editar Agendamento
@@ -261,41 +271,80 @@ const Agenda = () => {
           </DialogHeader>
           
           {editModal.appt && (
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="space-y-2 col-span-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase">Nome do Cliente</label>
-                <Input 
-                  defaultValue={editModal.appt.client_name} 
-                  onChange={(e) => editModal.appt.client_name = e.target.value}
-                  className="bg-background border-border"
-                />
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">
+              {/* Cliente */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Nome do Cliente</label>
+                <Input defaultValue={editModal.appt.client_name} onChange={(e) => editModal.appt.client_name = e.target.value} className="bg-background border-border" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase">Preço (R$)</label>
-                <Input 
-                  type="number"
-                  defaultValue={editModal.appt.price} 
-                  onChange={(e) => editModal.appt.price = Number(e.target.value)}
-                  className="bg-background border-border text-emerald-500 font-bold"
-                />
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Telefone (WhatsApp)</label>
+                <Input defaultValue={editModal.appt.client_phone} onChange={(e) => editModal.appt.client_phone = e.target.value} className="bg-background border-border font-mono" />
+              </div>
+
+              {/* Serviços e Barbeiros */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Serviço</label>
+                <select defaultValue={editModal.appt.service_name} onChange={(e) => editModal.appt.service_name = e.target.value} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground">
+                  <option value={editModal.appt.service_name}>{editModal.appt.service_name}</option>
+                  {services.map((s: any) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase">Status</label>
-                <select 
-                  defaultValue={editModal.appt.status}
-                  onChange={(e) => editModal.appt.status = e.target.value}
-                  className="w-full bg-background border border-border rounded-md h-10 px-3 text-sm text-foreground"
-                >
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Profissional</label>
+                <select defaultValue={editModal.appt.barber_name} onChange={(e) => editModal.appt.barber_name = e.target.value} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground">
+                  <option value="">Geral / Qualquer um</option>
+                  <option value={editModal.appt.barber_name}>{editModal.appt.barber_name}</option>
+                  {barbers.map((b: any) => <option key={b.id} value={b.name}>{b.name}</option>)}
+                </select>
+              </div>
+
+              {/* Data e Hora */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Data</label>
+                <Input type="date" defaultValue={editModal.appt.scheduled_date} onChange={(e) => editModal.appt.scheduled_date = e.target.value} className="bg-background border-border" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Hora</label>
+                <Input type="time" defaultValue={editModal.appt.scheduled_time} onChange={(e) => editModal.appt.scheduled_time = e.target.value} className="bg-background border-border" />
+              </div>
+
+              {/* Preço e Status */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Valor Total (R$)</label>
+                <Input type="number" defaultValue={editModal.appt.price} onChange={(e) => editModal.appt.price = Number(e.target.value)} className="bg-background border-border text-emerald-500 font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</label>
+                <select defaultValue={editModal.appt.status} onChange={(e) => editModal.appt.status = e.target.value} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground">
                   <option value="pending">Pendente</option>
                   <option value="confirmed">Confirmado</option>
+                  <option value="completed">Concluído</option>
                   <option value="cancelled">Cancelado</option>
                 </select>
               </div>
+
+              {/* Controle de Sinal */}
+              <div className="col-span-2 bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl flex items-center gap-4 mt-2">
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-bold text-amber-500 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Controle de Sinal Adiantado</p>
+                  <p className="text-[10px] text-muted-foreground">O valor abaixo será subtraído na hora do fechamento de caixa.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm font-bold cursor-pointer">
+                    <input type="checkbox" defaultChecked={editModal.appt.has_signal} onChange={(e) => editModal.appt.has_signal = e.target.checked} className="w-4 h-4 rounded border-border text-amber-500 focus:ring-amber-500" />
+                    Teve Sinal?
+                  </label>
+                  <Input type="number" placeholder="Valor (R$)" defaultValue={editModal.appt.signal_value || 0} onChange={(e) => editModal.appt.signal_value = Number(e.target.value)} className="w-32 bg-background border-border font-mono font-bold text-amber-500" />
+                </div>
+              </div>
+
               <Button 
-                className="col-span-2 mt-4 gold-gradient text-primary-foreground font-black h-12 rounded-xl shadow-gold"
+                className="col-span-2 mt-4 gold-gradient text-primary-foreground font-black h-14 rounded-xl shadow-gold text-lg transition-transform active:scale-[0.98]"
                 onClick={() => updateMutation.mutate(editModal.appt)}
+                disabled={updateMutation.isPending}
               >
-                Salvar Alterações
+                {updateMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : "Salvar Alterações Completas"}
               </Button>
             </div>
           )}
