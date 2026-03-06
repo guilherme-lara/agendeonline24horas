@@ -119,9 +119,9 @@ const PublicBooking = () => {
 
   const handleTransitionToApproval = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    // Atualiza status no banco
+    // CORREÇÃO: Usando o status "pending" oficial que a Agenda reconhece
     if (appointmentId) {
-      await supabase.from("appointments").update({ status: "pending_approval" }).eq("id", appointmentId);
+      await supabase.from("appointments").update({ status: "pending" }).eq("id", appointmentId);
     }
     setSignalPending(false);
     setPendingApproval(true);
@@ -143,7 +143,7 @@ const PublicBooking = () => {
         },
         (payload: any) => {
           const newStatus = payload.new?.status;
-          if (newStatus === 'confirmed' || newStatus === 'pending') {
+          if (newStatus === 'confirmed' || newStatus === 'completed') {
             if (timerRef.current) clearInterval(timerRef.current);
             setSignalPending(false);
             setPendingApproval(false);
@@ -187,7 +187,8 @@ const PublicBooking = () => {
       await supabase.from("appointments").update({ barber_name: selectedBarber.name }).eq("id", apptId);
 
       if (requiresSignal) {
-        await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", apptId);
+        // CORREÇÃO: Usando o status "pending" oficial para o banco não bugar
+        await supabase.from("appointments").update({ status: "pending" }).eq("id", apptId);
         return { id: apptId, type: 'signal' };
       }
 
@@ -578,7 +579,7 @@ const PublicBooking = () => {
                       onClick={() => window.location.reload()} 
                       className="h-14 w-full rounded-2xl font-black border-border transition-all hover:bg-secondary active:scale-95"
                     >
-                        Tentar Novamente
+                        <RefreshCw className="h-5 w-5 mr-2" /> Tentar Novamente
                     </Button>
                 </div>
             </div>
