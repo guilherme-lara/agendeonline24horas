@@ -37,7 +37,6 @@ const PublicBooking = () => {
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(SIGNAL_TIMER_SECONDS);
-  const realtimeChannelRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // --- QUERIES ---
@@ -119,50 +118,53 @@ const PublicBooking = () => {
 
   const handleTransitionToApproval = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    // CORREÇÃO: Usando o status "pending" oficial que a Agenda reconhece
+    // Atualiza status no banco para 'pendente_sinal'
     if (appointmentId) {
-      await supabase.from("appointments").update({ status: "pending" }).eq("id", appointmentId);
+      await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", appointmentId);
     }
     setSignalPending(false);
     setPendingApproval(true);
   };
 
-  // --- REALTIME: Escuta confirmação do pagamento ---
+  // --- RADAR DE APROVAÇÃO (POLLING) ---
   useEffect(() => {
-    if (!appointmentId || (!signalPending && !pendingApproval)) return;
+    let intervalId: any;
 
-    const channel = supabase
-      .channel(`appointment-${appointmentId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'appointments',
-          filter: `id=eq.${appointmentId}`,
-        },
-        (payload: any) => {
-          const newStatus = payload.new?.status;
-          if (newStatus === 'confirmed' || newStatus === 'completed') {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setSignalPending(false);
-            setPendingApproval(false);
-            setSuccess(true);
-            setStep(5);
-          } else if (newStatus === 'cancelled' || newStatus === 'rejected') {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setSignalPending(false);
-            setPendingApproval(false);
-            setCancelled(true);
-            toast({ title: "Pagamento Recusado", description: "O estabelecimento não confirmou o agendamento.", variant: "destructive" });
-          }
+    const checkStatus = async () => {
+      if (!appointmentId || !pendingApproval) return;
+      
+      const { data } = await supabase
+        .from("appointments")
+        .select("status")
+        .eq("id", appointmentId)
+        .maybeSingle();
+
+      if (data) {
+        if (data.status === 'confirmed' || data.status === 'completed' || data.status === 'pending') {
+          setSignalPending(false);
+          setPendingApproval(false);
+          setSuccess(true);
+          setStep(5);
+          clearInterval(intervalId);
+        } else if (data.status === 'cancelled' || data.status === 'rejected') {
+          setSignalPending(false);
+          setPendingApproval(false);
+          setCancelled(true);
+          clearInterval(intervalId);
+          // Toast opcional para erro
         }
-      )
-      .subscribe();
+      }
+    };
 
-    realtimeChannelRef.current = channel;
-    return () => { supabase.removeChannel(channel); };
-  }, [appointmentId, signalPending, pendingApproval, toast]);
+    if (pendingApproval && !signalPending && appointmentId) {
+       intervalId = setInterval(checkStatus, 3000); // Checa a cada 3 segundos silenciosamente
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [appointmentId, pendingApproval, signalPending]);
+
 
   // --- MUTAÇÃO DO AGENDAMENTO ---
   const bookingMutation = useMutation({
@@ -187,8 +189,7 @@ const PublicBooking = () => {
       await supabase.from("appointments").update({ barber_name: selectedBarber.name }).eq("id", apptId);
 
       if (requiresSignal) {
-        // CORREÇÃO: Usando o status "pending" oficial para o banco não bugar
-        await supabase.from("appointments").update({ status: "pending" }).eq("id", apptId);
+        await supabase.from("appointments").update({ status: "pendente_sinal" }).eq("id", apptId);
         return { id: apptId, type: 'signal' };
       }
 
