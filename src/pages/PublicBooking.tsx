@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, AlertTriangle, 
-  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info, Timer
+  MessageCircle, MapPin, ArrowLeft, Copy, QrCode, Clock, XCircle, Info, Timer, RefreshCw
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
