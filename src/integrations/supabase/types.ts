@@ -46,6 +46,7 @@ export type Database = {
           client_name: string
           client_phone: string | null
           created_at: string | null
+          has_signal: boolean | null
           id: string
           payment_confirmed_at: string | null
           payment_id: string | null
@@ -56,6 +57,7 @@ export type Database = {
           price: number
           scheduled_at: string
           service_name: string
+          signal_value: number | null
           status: string | null
           total_price: number | null
           updated_at: string | null
@@ -67,6 +69,7 @@ export type Database = {
           client_name: string
           client_phone?: string | null
           created_at?: string | null
+          has_signal?: boolean | null
           id?: string
           payment_confirmed_at?: string | null
           payment_id?: string | null
@@ -77,6 +80,7 @@ export type Database = {
           price?: number
           scheduled_at: string
           service_name: string
+          signal_value?: number | null
           status?: string | null
           total_price?: number | null
           updated_at?: string | null
@@ -88,6 +92,7 @@ export type Database = {
           client_name?: string
           client_phone?: string | null
           created_at?: string | null
+          has_signal?: boolean | null
           id?: string
           payment_confirmed_at?: string | null
           payment_id?: string | null
@@ -98,6 +103,7 @@ export type Database = {
           price?: number
           scheduled_at?: string
           service_name?: string
+          signal_value?: number | null
           status?: string | null
           total_price?: number | null
           updated_at?: string | null

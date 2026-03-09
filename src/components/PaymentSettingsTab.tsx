@@ -63,8 +63,8 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         pix_beneficiary: pixBeneficiary.trim()
       };
 
-      // Remove a chave velha do AbacatePay se ela existir para limpar o banco
-      delete newSettings.abacate_pay_api_key;
+      // Remove chaves legadas se existirem
+      delete (newSettings as any).abacate_pay_api_key;
 
       const { error } = await (supabase
         .from("barbershops") as any)
