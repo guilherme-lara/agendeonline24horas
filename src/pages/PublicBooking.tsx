@@ -93,7 +93,7 @@ const PublicBooking = () => {
     refetchInterval: 5000,
   });
 
-  // --- MOTOR DE CHECKOUT: INTEGRAÇÃO OFICIAL API INFINITEPAY ---
+  // --- MOTOR DE CHECKOUT SEM CORS ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -135,62 +135,37 @@ const PublicBooking = () => {
         return { type: 'local', id: apptId };
       }
 
-      // 4. MÁGICA: Bate na API Oficial da InfinitePay pelo Front-end
+      // 4. MÁGICA: Redirecionamento Direto (NUNCA DÁ CORS)
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) throw new Error("A barbearia ainda não configurou a InfiniteTag (Seu @) no painel.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
       const itemName = hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name;
-      
-      const priceInCents = Math.round(amountToCharge * 100); // Converte para centavos
-      
-      // Trava contra o erro da imagem:
+      const priceInCents = Math.round(amountToCharge * 100); 
+
+      // TRAVA DE SEGURANÇA: Evita a tela preta "Algo deu errado" da InfinitePay
       if (priceInCents < 100) {
-        throw new Error("A InfinitePay exige um valor mínimo de R$ 1,00 para o checkout.");
+        throw new Error("Para usar o checkout online, o valor do serviço/teste deve ser de no mínimo R$ 1,00.");
       }
 
-      // URLs de retorno e de fofoca (Webhook)
+      const items = JSON.stringify([
+        {
+          name: itemName,
+          price: priceInCents,
+          quantity: 1
+        }
+      ]);
+
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
-      const webhookUrl = "https://whtlqimtclodchfdljcg.supabase.co/functions/v1/infinitepay-webhook";
 
-      const infinitePayload = {
-        "handle": cleanHandle,
-        "redirect_url": redirectUrl,
-        "webhook_url": webhookUrl,
-        "order_nsu": apptId,
-        "items": [
-          {
-            "quantity": 1,
-            "price": priceInCents,
-            "description": itemName
-          }
-        ]
-      };
+      // Montamos a URL oficial e passamos o apptId como "order_nsu" (Crachá do Webhook)
+      const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
-      console.log("🚀 Enviando JSON oficial para API da InfinitePay:", infinitePayload);
-
-      // Chamada oficial para gerar o link do checkout sem intermediários!
-      const response = await fetch('https://api.infinitepay.io/invoices/public/checkout/links', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(infinitePayload)
-      });
-
-      const checkoutData = await response.json();
-      console.log("📥 Resposta Oficial da InfinitePay:", checkoutData);
-
-      if (!response.ok || !checkoutData.url) {
-        throw new Error(checkoutData.message || "A InfinitePay recusou a integração. Verifique se a sua TAG está correta.");
-      }
-
-      return { type: 'online', url: checkoutData.url };
+      return { type: 'online', url: checkoutUrl };
     },
     onSuccess: (res) => {
       if (res.type === 'online' && res.url) {
-        // Agora sim, a URL gerada pela API vai funcionar sem erros!
+        // Redireciona o usuário (Browser faz isso nativamente sem bloquear)
         window.location.href = res.url; 
       } else {
         setSuccess(true);
@@ -200,7 +175,7 @@ const PublicBooking = () => {
     onError: (error: any) => {
       toast({ 
         title: "Falha na cobrança", 
-        description: error.message, 
+        description: error.message || "Erro desconhecido. Tente outro horário.", 
         variant: "destructive" 
       });
       setStep(3);
