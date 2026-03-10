@@ -94,7 +94,6 @@ const PublicBooking = () => {
   });
 
   // --- MOTOR DE CHECKOUT DO MILESTONE 1 ---
-// --- MOTOR DE CHECKOUT DO MILESTONE 1 (CORRIGIDO PARA PÁGINA PÚBLICA) ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -107,7 +106,7 @@ const PublicBooking = () => {
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
       const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
 
-      // 1. Cria o agendamento no banco via RPC (Única forma segura para público)
+      // 1. Cria o agendamento no banco via RPC
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -124,7 +123,7 @@ const PublicBooking = () => {
       const apptId = typeof apptResponse === 'object' ? apptResponse.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 2. Atualiza os detalhes da vaga (Status pendente para ninguém roubar a vaga)
+      // 2. Atualiza os detalhes da vaga e trava para pagamento
       await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
@@ -132,18 +131,33 @@ const PublicBooking = () => {
         signal_value: signalValue
       }).eq("id", apptId);
 
-      // (A REMOÇÃO FOI AQUI: Removemos o insert na tabela orders para não dar erro de RLS)
+      // 3. Cria a Comanda (Order) no banco para rastreio
+      const { data: orderData, error: orderError } = await supabase.from("orders").insert({
+        barbershop_id: shop!.id,
+        appointment_id: apptId,
+        items: [{ 
+          name: hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name, 
+          price: amountToCharge, 
+          qty: 1, 
+          type: "service" 
+        }],
+        total: amountToCharge,
+        payment_method: isOnline ? "pix" : "local",
+        status: isOnline ? "pendente" : "closed"
+      }).select().single();
 
-      // 3. Se for no local, finaliza direto
+      if (orderError) throw orderError;
+
+      // 4. Se for no local, finaliza direto
       if (!isOnline) {
         return { type: 'local', id: apptId };
       }
 
-      // 4. Se for Online, gera o link de Checkout da InfinitePay
+      // 5. Se for Online, gera o link de Checkout da InfinitePay
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-pix-charge', {
         body: {
           amount: Math.round(amountToCharge * 100), // Converte para centavos
-          orderId: apptId, // Enviamos o ID do Agendamento! O Webhook vai usar isso.
+          orderId: orderData.id, 
           tenant_id: shop!.id,
           barbershop_id: shop!.id, 
           appointment_id: apptId, 
@@ -159,7 +173,7 @@ const PublicBooking = () => {
     },
     onSuccess: (res) => {
       if (res.type === 'online') {
-        // Sucesso total: Redireciona o cliente para pagar!
+        // Redireciona o cliente para a tela de pagamento da InfinitePay
         window.location.href = res.url; 
       } else {
         setSuccess(true);
