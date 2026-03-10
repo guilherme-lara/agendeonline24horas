@@ -176,6 +176,48 @@ export type Database = {
           },
         ]
       }
+      barbershop_secrets: {
+        Row: {
+          barbershop_id: string
+          created_at: string
+          id: string
+          infinitepay_token: string | null
+          updated_at: string
+          webhook_secret: string | null
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string
+          id?: string
+          infinitepay_token?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string
+          id?: string
+          infinitepay_token?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barbershop_secrets_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: true
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barbershop_secrets_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: true
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barbershops: {
         Row: {
           address: string | null
@@ -847,6 +889,51 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          barbershop_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payment_id: string | null
+          processed: boolean
+          raw_payload: Json
+        }
+        Insert: {
+          barbershop_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payment_id?: string | null
+          processed?: boolean
+          raw_payload?: Json
+        }
+        Update: {
+          barbershop_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payment_id?: string | null
+          processed?: boolean
+          raw_payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_logs_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_logs_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
