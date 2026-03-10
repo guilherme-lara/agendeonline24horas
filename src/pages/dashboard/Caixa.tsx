@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -33,7 +32,7 @@ const Caixa = () => {
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
 
-  // Parse settings para Pix
+  // Parse settings para o Pix Estático do PDV
   const rawSettings = barbershop?.settings;
   let shopSettings: any = {};
   if (typeof rawSettings === "string") {
@@ -84,17 +83,17 @@ const Caixa = () => {
     enabled: !!barbershop?.id,
   });
 
-  // O Total do carrinho agora pode dar número negativo se o desconto for maior (por segurança limitamos a 0 no render)
+  // O Total do carrinho
   const cartTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + (Number(item.price) * item.qty), 0);
   }, [cart]);
 
-  // Função para montar a comanda inicial com o serviço E o desconto do sinal, se houver.
+  // Função para montar a comanda inicial com o serviço E o desconto do sinal, se houver
   const handleSelectAppt = (appt: any) => {
     setSelectedAppt(appt);
     const initialCart = [{ name: appt.service_name, price: appt.price, qty: 1, type: "service" }];
     
-    // 🚨 A MÁGICA DO ABATIMENTO DE SINAL: Injeta um "item" negativo na comanda!
+    // A MÁGICA DO ABATIMENTO DE SINAL: Injeta um "item" negativo na comanda!
     if (appt.has_signal && appt.signal_value > 0) {
        initialCart.push({
            name: "Desconto (Sinal Adiantado)",
@@ -106,12 +105,57 @@ const Caixa = () => {
     setCart(initialCart);
   };
 
+  // 🚀 O CORAÇÃO DO CAIXA: Lógica de Checkout Blindada
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedAppt || !barbershop) return;
-      const finalTotal = cartTotal < 0 ? 0 : cartTotal; // Previne cobrança negativa
-      
+      if (!selectedAppt || !barbershop) throw new Error("Dados da barbearia ou agendamento ausentes.");
+      const finalTotal = cartTotal < 0 ? 0 : cartTotal;
+
+      // 1. Resolve o erro de RLS: Pega a identidade do usuário logado
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        throw new Error("Sessão inválida. Por favor, atualize a página.");
+      }
+      const userId = authData.user.id;
+
+      // 2. LÓGICA DO PIX (InfinitePay)
+      if (payMethod === "pix" && finalTotal > 0) {
+        
+        // A. Cria a ordem como pendente para o Webhook resolver depois
+        const { data: orderData, error: orderError } = await supabase.from("orders").insert({
+          user_id: userId,
+          barbershop_id: barbershop.id,
+          appointment_id: selectedAppt.id,
+          items: cart,
+          total: finalTotal,
+          payment_method: payMethod,
+          status: "pendente" 
+        }).select().single();
+
+        if (orderError) throw orderError;
+
+        // B. Chama a Edge Function para gerar o link da InfinitePay
+        const { data: pixData, error: pixError } = await supabase.functions.invoke('create-pix-charge', {
+          body: {
+            amount: Math.round(finalTotal * 100), // Converte para centavos
+            orderId: orderData.id,
+            tenant_id: barbershop.id,
+            description: `Comanda PDV: ${selectedAppt.client_name}`
+          }
+        });
+
+        if (pixError || !pixData?.success) {
+          throw new Error("Erro ao gerar o Pix na InfinitePay. Verifique as configurações da loja.");
+        }
+
+        // C. Abre o link na nova aba para não perder o caixa e avisa o sistema
+        window.open(pixData.payment_url, '_blank');
+        return { isPixPending: true, orderId: orderData.id };
+      }
+
+      // 3. LÓGICA PARA DINHEIRO OU CARTÃO (Baixa imediata)
       const { error: orderError } = await supabase.from("orders").insert({
+        user_id: userId,
         barbershop_id: barbershop.id,
         appointment_id: selectedAppt.id,
         items: cart,
@@ -119,12 +163,19 @@ const Caixa = () => {
         payment_method: payMethod,
         status: "closed"
       });
+
       if (orderError) throw orderError;
-      await supabase.from("appointments").update({
+
+      // Atualiza o agendamento
+      const { error: apptError } = await supabase.from("appointments").update({
         status: "completed",
         payment_status: "paid",
         total_price: finalTotal
       }).eq("id", selectedAppt.id);
+
+      if (apptError) throw apptError;
+
+      // Baixa o estoque
       for (const item of cart) {
         if (item.type === "product") {
           const { data: current } = await supabase.from("inventory").select("quantity").eq("id", item.product_id).single();
@@ -133,14 +184,26 @@ const Caixa = () => {
           }
         }
       }
+
+      return { isPixPending: false };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] }); // Atualiza os blocos da agenda pra verde
-      toast({ title: "Venda Processada!", description: `Valor Total: R$ ${Math.max(0, cartTotal).toFixed(2)}` });
-      setSelectedAppt(null);
-      setCart([]);
+    onSuccess: (result) => {
+      if (result?.isPixPending) {
+        toast({ 
+          title: "Pix Gerado com Sucesso!", 
+          description: "O link de pagamento foi aberto em uma nova aba. Aguardando a confirmação do cliente para dar baixa automática." 
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+        toast({ title: "Venda Processada!", description: `Comanda fechada com sucesso.` });
+        setSelectedAppt(null);
+        setCart([]);
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Falha no pagamento", description: error.message, variant: "destructive" });
     }
   });
 
@@ -160,7 +223,7 @@ const Caixa = () => {
       if (error) throw error;
       setOrderDetails(data);
     } catch (err) {
-      toast({ title: "Erro", description: "Não foi possível carregar os detalhes.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível carregar os detalhes da comanda.", variant: "destructive" });
     } finally {
       setLoadingDetails(false);
     }
@@ -184,20 +247,19 @@ const Caixa = () => {
         <h1 className="text-3xl font-black text-foreground flex items-center gap-3 font-display">
           <ShoppingCart className="text-primary" /> Frente de Caixa
         </h1>
-        {/* BOTÃO PIX ESTÁTICO DO PDV */}
         {pixKey && (
           <Button 
             onClick={() => setShowPixModal(true)} 
             variant="outline" 
             className="border-primary/30 text-primary hover:bg-primary/10 font-bold rounded-xl"
           >
-            <QrCode className="h-4 w-4 mr-2" /> Mostrar Pix
+            <QrCode className="h-4 w-4 mr-2" /> Mostrar Pix Fixo
           </Button>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LISTA DE FILA */}
+        {/* FILA DE CLIENTES */}
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -218,7 +280,7 @@ const Caixa = () => {
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-[10px] text-muted-foreground uppercase font-black">{a.service_name} &bull; R$ {a.status === 'completed' ? a.total_price : a.price}</p>
                   {a.has_signal && a.status !== 'completed' && (
-                     <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">- R$ {a.signal_value} (Sinal)</Badge>
+                     <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">- R$ {a.signal_value} (Sinal Pago)</Badge>
                   )}
                 </div>
               </div>
@@ -229,7 +291,7 @@ const Caixa = () => {
                   onClick={() => openDetails(a)}
                   className="border-border text-muted-foreground hover:text-primary hover:border-primary/30 font-bold rounded-xl h-9 px-4"
                 >
-                  <Eye className="h-4 w-4 mr-2" /> Ver Detalhes
+                  <Eye className="h-4 w-4 mr-2" /> Recibo
                 </Button>
               ) : (
                 <Button 
@@ -241,9 +303,14 @@ const Caixa = () => {
               )}
             </div>
           ))}
+          {appointments.length === 0 && !loadingAppts && (
+            <div className="text-center py-10 border border-dashed border-border rounded-2xl text-muted-foreground">
+              Nenhum agendamento para hoje.
+            </div>
+          )}
         </div>
 
-        {/* ÁREA DE CHECKOUT */}
+        {/* ÁREA DA COMANDA / CARRINHO */}
         {selectedAppt && (
           <div className="bg-card border border-border rounded-3xl p-8 shadow-card animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-start mb-8">
@@ -286,9 +353,9 @@ const Caixa = () => {
                   <button key={p.id} onClick={() => addProductToCart(p)} className="flex items-center justify-between p-3 bg-background border border-border rounded-xl hover:border-primary/30 transition-all text-left">
                     <div>
                       <p className="text-[11px] font-bold text-foreground truncate">{p.name}</p>
-                      <p className="text-[9px] text-muted-foreground">Qtd: {p.quantity}</p>
+                      <p className="text-[9px] text-muted-foreground">Em estoque: {p.quantity}</p>
                     </div>
-                    <span className="text-[11px] font-black text-emerald-500">R${p.sell_price}</span>
+                    <span className="text-[11px] font-black text-emerald-500">R$ {p.sell_price}</span>
                   </button>
                 ))}
               </div>
@@ -303,7 +370,7 @@ const Caixa = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border text-popover-foreground">
                     <SelectItem value="cash">Dinheiro</SelectItem>
-                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="pix">Link InfinitePay</SelectItem>
                     <SelectItem value="card">Cartão</SelectItem>
                   </SelectContent>
                 </Select>
@@ -319,8 +386,13 @@ const Caixa = () => {
                 disabled={checkoutMutation.isPending}
                 className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-lg shadow-xl shadow-emerald-900/20"
               >
-                {checkoutMutation.isPending ? <Loader2 className="animate-spin" /> : <CheckCircle className="h-6 w-6 mr-2" />}
-                Finalizar e Baixar Estoque
+                {checkoutMutation.isPending ? (
+                  <Loader2 className="animate-spin" /> 
+                ) : payMethod === 'pix' ? (
+                  <><QrCode className="h-6 w-6 mr-2" /> Gerar Pix na InfinitePay</>
+                ) : (
+                  <><CheckCircle className="h-6 w-6 mr-2" /> Finalizar e Fechar</>
+                )}
               </Button>
             </div>
           </div>
@@ -353,7 +425,7 @@ const Caixa = () => {
           </DialogContent>
         </Dialog>
 
-        {/* MODAL DETALHES */}
+        {/* MODAL DETALHES / RECIBO */}
         <Dialog open={!!viewDetailsAppt} onOpenChange={(v) => !v && setViewDetailsAppt(null)}>
           <DialogContent className="bg-card border-border text-foreground max-w-md rounded-3xl p-0 overflow-hidden shadow-card">
             <div className="bg-secondary/50 p-6 border-b border-border flex items-center justify-between">
@@ -386,7 +458,7 @@ const Caixa = () => {
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground font-bold uppercase">Pagamento do Restante</span>
+                      <span className="text-xs text-muted-foreground font-bold uppercase">Forma de Pagamento</span>
                       <div className="flex items-center gap-1.5 bg-card px-2 py-1 rounded-md border border-border">
                         {getPaymentIcon(orderDetails.payment_method)}
                         <span className="text-xs font-bold text-foreground">{getPaymentName(orderDetails.payment_method)}</span>
@@ -405,7 +477,7 @@ const Caixa = () => {
               )}
             </div>
             <div className="p-4 border-t border-border bg-secondary/30">
-              <Button onClick={() => setViewDetailsAppt(null)} variant="outline" className="w-full border-border font-bold rounded-xl">Fechar</Button>
+              <Button onClick={() => setViewDetailsAppt(null)} variant="outline" className="w-full border-border font-bold rounded-xl">Fechar Recibo</Button>
             </div>
           </DialogContent>
         </Dialog>
