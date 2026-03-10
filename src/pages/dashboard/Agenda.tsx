@@ -25,6 +25,14 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   pendente_sinal: { label: "Aguard. Sinal", className: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
 };
 
+const paymentBadgeConfig: Record<string, { label: string; className: string }> = {
+  paid: { label: "100% Pago", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  awaiting: { label: "Aguardando Pix", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  pending_local: { label: "Pagar no Local", className: "bg-muted text-muted-foreground border-border" },
+  expired: { label: "Expirado", className: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
 const Agenda = () => {
   const { barbershop } = useBarbershop() as any;
   const { toast } = useToast();
