@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, AlertTriangle, 
-  MapPin, ArrowLeft, XCircle, RefreshCw, QrCode, Banknote, ShieldCheck, CreditCard
+  MapPin, ArrowLeft, XCircle, QrCode, Banknote, ShieldCheck, CreditCard
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ const BUFFER_MINUTES = 10;
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -33,7 +34,8 @@ const PublicBooking = () => {
   // Opções de pagamento
   const [paymentOption, setPaymentOption] = useState<"local" | "online_full" | "online_signal">("local");
   
-  const [success, setSuccess] = useState(false); 
+  // MÁGICA: Se a URL tiver ?success=true (voltando da InfinitePay), já abre na tela de sucesso!
+  const [success, setSuccess] = useState(searchParams.get("success") === "true"); 
   const [cancelled, setCancelled] = useState(false);
 
   useEffect(() => {
@@ -92,7 +94,7 @@ const PublicBooking = () => {
     refetchInterval: 5000,
   });
 
-  // --- MOTOR DE CHECKOUT COM DEBUG E TRAVA DE SEGURANÇA ---
+  // --- O NOVO MOTOR: REDIRECIONAMENTO DIRETO PARA O CHECKOUT EXTERNO ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -105,7 +107,7 @@ const PublicBooking = () => {
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
       const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
 
-      // 1. Cria o agendamento
+      // 1. Cria o agendamento no banco
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -121,7 +123,7 @@ const PublicBooking = () => {
       const apptId = typeof apptResponse === 'object' ? apptResponse.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 2. Trava a vaga
+      // 2. Trava a vaga na agenda
       await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
@@ -134,42 +136,34 @@ const PublicBooking = () => {
         return { type: 'local', id: apptId };
       }
 
-      // 4. Se for Online, chama a API com os logs de Debug
-      const payloadEdgeFunction = {
-        amount: Math.round(amountToCharge * 100), 
-        orderId: apptId, 
-        tenant_id: shop!.id,
-        barbershop_id: shop!.id, 
-        appointment_id: apptId, 
-        description: `Agendamento: ${selectedService.name} - ${clientData.name}`
-      };
-
-      console.log("🚀 [DEBUG 1] Payload enviado para Edge Function:", payloadEdgeFunction);
-
-      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-pix-charge', {
-        body: payloadEdgeFunction
-      });
-
-      console.log("📥 [DEBUG 2] Resposta da Edge Function:", checkoutData);
-
-      if (checkoutError) {
-        console.error("❌ [DEBUG 3] Erro de rede/Supabase:", checkoutError);
-        throw new Error(`Erro na comunicação com o servidor: ${checkoutError.message}`);
+      // 4. MÁGICA: Montamos o link da InfinitePay direto aqui! Adeus Edge Functions!
+      const infiniteTag = shop?.settings?.infinitepay_tag;
+      if (!infiniteTag) {
+        throw new Error("A barbearia ainda não configurou a InfiniteTag (Seu @) no painel.");
       }
 
-      if (!checkoutData?.success) {
-        console.error("❌ [DEBUG 4] Função retornou erro interno:", checkoutData);
-        throw new Error(checkoutData?.error || "Erro interno ao tentar gerar a cobrança.");
-      }
+      const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
+      const itemName = hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name;
+      
+      const items = JSON.stringify([
+        {
+          name: itemName,
+          price: Math.round(amountToCharge * 100), // Converte para centavos
+          quantity: 1
+        }
+      ]);
 
-      if (!checkoutData?.payment_url) {
-        // O JSON.stringify vai imprimir todo o conteúdo na tela, sem esconder nada!
-        console.error("❌ [DEBUG 5] A URL VEIO VAZIA! Resposta bruta:", JSON.stringify(checkoutData, null, 2));
-      return { type: 'online', url: checkoutData.payment_url };
-      }
+      // Dizemos para a InfinitePay mandar o cliente de volta com "?success=true" na URL
+      const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
+
+      // Monta a URL oficial do Checkout Externo da InfinitePay
+      const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
+
+      return { type: 'online', url: checkoutUrl };
     },
     onSuccess: (res) => {
       if (res.type === 'online') {
+        // Redireciona na hora para a página oficial da InfinitePay!
         window.location.href = res.url; 
       } else {
         setSuccess(true);
@@ -178,11 +172,13 @@ const PublicBooking = () => {
     },
     onError: (error: any) => {
       toast({ 
-        title: "Falha na Cobrança", 
+        title: "Erro no agendamento", 
         description: error.message, 
         variant: "destructive" 
       });
-      // Em vez de voltar a etapa, vamos manter na etapa atual para você ver o erro
+      setStep(3);
+      setSelectedTime(null);
+      queryClient.invalidateQueries({ queryKey: ["slots"] });
     }
   });
 
@@ -421,22 +417,22 @@ const PublicBooking = () => {
                           disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
                           className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                       >
-                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : paymentOption === 'local' ? <><Check className="mr-2 h-5 w-5" /> Agendar Horário</> : <><QrCode className="mr-2 h-5 w-5" /> Ir para Pagamento</>}
+                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : paymentOption === 'local' ? <><Check className="mr-2 h-5 w-5" /> Agendar Horário</> : <><QrCode className="mr-2 h-5 w-5" /> Ir para Checkout Externo</>}
                       </Button>
                     </div>
                 </div>
             </div>
         )}
 
-        {/* TELA FINAL: SUCESSO */}
+        {/* TELA FINAL: SUCESSO (ACESSADA AUTOMATICAMENTE AO VOLTAR DO CHECKOUT) */}
         {success && !cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
                     <Check className="h-12 w-12 text-emerald-500" />
                 </div>
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
-                <p className="text-muted-foreground mb-10 max-w-xs mx-auto">Sua vaga está garantida. Te esperamos no horário marcado!</p>
-                <Button onClick={() => window.location.href=`/${slug}`} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Voltar ao Início</Button>
+                <p className="text-muted-foreground mb-10 max-w-xs mx-auto">A sua vaga está garantida e te esperamos no horário marcado.</p>
+                <Button onClick={() => navigate(`/`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Ir para a Página Inicial</Button>
             </div>
         )}
       </div>
