@@ -30,16 +30,15 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   
-  // Opções de pagamento: 'local', 'online_full', 'online_signal'
+  // Opções de pagamento
   const [paymentOption, setPaymentOption] = useState<"local" | "online_full" | "online_signal">("local");
   
   const [success, setSuccess] = useState(false); 
   const [cancelled, setCancelled] = useState(false);
 
-  // Define automaticamente a opção de pagamento ao selecionar o serviço
   useEffect(() => {
     if (selectedService?.requires_advance_payment) {
-      setPaymentOption("online_signal"); // Força o sinal online se for obrigatório
+      setPaymentOption("online_signal"); 
     } else {
       setPaymentOption("local");
     }
@@ -93,7 +92,7 @@ const PublicBooking = () => {
     refetchInterval: 5000,
   });
 
-  // --- MOTOR DE CHECKOUT DO MILESTONE 1 ---
+  // --- MOTOR DE CHECKOUT COM DEBUG E TRAVA DE SEGURANÇA ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -106,7 +105,7 @@ const PublicBooking = () => {
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
       const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
 
-      // 1. Cria o agendamento no banco via RPC
+      // 1. Cria o agendamento
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -119,11 +118,10 @@ const PublicBooking = () => {
 
       if (rpcError) throw rpcError;
 
-      // Extrai o ID do agendamento de forma segura
       const apptId = typeof apptResponse === 'object' ? apptResponse.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 2. Atualiza os detalhes da vaga e trava para pagamento
+      // 2. Trava a vaga
       await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
@@ -131,49 +129,49 @@ const PublicBooking = () => {
         signal_value: signalValue
       }).eq("id", apptId);
 
-      // 3. Cria a Comanda (Order) no banco para rastreio
-      const { data: orderData, error: orderError } = await supabase.from("orders").insert({
-        barbershop_id: shop!.id,
-        appointment_id: apptId,
-        items: [{ 
-          name: hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name, 
-          price: amountToCharge, 
-          qty: 1, 
-          type: "service" 
-        }],
-        total: amountToCharge,
-        payment_method: isOnline ? "pix" : "local",
-        status: isOnline ? "pendente" : "closed"
-      }).select().single();
-
-      if (orderError) throw orderError;
-
-      // 4. Se for no local, finaliza direto
+      // 3. Se for no local, finaliza direto
       if (!isOnline) {
         return { type: 'local', id: apptId };
       }
 
-      // 5. Se for Online, gera o link de Checkout da InfinitePay
+      // 4. Se for Online, chama a API com os logs de Debug
+      const payloadEdgeFunction = {
+        amount: Math.round(amountToCharge * 100), 
+        orderId: apptId, 
+        tenant_id: shop!.id,
+        barbershop_id: shop!.id, 
+        appointment_id: apptId, 
+        description: `Agendamento: ${selectedService.name} - ${clientData.name}`
+      };
+
+      console.log("🚀 [DEBUG 1] Payload enviado para Edge Function:", payloadEdgeFunction);
+
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-pix-charge', {
-        body: {
-          amount: Math.round(amountToCharge * 100), // Converte para centavos
-          orderId: orderData.id, 
-          tenant_id: shop!.id,
-          barbershop_id: shop!.id, 
-          appointment_id: apptId, 
-          description: `Agendamento: ${selectedService.name} - ${clientData.name}`
-        }
+        body: payloadEdgeFunction
       });
 
-      if (checkoutError || !checkoutData?.success) {
-        throw new Error(checkoutData?.error || "Erro ao gerar link de pagamento na InfinitePay.");
+      console.log("📥 [DEBUG 2] Resposta da Edge Function:", checkoutData);
+
+      if (checkoutError) {
+        console.error("❌ [DEBUG 3] Erro de rede/Supabase:", checkoutError);
+        throw new Error(`Erro na comunicação com o servidor: ${checkoutError.message}`);
+      }
+
+      if (!checkoutData?.success) {
+        console.error("❌ [DEBUG 4] Função retornou erro interno:", checkoutData);
+        throw new Error(checkoutData?.error || "Erro interno ao tentar gerar a cobrança.");
+      }
+
+      if (!checkoutData?.payment_url) {
+        // A TRAVA DE SEGURANÇA! IMPEDE DE IR PARA /undefined
+        console.error("❌ [DEBUG 5] A URL VEIO VAZIA! Resposta bruta:", checkoutData);
+        throw new Error(`A InfinitePay autorizou a requisição, mas não enviou o link de pagamento. Cheque o Console (F12)`);
       }
 
       return { type: 'online', url: checkoutData.payment_url };
     },
     onSuccess: (res) => {
       if (res.type === 'online') {
-        // Redireciona o cliente para a tela de pagamento da InfinitePay
         window.location.href = res.url; 
       } else {
         setSuccess(true);
@@ -182,13 +180,11 @@ const PublicBooking = () => {
     },
     onError: (error: any) => {
       toast({ 
-        title: "Erro no agendamento", 
-        description: error.message || "Não foi possível concluir. Tente novamente.", 
+        title: "Falha na Cobrança", 
+        description: error.message, 
         variant: "destructive" 
       });
-      setStep(3);
-      setSelectedTime(null);
-      queryClient.invalidateQueries({ queryKey: ["slots"] });
+      // Em vez de voltar a etapa, vamos manter na etapa atual para você ver o erro
     }
   });
 
@@ -348,7 +344,6 @@ const PublicBooking = () => {
                 <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Confirmar Agendamento</h3>
                 
                 <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
-                    {/* DADOS */}
                     <div className="space-y-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome</label>
@@ -376,11 +371,9 @@ const PublicBooking = () => {
                         </div>
                     </div>
 
-                    {/* OPÇÕES DE PAGAMENTO */}
                     <div className="space-y-3 pt-4 border-t border-border">
                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Como deseja pagar?</label>
                        
-                       {/* Pagar no Local (Oculto se exigir sinal) */}
                        {!selectedService?.requires_advance_payment && (
                          <div onClick={() => setPaymentOption('local')} className={`p-4 rounded-2xl border-2 cursor-pointer flex items-center gap-3 transition-all ${paymentOption === 'local' ? 'border-primary bg-primary/5' : 'border-border bg-background hover:border-primary/30'}`}>
                            <Banknote className={`h-6 w-6 ${paymentOption === 'local' ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -391,7 +384,6 @@ const PublicBooking = () => {
                          </div>
                        )}
 
-                       {/* Pagar Sinal Online (Se configurado) */}
                        {(selectedService?.advance_payment_value || 0) > 0 && (
                          <div onClick={() => setPaymentOption('online_signal')} className={`p-4 rounded-2xl border-2 cursor-pointer flex items-center gap-3 transition-all ${paymentOption === 'online_signal' ? 'border-amber-500 bg-amber-500/5' : 'border-border bg-background hover:border-amber-500/30'}`}>
                            <ShieldCheck className={`h-6 w-6 ${paymentOption === 'online_signal' ? 'text-amber-500' : 'text-muted-foreground'}`} />
@@ -402,7 +394,6 @@ const PublicBooking = () => {
                          </div>
                        )}
 
-                       {/* Pagar Total Online */}
                        <div onClick={() => setPaymentOption('online_full')} className={`p-4 rounded-2xl border-2 cursor-pointer flex items-center gap-3 transition-all ${paymentOption === 'online_full' ? 'border-emerald-500 bg-emerald-500/5' : 'border-border bg-background hover:border-emerald-500/30'}`}>
                          <CreditCard className={`h-6 w-6 ${paymentOption === 'online_full' ? 'text-emerald-500' : 'text-muted-foreground'}`} />
                          <div>
@@ -412,7 +403,6 @@ const PublicBooking = () => {
                        </div>
                     </div>
                     
-                    {/* RESUMO */}
                     <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
                         <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
                         <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
@@ -440,7 +430,7 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: SUCESSO (PAGAMENTO LOCAL OU SUCESSO APÓS REDIRECIONAMENTO) */}
+        {/* TELA FINAL: SUCESSO */}
         {success && !cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
