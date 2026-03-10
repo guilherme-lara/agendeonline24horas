@@ -14,16 +14,18 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Estados simplificados: apenas o que precisamos para o Pix Manual e InfinitePay Tag
   const [infinitePayTag, setInfinitePayTag] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [pixBeneficiary, setPixBeneficiary] = useState("");
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
-      // Carrega as configurações públicas do JSON da tabela barbershops
+      // Carrega TUDO direto do JSON 'settings' da tabela principal
       const { data: shopData } = await (supabase.from("barbershops") as any)
         .select("settings")
         .eq("id", barbershopId)
@@ -33,29 +35,32 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         const settings = shopData.settings as Record<string, any>;
         setPixKey(settings.pix_key || "");
         setPixBeneficiary(settings.pix_beneficiary || "");
-        setInfinitePayTag(settings.infinitepay_tag || ""); // Carrega a Tag
+        setInfinitePayTag(settings.infinitepay_tag || "");
       }
 
       setLoading(false);
     };
+    
     loadSettings();
   }, [barbershopId]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Pega as configurações atuais para não sobrescrever o que já existe
+      // 1. Busca o JSON atual para garantir que não vamos apagar outros dados da loja (como endereço, cnpj, etc)
       const { data: current } = await (supabase.from("barbershops") as any)
         .select("settings")
         .eq("id", barbershopId)
         .single();
 
-      const existingSettings = (current?.settings && typeof current.settings === "object") ? current.settings as Record<string, any> : {};
+      const existingSettings = (current?.settings && typeof current.settings === "object") 
+        ? current.settings as Record<string, any> 
+        : {};
 
-      // 2. Limpa a tag para garantir que não tenha @, $ ou espaços
+      // 2. Sanitização nível ERP: Remove @, $ ou espaços que o usuário possa ter colado
       const cleanTag = infinitePayTag.trim().replace(/[@$ ]/g, '');
 
-      // 3. Mescla as configurações novas com as antigas
+      // 3. Monta o novo JSON mesclando o antigo com os dados novos
       const newSettings = { 
         ...existingSettings, 
         pix_key: pixKey.trim(),
@@ -63,23 +68,32 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         infinitepay_tag: cleanTag
       };
 
-      // Remove chaves antigas e inúteis por segurança e limpeza
+      // 4. Limpeza de lixo legado (Garante que o banco fique limpo)
       delete (newSettings as any).abacate_pay_api_key;
       delete (newSettings as any).infinitepay_api_key;
       delete (newSettings as any).infinitepay_token;
 
-      // 4. Salva de volta no Supabase
+      // 5. Salva direto na tabela barbershops (Adeus erro de RLS da tabela secrets!)
       const { error: settingsError } = await (supabase.from("barbershops") as any)
         .update({ settings: newSettings })
         .eq("id", barbershopId);
 
       if (settingsError) throw settingsError;
 
-      toast({ title: "Configurações salvas!", description: "Dados de pagamento atualizados com sucesso." });
-      setInfinitePayTag(cleanTag); // Atualiza o input com a tag limpa
+      toast({ 
+        title: "Configurações salvas!", 
+        description: "Os dados de pagamento foram atualizados com sucesso." 
+      });
+      
+      setInfinitePayTag(cleanTag); // Atualiza o input visualmente caso tenha limpado um '@'
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+      
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Erro ao salvar", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     } finally {
       setSaving(false);
     }
@@ -104,14 +118,14 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
     <div className="space-y-8 animate-in fade-in">
       
       {/* SEÇÃO 1: PIX ESTÁTICO (PDV) */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-sm">
         <div className="flex items-center gap-3 border-b border-border/50 pb-4">
           <div className="bg-emerald-500/10 p-2 rounded-xl">
             <QrCode className="h-5 w-5 text-emerald-500" />
           </div>
           <div>
             <h3 className="font-bold text-base text-foreground">Pix Manual (Copia e Cola)</h3>
-            <p className="text-xs text-muted-foreground">Exibido no PDV (Caixa) para pagamentos presenciais.</p>
+            <p className="text-xs text-muted-foreground">Exibido no PDV (Caixa) para pagamentos presenciais rápidos.</p>
           </div>
         </div>
 
@@ -137,8 +151,8 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         </div>
       </div>
 
-      {/* SEÇÃO 2: INFINITEPAY (SINAIS ONLINE) */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      {/* SEÇÃO 2: INFINITEPAY (SINAIS ONLINE E CHECKOUT) */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-sm">
         <div className="flex items-center gap-3 border-b border-border/50 pb-4">
           <div className="bg-primary/10 p-2 rounded-xl">
             <ShieldCheck className="h-5 w-5 text-primary" />
@@ -146,7 +160,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
           <div>
             <h3 className="font-bold text-base text-foreground">Integração InfinitePay</h3>
             <p className="text-xs text-muted-foreground">
-              Gera QR Codes dinâmicos com o valor exato na tela do cliente.
+              Gera Links e QR Codes dinâmicos com baixa automática no sistema.
             </p>
           </div>
         </div>
@@ -156,16 +170,17 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
             InfiniteTag (Seu @ na InfinitePay)
           </label>
           <div className="flex gap-2 max-w-2xl">
-            <div className="relative flex-1">
-              <Input
-                type="text"
-                value={infinitePayTag}
-                onChange={(e) => setInfinitePayTag(e.target.value)}
-                placeholder="Ex: ribeiro-guilherme-11k"
-                className="bg-secondary border-border h-12 font-mono text-sm"
-              />
-            </div>
+            <Input
+              type="text"
+              value={infinitePayTag}
+              onChange={(e) => setInfinitePayTag(e.target.value)}
+              placeholder="Ex: ribeiro-guilherme-11k"
+              className="bg-secondary border-border h-12 font-mono text-sm w-full"
+            />
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Insira o seu handle da InfinitePay. Não é necessário incluir o símbolo @ ou $.
+          </p>
         </div>
 
         <div className="bg-secondary/30 rounded-xl p-4 border border-border mt-4">
@@ -185,17 +200,6 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
               {copiedWebhook ? <Check className="h-4 w-4 text-emerald-500" /> : "Copiar URL"}
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-3">
-            Não tem uma conta?{" "}
-            <a
-              href="https://infinitepay.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary font-bold hover:underline inline-flex items-center gap-1"
-            >
-              Criar conta na InfinitePay <ExternalLink className="h-3 w-3" />
-            </a>
-          </p>
         </div>
       </div>
 
