@@ -97,6 +97,7 @@ const PublicBooking = () => {
   // --- O NOVO MOTOR: REDIRECIONAMENTO DIRETO PARA O CHECKOUT EXTERNO ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
+      console.log("Iniciando mutação de agendamento...");
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
@@ -106,6 +107,10 @@ const PublicBooking = () => {
       const hasSignal = paymentOption === 'online_signal';
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
       const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
+
+      console.log("Dados para criação:", {
+        isOnline, initialStatus, amountToCharge
+      });
 
       // 1. Cria o agendamento no banco
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
@@ -118,27 +123,42 @@ const PublicBooking = () => {
         _payment_method: isOnline ? "pix" : "local"
       });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error("Erro na RPC:", rpcError);
+        throw rpcError;
+      }
 
-      const apptId = typeof apptResponse === 'object' ? apptResponse.id : apptResponse;
-      if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
+      console.log("Resposta da RPC:", apptResponse);
+
+      const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
+      if (!apptId) {
+        console.error("ID não encontrado na resposta:", apptResponse);
+        throw new Error("Falha ao recuperar o ID do agendamento.");
+      }
 
       // 2. Trava a vaga na agenda
-      await supabase.from("appointments").update({ 
+      const { error: updateError } = await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
         has_signal: hasSignal,
         signal_value: signalValue
       }).eq("id", apptId);
 
+      if (updateError) {
+         console.error("Erro ao atualizar agendamento:", updateError);
+         throw updateError;
+      }
+
       // 3. Se for no local, finaliza direto
       if (!isOnline) {
+        console.log("Pagamento local, finalizando...");
         return { type: 'local', id: apptId };
       }
 
-      // 4. MÁGICA: Montamos o link da InfinitePay direto aqui! Adeus Edge Functions!
+      // 4. MÁGICA: Montamos o link da InfinitePay direto aqui!
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) {
+        console.error("InfiniteTag não configurada:", shop?.settings);
         throw new Error("A barbearia ainda não configurou a InfiniteTag (Seu @) no painel.");
       }
 
@@ -158,19 +178,26 @@ const PublicBooking = () => {
 
       // Monta a URL oficial do Checkout Externo da InfinitePay
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
+      
+      console.log("URL de Checkout gerada:", checkoutUrl);
 
       return { type: 'online', url: checkoutUrl };
     },
     onSuccess: (res) => {
-      if (res.type === 'online') {
+      console.log("Mutação bem-sucedida, resultado:", res);
+      if (res.type === 'online' && res.url) {
         // Redireciona na hora para a página oficial da InfinitePay!
         window.location.href = res.url; 
-      } else {
+      } else if (res.type === 'local') {
         setSuccess(true);
         setStep(5);
+      } else {
+         console.error("Fallback atingido. Tipo desconhecido ou URL vazia:", res);
+         toast({ title: "Erro", description: "Falha ao gerar link de pagamento.", variant: "destructive" });
       }
     },
     onError: (error: any) => {
+      console.error("Erro capturado no onError:", error);
       toast({ 
         title: "Erro no agendamento", 
         description: error.message, 
