@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Busca dados da barbearia
+    // Busca dados da barbearia (sem secrets)
     const { data: shop, error: shopErr } = await supabase
       .from("barbershops")
       .select("settings, name, slug")
@@ -53,15 +53,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 🔒 SEGURANÇA: Busca o token InfinitePay da tabela de secrets (não do settings público)
+    const { data: secrets } = await supabase
+      .from("barbershop_secrets")
+      .select("infinitepay_token")
+      .eq("barbershop_id", barbershop_id)
+      .maybeSingle();
+
+    const infinitePayToken = secrets?.infinitepay_token || "";
     const settings = (shop.settings as Record<string, unknown>) || {};
-    const infinitePayToken = settings.infinitepay_token as string;
 
     // Se não tem token InfinitePay, retorna a chave Pix estática do admin
     if (!infinitePayToken) {
       const pixKey = (settings.pix_key as string) || "";
       const pixBeneficiary = (settings.pix_beneficiary as string) || shop.name;
 
-      // Atualiza status do agendamento para aguardando pagamento manual
       await supabase
         .from("appointments")
         .update({
@@ -119,7 +125,6 @@ Deno.serve(async (req) => {
     const qrCodeBase64 = infinitePayData.qr_code_base64 || infinitePayData.qr_code || "";
     const paymentId = infinitePayData.id || infinitePayData.payment_id || "";
 
-    // Persiste dados de pagamento no agendamento
     await supabase
       .from("appointments")
       .update({
