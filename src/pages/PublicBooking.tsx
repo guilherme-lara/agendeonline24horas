@@ -30,7 +30,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   
-  // Opções de pagamento adaptadas para o InfinitePay (Pix e Cartão nativos deles)
+  // Opções de pagamento: 'local', 'online_full', 'online_signal'
   const [paymentOption, setPaymentOption] = useState<"local" | "online_full" | "online_signal">("local");
   
   const [success, setSuccess] = useState(false); 
@@ -93,7 +93,7 @@ const PublicBooking = () => {
     refetchInterval: 5000,
   });
 
-  // --- MOTOR DE CHECKOUT ---
+  // --- MOTOR DE CHECKOUT DO MILESTONE 1 ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const scheduledAt = new Date(selectedDate!);
@@ -104,21 +104,26 @@ const PublicBooking = () => {
       const initialStatus = isOnline ? 'pendente_pagamento' : 'confirmed';
       const hasSignal = paymentOption === 'online_signal';
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
+      const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
 
-      // 1. Cria o agendamento no banco
-      const { data: apptId, error } = await supabase.rpc("create_public_appointment", {
+      // 1. Cria o agendamento no banco via RPC
+      const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
         _client_phone: clientData.phone.trim(),
         _service_name: selectedService.name,
         _price: selectedService.price,
         _scheduled_at: scheduledAt.toISOString(),
-        _payment_method: isOnline ? "online" : "local"
+        _payment_method: isOnline ? "pix" : "local"
       });
 
-      if (error) throw error;
+      if (rpcError) throw rpcError;
 
-      // 2. Atualiza detalhes da vaga e trava para pagamento
+      // Extrai o ID do agendamento de forma segura
+      const apptId = typeof apptResponse === 'object' ? apptResponse.id : apptResponse;
+      if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
+
+      // 2. Atualiza os detalhes da vaga e trava para pagamento
       await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
@@ -126,32 +131,49 @@ const PublicBooking = () => {
         signal_value: signalValue
       }).eq("id", apptId);
 
-      // 3. Se for no local, finaliza direto
+      // 3. Cria a Comanda (Order) no banco para rastreio
+      const { data: orderData, error: orderError } = await supabase.from("orders").insert({
+        barbershop_id: shop!.id,
+        appointment_id: apptId,
+        items: [{ 
+          name: hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name, 
+          price: amountToCharge, 
+          qty: 1, 
+          type: "service" 
+        }],
+        total: amountToCharge,
+        payment_method: isOnline ? "pix" : "local",
+        status: isOnline ? "pendente" : "closed"
+      }).select().single();
+
+      if (orderError) throw orderError;
+
+      // 4. Se for no local, finaliza direto
       if (!isOnline) {
         return { type: 'local', id: apptId };
       }
 
-      // 4. Se for Online, gera o link de Checkout da InfinitePay (Cartão/Pix)
-      const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
-
+      // 5. Se for Online, gera o link de Checkout da InfinitePay
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-pix-charge', {
         body: {
           amount: Math.round(amountToCharge * 100), // Converte para centavos
-          orderId: apptId,
+          orderId: orderData.id, 
           tenant_id: shop!.id,
+          barbershop_id: shop!.id, 
+          appointment_id: apptId, 
           description: `Agendamento: ${selectedService.name} - ${clientData.name}`
         }
       });
 
       if (checkoutError || !checkoutData?.success) {
-        throw new Error("Erro ao gerar link de pagamento. Tente novamente.");
+        throw new Error(checkoutData?.error || "Erro ao gerar link de pagamento na InfinitePay.");
       }
 
       return { type: 'online', url: checkoutData.payment_url };
     },
     onSuccess: (res) => {
       if (res.type === 'online') {
-        // Redireciona o cliente para pagar com Cartão ou Pix na InfinitePay
+        // Redireciona o cliente para a tela de pagamento da InfinitePay
         window.location.href = res.url; 
       } else {
         setSuccess(true);
@@ -161,7 +183,7 @@ const PublicBooking = () => {
     onError: (error: any) => {
       toast({ 
         title: "Erro no agendamento", 
-        description: error.message || "Horário indisponível. Escolha outro.", 
+        description: error.message || "Não foi possível concluir. Tente novamente.", 
         variant: "destructive" 
       });
       setStep(3);
