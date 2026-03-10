@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, Eye, EyeOff, ExternalLink, QrCode, ShieldCheck, Check } from "lucide-react";
+import { Loader2, Save, ExternalLink, QrCode, ShieldCheck, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [infinitePayKey, setInfinitePayKey] = useState("");
-  const [webhookSecret, setWebhookSecret] = useState("");
-  const [showKey, setShowKey] = useState(false);
+  const [infinitePayTag, setInfinitePayTag] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [pixBeneficiary, setPixBeneficiary] = useState("");
   const [loading, setLoading] = useState(true);
@@ -25,7 +23,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
 
   useEffect(() => {
     const loadSettings = async () => {
-      // Load public Pix settings from barbershops table
+      // Carrega as configurações públicas do JSON da tabela barbershops
       const { data: shopData } = await (supabase.from("barbershops") as any)
         .select("settings")
         .eq("id", barbershopId)
@@ -35,17 +33,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         const settings = shopData.settings as Record<string, any>;
         setPixKey(settings.pix_key || "");
         setPixBeneficiary(settings.pix_beneficiary || "");
-      }
-
-      // 🔒 Load sensitive keys from barbershop_secrets table (RLS protected)
-      const { data: secrets } = await (supabase.from("barbershop_secrets") as any)
-        .select("infinitepay_token, webhook_secret")
-        .eq("barbershop_id", barbershopId)
-        .maybeSingle();
-
-      if (secrets) {
-        setInfinitePayKey(secrets.infinitepay_token || "");
-        setWebhookSecret(secrets.webhook_secret || "");
+        setInfinitePayTag(settings.infinitepay_tag || ""); // Carrega a Tag
       }
 
       setLoading(false);
@@ -56,7 +44,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Salvar Pix settings (público) na tabela barbershops
+      // 1. Pega as configurações atuais para não sobrescrever o que já existe
       const { data: current } = await (supabase.from("barbershops") as any)
         .select("settings")
         .eq("id", barbershopId)
@@ -64,34 +52,31 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
 
       const existingSettings = (current?.settings && typeof current.settings === "object") ? current.settings as Record<string, any> : {};
 
-      // 🔒 Remove qualquer chave de API que esteja no settings público (migração de segurança)
+      // 2. Limpa a tag para garantir que não tenha @, $ ou espaços
+      const cleanTag = infinitePayTag.trim().replace(/[@$ ]/g, '');
+
+      // 3. Mescla as configurações novas com as antigas
       const newSettings = { 
         ...existingSettings, 
         pix_key: pixKey.trim(),
-        pix_beneficiary: pixBeneficiary.trim()
+        pix_beneficiary: pixBeneficiary.trim(),
+        infinitepay_tag: cleanTag
       };
+
+      // Remove chaves antigas e inúteis por segurança e limpeza
       delete (newSettings as any).abacate_pay_api_key;
       delete (newSettings as any).infinitepay_api_key;
       delete (newSettings as any).infinitepay_token;
 
+      // 4. Salva de volta no Supabase
       const { error: settingsError } = await (supabase.from("barbershops") as any)
         .update({ settings: newSettings })
         .eq("id", barbershopId);
 
       if (settingsError) throw settingsError;
 
-      // 2. 🔒 Salvar chaves sensíveis na tabela barbershop_secrets (RLS protegida)
-      const { error: secretsError } = await (supabase.from("barbershop_secrets") as any)
-        .upsert({
-          barbershop_id: barbershopId,
-          infinitepay_token: infinitePayKey.trim(),
-          webhook_secret: webhookSecret.trim(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "barbershop_id" });
-
-      if (secretsError) throw secretsError;
-
-      toast({ title: "Configurações salvas!", description: "Chaves de pagamento atualizadas com segurança." });
+      toast({ title: "Configurações salvas!", description: "Dados de pagamento atualizados com sucesso." });
+      setInfinitePayTag(cleanTag); // Atualiza o input com a tag limpa
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -161,38 +146,24 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
           <div>
             <h3 className="font-bold text-base text-foreground">Integração InfinitePay</h3>
             <p className="text-xs text-muted-foreground">
-              Gera QR Codes dinâmicos com o valor exato do sinal na tela do cliente.
+              Gera QR Codes dinâmicos com o valor exato na tela do cliente.
             </p>
           </div>
         </div>
 
-        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2">
-          <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-            Suas chaves de API são armazenadas em uma tabela segura com RLS, nunca expostas publicamente.
-          </p>
-        </div>
-
         <div>
           <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
-            API Key (InfinitePay)
+            InfiniteTag (Seu @ na InfinitePay)
           </label>
           <div className="flex gap-2 max-w-2xl">
             <div className="relative flex-1">
               <Input
-                type={showKey ? "text" : "password"}
-                value={infinitePayKey}
-                onChange={(e) => setInfinitePayKey(e.target.value)}
-                placeholder="Cole sua Chave de API de Produção aqui..."
-                className="bg-secondary border-border pr-10 h-12 font-mono text-sm"
+                type="text"
+                value={infinitePayTag}
+                onChange={(e) => setInfinitePayTag(e.target.value)}
+                placeholder="Ex: ribeiro-guilherme-11k"
+                className="bg-secondary border-border h-12 font-mono text-sm"
               />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
             </div>
           </div>
         </div>
