@@ -1,6 +1,5 @@
 /**
  * Serviço InfinitePay — Prepara o payload para a Edge Function de cobrança Pix.
- * Substitui completamente o AbacatePay.
  */
 
 export interface InfinitePayChargeRequest {
@@ -14,9 +13,12 @@ export interface InfinitePayChargeRequest {
 
 export interface InfinitePayChargeResponse {
   success: boolean;
-  brcode?: string; // Pix copia e cola
-  qr_code_base64?: string; // Imagem do QR Code
+  mode?: "static" | "infinitepay";
+  brcode?: string;
+  qr_code_base64?: string;
   payment_id?: string;
+  pix_key?: string;
+  pix_beneficiary?: string;
   error?: string;
 }
 
@@ -54,8 +56,11 @@ export const createInfinitePayCharge = async (
 
   return {
     success: true,
+    mode: data.mode || "infinitepay",
     brcode: data.brcode || data.pix_code || "",
     qr_code_base64: data.qr_code_base64 || data.pix_qr_code_image || "",
     payment_id: data.payment_id || "",
+    pix_key: data.pix_key || "",
+    pix_beneficiary: data.pix_beneficiary || "",
   };
 };

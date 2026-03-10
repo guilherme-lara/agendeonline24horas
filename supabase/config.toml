@@ -2,3 +2,6 @@ project_id = "whtlqimtclodchfdljcg"
 
 [functions.create-pix-charge]
 verify_jwt = false
+
+[functions.infinitepay-webhook]
+verify_jwt = false

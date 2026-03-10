@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Key, Loader2, Save, Eye, EyeOff, ExternalLink, QrCode, ShieldCheck, Check } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, ExternalLink, QrCode, ShieldCheck, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,68 +14,85 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Estados InfinitePay
   const [infinitePayKey, setInfinitePayKey] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
   const [showKey, setShowKey] = useState(false);
-  
-  // Estados Pix Manual
   const [pixKey, setPixKey] = useState("");
   const [pixBeneficiary, setPixBeneficiary] = useState("");
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
-  // Busca inicial das configurações
   useEffect(() => {
-    (supabase
-      .from("barbershops") as any)
-      .select("settings")
-      .eq("id", barbershopId)
-      .single()
-      .then(({ data }: any) => {
-        if (data?.settings && typeof data.settings === "object") {
-          const settings = data.settings as Record<string, any>;
-          setInfinitePayKey(settings.infinitepay_api_key || "");
-          setPixKey(settings.pix_key || "");
-          setPixBeneficiary(settings.pix_beneficiary || "");
-        }
-        setLoading(false);
-      });
+    const loadSettings = async () => {
+      // Load public Pix settings from barbershops table
+      const { data: shopData } = await (supabase.from("barbershops") as any)
+        .select("settings")
+        .eq("id", barbershopId)
+        .single();
+
+      if (shopData?.settings && typeof shopData.settings === "object") {
+        const settings = shopData.settings as Record<string, any>;
+        setPixKey(settings.pix_key || "");
+        setPixBeneficiary(settings.pix_beneficiary || "");
+      }
+
+      // 🔒 Load sensitive keys from barbershop_secrets table (RLS protected)
+      const { data: secrets } = await (supabase.from("barbershop_secrets") as any)
+        .select("infinitepay_token, webhook_secret")
+        .eq("barbershop_id", barbershopId)
+        .maybeSingle();
+
+      if (secrets) {
+        setInfinitePayKey(secrets.infinitepay_token || "");
+        setWebhookSecret(secrets.webhook_secret || "");
+      }
+
+      setLoading(false);
+    };
+    loadSettings();
   }, [barbershopId]);
 
-  // Salvar no Banco
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: current } = await (supabase
-        .from("barbershops") as any)
+      // 1. Salvar Pix settings (público) na tabela barbershops
+      const { data: current } = await (supabase.from("barbershops") as any)
         .select("settings")
         .eq("id", barbershopId)
         .single();
 
       const existingSettings = (current?.settings && typeof current.settings === "object") ? current.settings as Record<string, any> : {};
 
+      // 🔒 Remove qualquer chave de API que esteja no settings público (migração de segurança)
       const newSettings = { 
         ...existingSettings, 
-        infinitepay_api_key: infinitePayKey.trim(),
         pix_key: pixKey.trim(),
         pix_beneficiary: pixBeneficiary.trim()
       };
-
-      // Remove chaves legadas se existirem
       delete (newSettings as any).abacate_pay_api_key;
+      delete (newSettings as any).infinitepay_api_key;
+      delete (newSettings as any).infinitepay_token;
 
-      const { error } = await (supabase
-        .from("barbershops") as any)
+      const { error: settingsError } = await (supabase.from("barbershops") as any)
         .update({ settings: newSettings })
         .eq("id", barbershopId);
 
-      if (error) throw error;
+      if (settingsError) throw settingsError;
 
-      toast({ title: "Configurações salvas!", description: "Suas chaves de pagamento foram atualizadas com sucesso." });
+      // 2. 🔒 Salvar chaves sensíveis na tabela barbershop_secrets (RLS protegida)
+      const { error: secretsError } = await (supabase.from("barbershop_secrets") as any)
+        .upsert({
+          barbershop_id: barbershopId,
+          infinitepay_token: infinitePayKey.trim(),
+          webhook_secret: webhookSecret.trim(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "barbershop_id" });
+
+      if (secretsError) throw secretsError;
+
+      toast({ title: "Configurações salvas!", description: "Chaves de pagamento atualizadas com segurança." });
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
-
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -147,6 +164,13 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
               Gera QR Codes dinâmicos com o valor exato do sinal na tela do cliente.
             </p>
           </div>
+        </div>
+
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+            Suas chaves de API são armazenadas em uma tabela segura com RLS, nunca expostas publicamente.
+          </p>
         </div>
 
         <div>

@@ -25,6 +25,14 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   pendente_sinal: { label: "Aguard. Sinal", className: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
 };
 
+const paymentBadgeConfig: Record<string, { label: string; className: string }> = {
+  paid: { label: "100% Pago", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  awaiting: { label: "Aguardando Pix", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  pending_local: { label: "Pagar no Local", className: "bg-muted text-muted-foreground border-border" },
+  expired: { label: "Expirado", className: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
 const Agenda = () => {
   const { barbershop } = useBarbershop() as any;
   const { toast } = useToast();
@@ -206,12 +214,19 @@ const Agenda = () => {
                     </td>
                     <td className="px-8 py-5">
                       <p className="text-foreground/80 text-sm font-medium">{a.service_name}</p>
-                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground uppercase font-black">
-                        <User className="h-3 w-3" /> {a.barber_name || "Geral"}
-                        {a.has_signal && (
-                           <Badge className="ml-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">SINAL PAGO</Badge>
-                        )}
-                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground uppercase font-black flex-wrap">
+                         <User className="h-3 w-3" /> {a.barber_name || "Geral"}
+                         {a.has_signal && a.signal_value > 0 && (
+                            <Badge className="ml-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">
+                              SINAL R${Number(a.signal_value).toFixed(0)}
+                            </Badge>
+                         )}
+                         {a.payment_status && paymentBadgeConfig[a.payment_status] && (
+                            <Badge className={`ml-1 border text-[8px] px-1.5 py-0 ${paymentBadgeConfig[a.payment_status].className}`}>
+                              {paymentBadgeConfig[a.payment_status].label}
+                            </Badge>
+                         )}
+                       </div>
                     </td>
                     <td className="px-8 py-5 font-bold text-emerald-500 text-sm">R$ {Number(a.price).toFixed(2)}</td>
                     <td className="px-8 py-5">
