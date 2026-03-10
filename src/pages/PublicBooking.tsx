@@ -163,12 +163,10 @@ const PublicBooking = () => {
       }
 
       if (!checkoutData?.payment_url) {
-        // A TRAVA DE SEGURANÇA! IMPEDE DE IR PARA /undefined
-        console.error("❌ [DEBUG 5] A URL VEIO VAZIA! Resposta bruta:", checkoutData);
-        throw new Error(`A InfinitePay autorizou a requisição, mas não enviou o link de pagamento. Cheque o Console (F12)`);
-      }
-
+        // O JSON.stringify vai imprimir todo o conteúdo na tela, sem esconder nada!
+        console.error("❌ [DEBUG 5] A URL VEIO VAZIA! Resposta bruta:", JSON.stringify(checkoutData, null, 2));
       return { type: 'online', url: checkoutData.payment_url };
+      }
     },
     onSuccess: (res) => {
       if (res.type === 'online') {
