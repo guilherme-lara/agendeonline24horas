@@ -31,10 +31,9 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   
-  // Opções de pagamento
   const [paymentOption, setPaymentOption] = useState<"local" | "online_full" | "online_signal">("local");
   
-  // MÁGICA: Se a URL tiver ?success=true (voltando da InfinitePay), já abre na tela de sucesso!
+  // Captura o retorno da InfinitePay
   const [success, setSuccess] = useState(searchParams.get("success") === "true"); 
   const [cancelled, setCancelled] = useState(false);
 
@@ -94,10 +93,9 @@ const PublicBooking = () => {
     refetchInterval: 5000,
   });
 
-  // --- O NOVO MOTOR: REDIRECIONAMENTO DIRETO PARA O CHECKOUT EXTERNO ---
+  // --- MOTOR DE CHECKOUT: INTEGRAÇÃO OFICIAL API INFINITEPAY ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
-      console.log("Iniciando mutação de agendamento...");
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
@@ -108,11 +106,7 @@ const PublicBooking = () => {
       const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
       const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
 
-      console.log("Dados para criação:", {
-        isOnline, initialStatus, amountToCharge
-      });
-
-      // 1. Cria o agendamento no banco
+      // 1. Cria o agendamento no Supabase
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
@@ -123,83 +117,89 @@ const PublicBooking = () => {
         _payment_method: isOnline ? "pix" : "local"
       });
 
-      if (rpcError) {
-        console.error("Erro na RPC:", rpcError);
-        throw rpcError;
-      }
-
-      console.log("Resposta da RPC:", apptResponse);
+      if (rpcError) throw rpcError;
 
       const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
-      if (!apptId) {
-        console.error("ID não encontrado na resposta:", apptResponse);
-        throw new Error("Falha ao recuperar o ID do agendamento.");
-      }
+      if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
       // 2. Trava a vaga na agenda
-      const { error: updateError } = await supabase.from("appointments").update({ 
+      await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
         status: initialStatus,
         has_signal: hasSignal,
         signal_value: signalValue
       }).eq("id", apptId);
 
-      if (updateError) {
-         console.error("Erro ao atualizar agendamento:", updateError);
-         throw updateError;
-      }
-
       // 3. Se for no local, finaliza direto
       if (!isOnline) {
-        console.log("Pagamento local, finalizando...");
         return { type: 'local', id: apptId };
       }
 
-      // 4. MÁGICA: Montamos o link da InfinitePay direto aqui!
+      // 4. MÁGICA: Bate na API Oficial da InfinitePay pelo Front-end
       const infiniteTag = shop?.settings?.infinitepay_tag;
-      if (!infiniteTag) {
-        console.error("InfiniteTag não configurada:", shop?.settings);
-        throw new Error("A barbearia ainda não configurou a InfiniteTag (Seu @) no painel.");
-      }
+      if (!infiniteTag) throw new Error("A barbearia ainda não configurou a InfiniteTag (Seu @) no painel.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
       const itemName = hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name;
       
-      const items = JSON.stringify([
-        {
-          name: itemName,
-          price: Math.round(amountToCharge * 100), // Converte para centavos
-          quantity: 1
-        }
-      ]);
-
-      // Dizemos para a InfinitePay mandar o cliente de volta com "?success=true" na URL
-      const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
-
-      // Monta a URL oficial do Checkout Externo da InfinitePay
-      const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
+      const priceInCents = Math.round(amountToCharge * 100); // Converte para centavos
       
-      console.log("URL de Checkout gerada:", checkoutUrl);
+      // Trava contra o erro da imagem:
+      if (priceInCents < 100) {
+        throw new Error("A InfinitePay exige um valor mínimo de R$ 1,00 para o checkout.");
+      }
 
-      return { type: 'online', url: checkoutUrl };
+      // URLs de retorno e de fofoca (Webhook)
+      const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
+      const webhookUrl = "https://whtlqimtclodchfdljcg.supabase.co/functions/v1/infinitepay-webhook";
+
+      const infinitePayload = {
+        "handle": cleanHandle,
+        "redirect_url": redirectUrl,
+        "webhook_url": webhookUrl,
+        "order_nsu": apptId,
+        "items": [
+          {
+            "quantity": 1,
+            "price": priceInCents,
+            "description": itemName
+          }
+        ]
+      };
+
+      console.log("🚀 Enviando JSON oficial para API da InfinitePay:", infinitePayload);
+
+      // Chamada oficial para gerar o link do checkout sem intermediários!
+      const response = await fetch('https://api.infinitepay.io/invoices/public/checkout/links', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(infinitePayload)
+      });
+
+      const checkoutData = await response.json();
+      console.log("📥 Resposta Oficial da InfinitePay:", checkoutData);
+
+      if (!response.ok || !checkoutData.url) {
+        throw new Error(checkoutData.message || "A InfinitePay recusou a integração. Verifique se a sua TAG está correta.");
+      }
+
+      return { type: 'online', url: checkoutData.url };
     },
     onSuccess: (res) => {
-      console.log("Mutação bem-sucedida, resultado:", res);
       if (res.type === 'online' && res.url) {
-        // Redireciona na hora para a página oficial da InfinitePay!
+        // Agora sim, a URL gerada pela API vai funcionar sem erros!
         window.location.href = res.url; 
-      } else if (res.type === 'local') {
+      } else {
         setSuccess(true);
         setStep(5);
-      } else {
-         console.error("Fallback atingido. Tipo desconhecido ou URL vazia:", res);
-         toast({ title: "Erro", description: "Falha ao gerar link de pagamento.", variant: "destructive" });
       }
     },
     onError: (error: any) => {
-      console.error("Erro capturado no onError:", error);
       toast({ 
-        title: "Erro no agendamento", 
+        title: "Falha na cobrança", 
         description: error.message, 
         variant: "destructive" 
       });
