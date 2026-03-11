@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Loader2, Search, Clock, LayoutGrid, List,
   Check, XCircle, Play, Phone, MessageSquare, QrCode, User,
-  Pencil, AlertTriangle, History, ArrowRight, DollarSign
+  Pencil, AlertTriangle, History, ArrowRight, DollarSign, Unlock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
