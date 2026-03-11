@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Loader2, Search, Clock, LayoutGrid, List,
   Check, XCircle, Play, Phone, MessageSquare, QrCode, User,
-  Pencil, AlertTriangle, History, ArrowRight, DollarSign
+  Pencil, AlertTriangle, History, ArrowRight, DollarSign, Unlock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -85,6 +85,18 @@ const Agenda = () => {
       return data || [];
     },
     enabled: queryEnabled,
+  });
+
+  // MUTAÇÃO DE LIBERAR HORÁRIO (cancelar PIX expirado)
+  const releaseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("appointments").update({ status: "cancelled", payment_status: "expired" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast({ title: "Horário liberado!", description: "A vaga foi disponibilizada na agenda pública." });
+    }
   });
 
   // MUTAÇÃO DE UPDATE COMPLETA
@@ -205,8 +217,10 @@ const Agenda = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {filtered.map((a: any) => (
-                  <tr key={a.id} className="hover:bg-secondary/30 transition-colors group">
+                {filtered.map((a: any) => {
+                  const isExpiredPix = a.status === 'pending' && a.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(a.payment_status) && a.created_at && (Date.now() - new Date(a.created_at).getTime() > 15 * 60 * 1000);
+                  return (
+                  <tr key={a.id} className={`hover:bg-secondary/30 transition-colors group ${isExpiredPix ? 'bg-destructive/5 border-l-4 border-l-destructive' : ''}`}>
                     <td className="px-8 py-5 text-primary font-black text-lg">{format(parseISO(a.scheduled_at), "HH:mm")}</td>
                     <td className="px-8 py-5">
                       <p className="text-foreground font-bold">{a.client_name}</p>
@@ -243,7 +257,7 @@ const Agenda = () => {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {activeTab === "active" && (
+                        {activeTab === "active" && !isExpiredPix && (
                           <Button 
                             variant="ghost" size="icon" 
                             onClick={() => window.location.href = '/dashboard/caixa'}
@@ -252,10 +266,21 @@ const Agenda = () => {
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         )}
+                        {isExpiredPix && (
+                          <Button 
+                            variant="ghost" size="sm"
+                            onClick={() => releaseMutation.mutate(a.id)}
+                            disabled={releaseMutation.isPending}
+                            className="h-10 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold text-xs gap-1.5"
+                          >
+                            <Unlock className="h-3.5 w-3.5" /> Liberar
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-8 py-16 text-center text-muted-foreground text-sm">

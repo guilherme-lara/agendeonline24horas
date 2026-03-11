@@ -169,7 +169,16 @@ const Dashboard = () => {
       .slice(0, 3)
       .map(([name, qty]) => ({ name, qty }));
 
-    return { todayRevTotal, todayRevServices, todayRevProducts, monthRevTotal, todayCount: todayAppts.length, totalActive: activeAppts.length, chartData, topProducts };
+    const closedOrdersToday = orders.filter((o: any) => isSameDay(parseISO(o.created_at), today));
+    const ticketMedio = closedOrdersToday.length > 0 ? todayRevTotal / closedOrdersToday.length : 0;
+
+    const lastTransactions = orders.slice(0, 10).map((o: any) => {
+      const items = (o.items || []) as any[];
+      const serviceName = items.map((i: any) => i.name).join(", ") || "Venda";
+      return { id: o.id, name: serviceName, total: Number(o.total), time: format(parseISO(o.created_at), "dd/MM HH:mm"), method: o.payment_method };
+    });
+
+    return { todayRevTotal, todayRevServices, todayRevProducts, monthRevTotal, todayCount: todayAppts.length, totalActive: activeAppts.length, chartData, topProducts, ticketMedio, lastTransactions };
   }, [appointments, orders]);
 
   if ((shopLoading && !barbershop) || (loadingAppts && !appointments.length && loadingOrders && !orders.length)) return <DashboardSkeleton />;
@@ -222,12 +231,13 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {[
           { icon: DollarSign, color: "emerald", label: "Caixa", value: kpis.todayRevTotal, sub: "Receita Total Hoje" },
           { icon: Scissors, color: "blue", label: "Agenda", value: kpis.todayRevServices, sub: "Cortes / Serviços" },
           { icon: Package, color: "amber", label: "Estoque", value: kpis.todayRevProducts, sub: "Produtos Vendidos" },
           { icon: TrendingUp, color: "primary", label: "Acumulado", value: kpis.monthRevTotal, sub: "Faturamento do Mês" },
+          { icon: Clock, color: "violet", label: "Ticket Médio", value: kpis.ticketMedio, sub: "Valor Médio por Venda" },
         ].map((kpi, i) => (
           <div key={i} className="group rounded-3xl border border-border bg-card p-6 hover:border-primary/30 transition-all shadow-card">
             <div className="flex justify-between items-start mb-4">
@@ -278,26 +288,48 @@ const Dashboard = () => {
             <Users className="h-10 w-10 text-primary/20" />
           </div>
 
-          <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
-            <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
-              <Package className="h-4 w-4 text-amber-500" /> Top Produtos do Mês
-            </h3>
-            {kpis.topProducts.length > 0 ? (
-              <div className="space-y-4">
-                {kpis.topProducts.map((p, i) => (
-                  <div key={i} className="flex justify-between items-center border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                    <p className="text-xs font-bold text-foreground/80 truncate pr-4">{p.name}</p>
-                    <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] shrink-0">
-                      {p.qty} unid.
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Nenhuma venda registrada</p>
-            )}
-          </div>
-        </div>
+           <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
+             <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
+               <Package className="h-4 w-4 text-amber-500" /> Top Produtos do Mês
+             </h3>
+             {kpis.topProducts.length > 0 ? (
+               <div className="space-y-4">
+                 {kpis.topProducts.map((p, i) => (
+                   <div key={i} className="flex justify-between items-center border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                     <p className="text-xs font-bold text-foreground/80 truncate pr-4">{p.name}</p>
+                     <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] shrink-0">
+                       {p.qty} unid.
+                     </Badge>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Nenhuma venda registrada</p>
+             )}
+           </div>
+
+           {/* ÚLTIMAS TRANSAÇÕES */}
+           <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
+             <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
+               <DollarSign className="h-4 w-4 text-emerald-500" /> Últimas Vendas
+             </h3>
+             {kpis.lastTransactions.length > 0 ? (
+               <div className="space-y-3">
+                 {kpis.lastTransactions.map((tx: any) => (
+                   <div key={tx.id} className="flex justify-between items-center border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                     <div className="min-w-0 flex-1 pr-3">
+                       <p className="text-xs font-bold text-foreground/80 truncate">{tx.name}</p>
+                       <p className="text-[10px] text-muted-foreground font-mono">{tx.time}</p>
+                     </div>
+                     <p className="text-sm font-black text-emerald-500 shrink-0">R$ {tx.total.toFixed(2)}</p>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Sem vendas ainda</p>
+             )}
+           </div>
+         </div>
       </div>
     </div>
   );
