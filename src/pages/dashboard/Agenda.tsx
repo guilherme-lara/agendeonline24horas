@@ -217,8 +217,10 @@ const Agenda = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {filtered.map((a: any) => (
-                  <tr key={a.id} className="hover:bg-secondary/30 transition-colors group">
+                {filtered.map((a: any) => {
+                  const isExpiredPix = a.status === 'pending' && a.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(a.payment_status) && a.created_at && (Date.now() - new Date(a.created_at).getTime() > 15 * 60 * 1000);
+                  return (
+                  <tr key={a.id} className={`hover:bg-secondary/30 transition-colors group ${isExpiredPix ? 'bg-destructive/5 border-l-4 border-l-destructive' : ''}`}>
                     <td className="px-8 py-5 text-primary font-black text-lg">{format(parseISO(a.scheduled_at), "HH:mm")}</td>
                     <td className="px-8 py-5">
                       <p className="text-foreground font-bold">{a.client_name}</p>
