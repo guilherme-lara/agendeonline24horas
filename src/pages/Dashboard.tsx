@@ -169,7 +169,16 @@ const Dashboard = () => {
       .slice(0, 3)
       .map(([name, qty]) => ({ name, qty }));
 
-    return { todayRevTotal, todayRevServices, todayRevProducts, monthRevTotal, todayCount: todayAppts.length, totalActive: activeAppts.length, chartData, topProducts };
+    const closedOrdersToday = orders.filter((o: any) => isSameDay(parseISO(o.created_at), today));
+    const ticketMedio = closedOrdersToday.length > 0 ? todayRevTotal / closedOrdersToday.length : 0;
+
+    const lastTransactions = orders.slice(0, 10).map((o: any) => {
+      const items = (o.items || []) as any[];
+      const serviceName = items.map((i: any) => i.name).join(", ") || "Venda";
+      return { id: o.id, name: serviceName, total: Number(o.total), time: format(parseISO(o.created_at), "dd/MM HH:mm"), method: o.payment_method };
+    });
+
+    return { todayRevTotal, todayRevServices, todayRevProducts, monthRevTotal, todayCount: todayAppts.length, totalActive: activeAppts.length, chartData, topProducts, ticketMedio, lastTransactions };
   }, [appointments, orders]);
 
   if ((shopLoading && !barbershop) || (loadingAppts && !appointments.length && loadingOrders && !orders.length)) return <DashboardSkeleton />;
