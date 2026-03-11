@@ -428,13 +428,54 @@ const PublicBooking = () => {
 
         {/* TELA FINAL: SUCESSO (ACESSADA AUTOMATICAMENTE AO VOLTAR DO CHECKOUT) */}
         {success && !cancelled && (
-            <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6">
+            <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
                     <Check className="h-12 w-12 text-emerald-500" />
                 </div>
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Realizado!</h1>
-                <p className="text-muted-foreground mb-10 max-w-xs mx-auto">A sua vaga está garantida e te esperamos no horário marcado.</p>
-                <Button onClick={() => navigate(`/`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full max-w-xs mx-auto">Ir para a Página Inicial</Button>
+                <p className="text-muted-foreground mb-8 max-w-xs mx-auto">A sua vaga está garantida e te esperamos no horário marcado.</p>
+
+                {/* Resumo */}
+                {selectedService && selectedDate && selectedTime && (
+                  <div className="bg-card border border-border rounded-3xl p-6 mb-6 shadow-card text-left space-y-3">
+                    <div className="flex justify-between items-center"><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Serviço</span><span className="text-sm font-bold text-foreground">{selectedService.name}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Data</span><span className="text-sm font-bold text-primary">{format(selectedDate, "dd/MM/yyyy")}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Horário</span><span className="text-sm font-bold text-primary">{selectedTime}</span></div>
+                    {selectedBarber && <div className="flex justify-between items-center"><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Profissional</span><span className="text-sm font-bold text-foreground">{selectedBarber.name}</span></div>}
+                  </div>
+                )}
+
+                {/* Ações */}
+                <div className="flex flex-col gap-3 mb-6">
+                  {selectedDate && selectedTime && selectedService && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const start = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`);
+                        const end = addMinutes(start, selectedService.duration || 30);
+                        const title = encodeURIComponent(`${selectedService.name}${shop?.name ? ` - ${shop.name}` : ''}`);
+                        const dates = `${format(start, "yyyyMMdd'T'HHmmss")}/${format(end, "yyyyMMdd'T'HHmmss")}`;
+                        const location = encodeURIComponent(shop?.address || '');
+                        window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}`, '_blank');
+                      }}
+                      className="h-14 rounded-2xl font-bold border-border text-foreground hover:bg-secondary gap-2"
+                    >
+                      <CalendarDays className="h-5 w-5" /> Adicionar ao Google Agenda
+                    </Button>
+                  )}
+                  
+                  {shop?.address && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`, '_blank')}
+                      className="h-14 rounded-2xl font-bold border-border text-foreground hover:bg-secondary gap-2"
+                    >
+                      <MapPin className="h-5 w-5" /> Como Chegar
+                    </Button>
+                  )}
+                </div>
+
+                <Button onClick={() => navigate(`/`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full">Ir para a Página Inicial</Button>
             </div>
         )}
       </div>

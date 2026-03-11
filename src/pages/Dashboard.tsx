@@ -288,26 +288,48 @@ const Dashboard = () => {
             <Users className="h-10 w-10 text-primary/20" />
           </div>
 
-          <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
-            <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
-              <Package className="h-4 w-4 text-amber-500" /> Top Produtos do Mês
-            </h3>
-            {kpis.topProducts.length > 0 ? (
-              <div className="space-y-4">
-                {kpis.topProducts.map((p, i) => (
-                  <div key={i} className="flex justify-between items-center border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                    <p className="text-xs font-bold text-foreground/80 truncate pr-4">{p.name}</p>
-                    <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] shrink-0">
-                      {p.qty} unid.
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Nenhuma venda registrada</p>
-            )}
-          </div>
-        </div>
+           <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
+             <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
+               <Package className="h-4 w-4 text-amber-500" /> Top Produtos do Mês
+             </h3>
+             {kpis.topProducts.length > 0 ? (
+               <div className="space-y-4">
+                 {kpis.topProducts.map((p, i) => (
+                   <div key={i} className="flex justify-between items-center border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                     <p className="text-xs font-bold text-foreground/80 truncate pr-4">{p.name}</p>
+                     <Badge className="bg-amber-500/10 text-amber-500 border-none font-black text-[10px] shrink-0">
+                       {p.qty} unid.
+                     </Badge>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Nenhuma venda registrada</p>
+             )}
+           </div>
+
+           {/* ÚLTIMAS TRANSAÇÕES */}
+           <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
+             <h3 className="text-sm font-black text-foreground mb-6 tracking-tight flex items-center gap-2 font-display">
+               <DollarSign className="h-4 w-4 text-emerald-500" /> Últimas Vendas
+             </h3>
+             {kpis.lastTransactions.length > 0 ? (
+               <div className="space-y-3">
+                 {kpis.lastTransactions.map((tx: any) => (
+                   <div key={tx.id} className="flex justify-between items-center border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                     <div className="min-w-0 flex-1 pr-3">
+                       <p className="text-xs font-bold text-foreground/80 truncate">{tx.name}</p>
+                       <p className="text-[10px] text-muted-foreground font-mono">{tx.time}</p>
+                     </div>
+                     <p className="text-sm font-black text-emerald-500 shrink-0">R$ {tx.total.toFixed(2)}</p>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Sem vendas ainda</p>
+             )}
+           </div>
+         </div>
       </div>
     </div>
   );

@@ -257,7 +257,7 @@ const Agenda = () => {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {activeTab === "active" && (
+                        {activeTab === "active" && !isExpiredPix && (
                           <Button 
                             variant="ghost" size="icon" 
                             onClick={() => window.location.href = '/dashboard/caixa'}
@@ -266,10 +266,21 @@ const Agenda = () => {
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         )}
+                        {isExpiredPix && (
+                          <Button 
+                            variant="ghost" size="sm"
+                            onClick={() => releaseMutation.mutate(a.id)}
+                            disabled={releaseMutation.isPending}
+                            className="h-10 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive font-bold text-xs gap-1.5"
+                          >
+                            <Unlock className="h-3.5 w-3.5" /> Liberar
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-8 py-16 text-center text-muted-foreground text-sm">
