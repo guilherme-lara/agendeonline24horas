@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
 import CalendarView from "@/components/CalendarView";
 import QuickBooking from "@/components/QuickBooking";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,7 +45,7 @@ const Agenda = () => {
 
   const queryEnabled = !!barbershop?.id;
 
-  // Busca Agendamentos
+  // 1. Busca Agendamentos com Cache ZERO para Realtime
   const { data: appointments = [], isLoading, isError } = useQuery({
     queryKey: ["appointments", barbershop?.id],
     queryFn: async () => {
@@ -59,11 +59,39 @@ const Agenda = () => {
       return data || [];
     },
     enabled: queryEnabled,
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 5,
+    staleTime: 0, // Atualiza sempre
+    refetchInterval: 30000, // Backup: checa a cada 30s
     retry: 2,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
+
+  // 2. IMPLEMENTAÇÃO REALTIME
+  useEffect(() => {
+    if (!barbershop?.id) return;
+
+    // Escuta mudanças na tabela de agendamentos desta barbearia específica
+    const channel = supabase
+      .channel(`agenda-realtime-${barbershop.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'appointments',
+          filter: `barbershop_id=eq.${barbershop.id}`
+        },
+        (payload) => {
+          console.log("🔔 Mudança detectada na agenda:", payload);
+          // Força o TanStack Query a buscar os dados novos
+          queryClient.invalidateQueries({ queryKey: ["appointments", barbershop?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [barbershop?.id, queryClient]);
 
   // Busca Serviços (Para o Modal de Edição)
   const { data: services = [] } = useQuery({
@@ -104,7 +132,6 @@ const Agenda = () => {
     mutationFn: async (payload: any) => {
       const { id, scheduled_date, scheduled_time, ...updates } = payload;
       
-      // Reconstrói a data completa a partir dos inputs separados
       if (scheduled_date && scheduled_time) {
         updates.scheduled_at = new Date(`${scheduled_date}T${scheduled_time}:00`).toISOString();
       }
@@ -130,7 +157,6 @@ const Agenda = () => {
     });
   }, [appointments, activeTab, search]);
 
-  // Função para abrir o modal formatando a data e hora corretamente
   const handleOpenEdit = (appt: any) => {
     const d = parseISO(appt.scheduled_at);
     setEditModal({
@@ -297,11 +323,11 @@ const Agenda = () => {
           appointments={filtered} 
           barbershopId={barbershop?.id}
           onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
-          onEventClick={handleOpenEdit} // Passando o gancho para o calendário abrir o modal
+          onEventClick={handleOpenEdit} 
         />
       )}
 
-      {/* SUPER MODAL DE EDIÇÃO COMPLETA */}
+      {/* MODAL DE EDIÇÃO */}
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
         <DialogContent className="bg-card border-border text-foreground max-w-2xl rounded-3xl">
           <DialogHeader>
@@ -312,7 +338,6 @@ const Agenda = () => {
           
           {editModal.appt && (
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">
-              {/* Cliente */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Nome do Cliente</label>
                 <Input defaultValue={editModal.appt.client_name} onChange={(e) => editModal.appt.client_name = e.target.value} className="bg-background border-border" />
@@ -322,7 +347,6 @@ const Agenda = () => {
                 <Input defaultValue={editModal.appt.client_phone} onChange={(e) => editModal.appt.client_phone = e.target.value} className="bg-background border-border font-mono" />
               </div>
 
-              {/* Serviços e Barbeiros */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Serviço</label>
                 <select defaultValue={editModal.appt.service_name} onChange={(e) => editModal.appt.service_name = e.target.value} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground">
@@ -339,7 +363,6 @@ const Agenda = () => {
                 </select>
               </div>
 
-              {/* Data e Hora */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Data</label>
                 <Input type="date" defaultValue={editModal.appt.scheduled_date} onChange={(e) => editModal.appt.scheduled_date = e.target.value} className="bg-background border-border" />
@@ -349,7 +372,6 @@ const Agenda = () => {
                 <Input type="time" defaultValue={editModal.appt.scheduled_time} onChange={(e) => editModal.appt.scheduled_time = e.target.value} className="bg-background border-border" />
               </div>
 
-              {/* Preço e Status */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Valor Total (R$)</label>
                 <Input type="number" defaultValue={editModal.appt.price} onChange={(e) => editModal.appt.price = Number(e.target.value)} className="bg-background border-border text-emerald-500 font-bold" />
@@ -364,7 +386,6 @@ const Agenda = () => {
                 </select>
               </div>
 
-              {/* Controle de Sinal */}
               <div className="col-span-2 bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl flex items-center gap-4 mt-2">
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-bold text-amber-500 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Controle de Sinal Adiantado</p>
