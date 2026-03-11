@@ -237,6 +237,7 @@ const Dashboard = () => {
           { icon: Scissors, color: "blue", label: "Agenda", value: kpis.todayRevServices, sub: "Cortes / Serviços" },
           { icon: Package, color: "amber", label: "Estoque", value: kpis.todayRevProducts, sub: "Produtos Vendidos" },
           { icon: TrendingUp, color: "primary", label: "Acumulado", value: kpis.monthRevTotal, sub: "Faturamento do Mês" },
+          { icon: Clock, color: "violet", label: "Ticket Médio", value: kpis.ticketMedio, sub: "Valor Médio por Venda" },
         ].map((kpi, i) => (
           <div key={i} className="group rounded-3xl border border-border bg-card p-6 hover:border-primary/30 transition-all shadow-card">
             <div className="flex justify-between items-start mb-4">
