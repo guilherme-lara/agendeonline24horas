@@ -87,6 +87,18 @@ const Agenda = () => {
     enabled: queryEnabled,
   });
 
+  // MUTAÇÃO DE LIBERAR HORÁRIO (cancelar PIX expirado)
+  const releaseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("appointments").update({ status: "cancelled", payment_status: "expired" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast({ title: "Horário liberado!", description: "A vaga foi disponibilizada na agenda pública." });
+    }
+  });
+
   // MUTAÇÃO DE UPDATE COMPLETA
   const updateMutation = useMutation({
     mutationFn: async (payload: any) => {
