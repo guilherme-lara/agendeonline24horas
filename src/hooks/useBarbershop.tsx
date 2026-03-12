@@ -16,6 +16,7 @@ export interface Barbershop {
   plan_name: string;
   plan_status: string;
   setup_completed?: boolean;
+  trial_ends_at?: string;
 }
 
 // Hook de Barbearia - ARQUITETURA DE NÍVEL ENTERPRISE
