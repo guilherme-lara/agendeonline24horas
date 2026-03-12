@@ -120,11 +120,13 @@ Deno.serve(async (req) => {
 
     if (isPaid) {
       // Atualiza o agendamento como pago
+      // Registra payment_confirmed_at em horário de Brasília (UTC-3)
+      const nowBRT = new Date(Date.now() - 3 * 60 * 60 * 1000);
       await supabase
         .from("appointments")
         .update({
           payment_status: "paid",
-          payment_confirmed_at: new Date().toISOString(),
+          payment_confirmed_at: nowBRT.toISOString(),
           status: "confirmed",
         })
         .eq("id", appt.id);

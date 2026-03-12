@@ -1,5 +1,5 @@
 // 1. Core React e React Router
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 
@@ -11,6 +11,7 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 // 3. Componentes de UI
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
+import TrialBlockModal from "@/components/TrialBlockModal";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -22,6 +23,19 @@ const DashboardLayout = () => {
 
   // ÉPICO 2: Realtime silencioso — escuta mudanças na tabela appointments
   useLiveAppointments((barbershop as any)?.id);
+
+  // Bloqueio por expiração de trial
+  const isTrialExpired = useMemo(() => {
+    if (!barbershop) return false;
+    const shop = barbershop as any;
+    // Se tem plano ativo no saas_plans, não bloqueia
+    if (shop.plan_status === "active") return false;
+    // Se trial_ends_at existe e já passou
+    if (shop.trial_ends_at) {
+      return new Date(shop.trial_ends_at) < new Date();
+    }
+    return false;
+  }, [barbershop]);
 
   useEffect(() => {
     if (isInitialLoadRef.current) {
@@ -45,6 +59,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen w-full">
+      <TrialBlockModal open={isTrialExpired} />
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

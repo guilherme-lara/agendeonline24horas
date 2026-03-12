@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay } from "date-fns";
+import { toBRT } from "@/lib/timezone";
 import { ptBR } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -128,7 +129,7 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
 
   const filteredAppts = useMemo(() =>
     appointments.filter((a) => {
-      const d = new Date(a.scheduled_at);
+      const d = toBRT(a.scheduled_at);
       return d >= dateRange.start && d <= dateRange.end;
     }), [appointments, dateRange]);
 
@@ -140,7 +141,7 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
 
   const filteredOrders = useMemo(() =>
     orders.filter((o) => {
-      const d = new Date(o.created_at);
+      const d = toBRT(o.created_at);
       return d >= dateRange.start && d <= dateRange.end;
     }), [orders, dateRange]);
 

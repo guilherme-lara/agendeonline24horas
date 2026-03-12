@@ -1,66 +1,74 @@
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays, BarChart3, CreditCard, Bell, Users, Shield,
-  Sparkles, Package, Brain, Check, ArrowRight, Scissors, Star, Quote, Globe
+  Check, ArrowRight, Scissors, Star, Quote, Globe, Sparkles, Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const features = [
-  { icon: Globe, title: "Link de Agendamento", desc: "Seus clientes agendam 24h direto pelo link exclusivo da sua barbearia." },
-  { icon: BarChart3, title: "Dashboard Inteligente", desc: "Acompanhe faturamento, cortes e métricas em tempo real em painéis dourados." },
-  { icon: CreditCard, title: "Pagamentos Integrados", desc: "Receba via Pix e Cartão diretamente na plataforma de forma segura." },
+  { icon: Globe, title: "Agenda Online 24h", desc: "Seus clientes agendam a qualquer hora pelo link exclusivo da sua barbearia." },
+  { icon: BarChart3, title: "Gestão Financeira", desc: "Dashboard com faturamento diário, semanal e mensal, ticket médio e comissões." },
+  { icon: CreditCard, title: "Checkout Pix Integrado", desc: "Receba via Pix diretamente na plataforma com confirmação automática." },
   { icon: Bell, title: "Notificações Automáticas", desc: "Lembre seus clientes via WhatsApp e E-mail, reduzindo faltas." },
   { icon: Users, title: "Gestão de Equipe", desc: "Gerencie barbeiros, horários e comissões automáticas em um só lugar." },
-  { icon: Shield, title: "Dados Seguros", desc: "Infraestrutura cloud profissional com isolamento total por barbearia." },
+  { icon: Shield, title: "Dados Seguros", desc: "Infraestrutura cloud com isolamento total por barbearia e criptografia." },
 ];
 
 const plans = [
   {
-    name: "Essential",
-    price: "97",
+    name: "Bronze",
+    price: "49",
+    cents: ",90",
     period: "/mês",
-    desc: "Ideal para profissionais solo",
-    features: ["Link de agendamento personalizado", "Dashboard básico (ganhos dia/mês)", "Gestão de 1 barbeiro", "Suporte via E-mail"],
-    cta: "Começar Agora",
+    desc: "Para começar no digital",
+    features: [
+      "Agenda online 24h",
+      "Link de agendamento personalizado",
+      "Dashboard básico",
+      "1 profissional",
+      "Suporte via E-mail",
+    ],
+    cta: "Começar com Bronze",
     popular: false,
-    color: "slate"
   },
   {
-    name: "Growth",
-    price: "197",
+    name: "Prata",
+    price: "79",
+    cents: ",90",
     period: "/mês",
-    desc: "Para barbearias em expansão",
+    desc: "Para barbearias em crescimento",
     features: [
-      "Tudo do Essential",
-      "Pagamentos via Pix Online",
+      "Tudo do Bronze",
+      "Checkout Pix integrado",
       "Lembretes automáticos",
-      "Dashboard de faturamento avançado",
-      "Até 5 barbeiros",
+      "Dashboard financeiro completo",
+      "Até 5 profissionais",
+      "Suporte prioritário",
     ],
-    cta: "Escolher Plano Growth",
+    cta: "Escolher Plano Prata",
     popular: true,
-    color: "gold"
   },
   {
-    name: "Pro",
-    price: "397",
+    name: "Ouro",
+    price: "99",
+    cents: ",90",
     period: "/mês",
-    desc: "Potência total e automação",
+    desc: "Controle total do negócio",
     features: [
-      "Tudo do Growth",
-      "Gestão de Estoque Completa",
-      "Sistema de CRM e Fidelidade",
-      "Relatórios preditivos com IA",
-      "Barbeiros Ilimitados",
+      "Tudo do Prata",
+      "Gestão de Estoque completa",
+      "Pacotes e Combos com validade",
+      "Relatórios de comissões",
+      "Profissionais ilimitados",
+      "Suporte VIP via WhatsApp",
     ],
-    cta: "Acessar Plano Pro",
+    cta: "Assinar Plano Ouro",
     popular: false,
-    color: "gold-dark"
   },
 ];
 
-const planIcons = [Package, Sparkles, Brain];
+const planIcons = [Package, Sparkles, Star];
 
 const testimonials = [
   { name: "Guilherme L.", shop: "Barber Flow", text: "A automação de pagamentos mudou meu negócio. Não perco mais tempo conferindo PIX.", rating: 5 },
@@ -83,7 +91,7 @@ const SaaSLanding = () => {
         
         <div className="container px-6 text-center max-w-5xl relative z-10">
           <Badge className="bg-primary/10 text-primary border-primary/20 mb-8 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em]">
-            <Sparkles className="h-3 w-3 mr-2 fill-primary" /> A plataforma mais completa para barbearias
+            <Sparkles className="h-3 w-3 mr-2 fill-primary" /> Teste grátis por 30 dias
           </Badge>
           
           <h1 className="font-display text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.0] mb-8">
@@ -92,8 +100,8 @@ const SaaSLanding = () => {
           </h1>
           
           <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
-            Agendamento digital 24h, gestão financeira automática e controle total de estoque. 
-            A tecnologia que você precisa para focar no que importa: a tesoura.
+            Agenda online 24h, gestão financeira automática e checkout Pix integrado. 
+            Comece grátis e veja o resultado em 30 dias.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -101,7 +109,7 @@ const SaaSLanding = () => {
               onClick={() => navigate("/login")}
               className="w-full sm:w-auto h-16 px-10 gold-gradient text-primary-foreground font-black rounded-2xl shadow-2xl shadow-primary/20 text-lg transition-all active:scale-95 group"
             >
-              Criar Minha Barbearia <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              Começar Grátis <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
               variant="outline"
@@ -119,7 +127,7 @@ const SaaSLanding = () => {
         <div className="absolute right-0 top-1/4 w-96 h-96 bg-primary/5 blur-[120px] rounded-full" />
         
         <div className="text-center mb-20">
-          <Badge variant="outline" className="border-border text-muted-foreground font-bold uppercase text-[9px] tracking-widest px-3 py-1 mb-4">Tecnologia</Badge>
+          <Badge variant="outline" className="border-border text-muted-foreground font-bold uppercase text-[9px] tracking-widest px-3 py-1 mb-4">Funcionalidades</Badge>
           <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-tight">
              Gestão <span className="text-gold-gradient">sem esforço</span>
           </h2>
@@ -135,7 +143,7 @@ const SaaSLanding = () => {
               <div className="h-12 w-12 rounded-2xl gold-gradient flex items-center justify-center mb-6 group-hover:scale-110 transition-all">
                 <f.icon className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h3 className="font-display text-xl font-bold mb-3 racking-tight">{f.title}</h3>
+              <h3 className="font-display text-xl font-bold mb-3 tracking-tight">{f.title}</h3>
               <p className="text-muted-foreground leading-relaxed text-sm font-medium">{f.desc}</p>
             </div>
           ))}
@@ -148,7 +156,7 @@ const SaaSLanding = () => {
         <div className="container px-6 relative">
             <h2 className="text-center text-sm font-black uppercase text-muted-foreground tracking-[0.4em] mb-16">Quem usa <span className="text-glow-gold">fatura mais</span></h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                {testimonials.map((t, i) => (
+                {testimonials.map((t) => (
                     <div key={t.name} className="bg-card border border-border p-8 rounded-2xl shadow-xl backdrop-blur-md">
                         <div className="flex gap-1 mb-6">
                           {Array.from({ length: t.rating }).map((_, j) => (
@@ -180,7 +188,7 @@ const SaaSLanding = () => {
             O plano certo para o seu <span className="text-gold-gradient">tamanho</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-md mx-auto font-medium leading-relaxed">
-            Recupere o valor do investimento em menos de 3 cortes no mês. Sem fidelidade.
+            Teste grátis por 30 dias. Sem fidelidade. Cancele quando quiser.
           </p>
         </div>
         
@@ -212,6 +220,7 @@ const SaaSLanding = () => {
                     <span className="font-display text-6xl font-extrabold text-foreground tracking-tighter">
                       {plan.price}
                     </span>
+                    <span className="text-xl font-bold text-foreground">{plan.cents}</span>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{plan.period}</span>
                   </div>
                 </div>
@@ -243,7 +252,7 @@ const SaaSLanding = () => {
 
       {/* --- FINAL CALL TO ACTION --- */}
       <section className="container py-32 px-6">
-        <div className="relative rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/30 p-12 sm:p-24 text-center max-w-5xl mx-auto shadow-2xl overflow-hidden backdrop-blur-xl relative">
+        <div className="relative rounded-2xl border border-border bg-gradient-to-br from-card to-secondary/30 p-12 sm:p-24 text-center max-w-5xl mx-auto shadow-2xl overflow-hidden backdrop-blur-xl">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.05),transparent_70%)] -z-10" />
           
           <div className="relative z-10">
@@ -252,7 +261,7 @@ const SaaSLanding = () => {
               Chega de perder tempo com papel e caneta.
             </h2>
             <p className="text-lg text-muted-foreground mb-12 max-w-lg mx-auto font-medium leading-relaxed">
-              Modernize sua barbearia agora e ofereça a melhor experiência para seus clientes.
+              Modernize sua barbearia agora. Teste grátis por 30 dias sem compromisso.
             </p>
             <Button
               size="lg"
@@ -267,12 +276,12 @@ const SaaSLanding = () => {
 
       {/* --- FOOTER --- */}
       <footer className="container py-12 text-center border-t border-border px-6">
-        <div className="flex items-center justify-center gap-3 mb-4Opacity-50">
+        <div className="flex items-center justify-center gap-3 mb-4">
           <Scissors className="h-4 w-4 text-primary" />
           <span className="font-display font-bold text-sm tracking-tighter text-foreground">AgendeOnline24Horas</span>
         </div>
         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
-          Plataforma para barbeiros de alta performance &copy; 2024
+          Plataforma para barbeiros de alta performance &copy; {new Date().getFullYear()}
         </p>
       </footer>
     </div>
