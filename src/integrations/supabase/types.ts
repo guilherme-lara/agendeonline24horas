@@ -231,6 +231,7 @@ export type Database = {
           settings: Json | null
           setup_completed: boolean
           slug: string
+          trial_ends_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -245,6 +246,7 @@ export type Database = {
           settings?: Json | null
           setup_completed?: boolean
           slug: string
+          trial_ends_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -259,6 +261,7 @@ export type Database = {
           settings?: Json | null
           setup_completed?: boolean
           slug?: string
+          trial_ends_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -537,6 +540,7 @@ export type Database = {
           quantity: number
           service_id: string | null
           updated_at: string
+          validity_days: number
         }
         Insert: {
           active?: boolean
@@ -549,6 +553,7 @@ export type Database = {
           quantity?: number
           service_id?: string | null
           updated_at?: string
+          validity_days?: number
         }
         Update: {
           active?: boolean
@@ -561,6 +566,7 @@ export type Database = {
           quantity?: number
           service_id?: string | null
           updated_at?: string
+          validity_days?: number
         }
         Relationships: [
           {
