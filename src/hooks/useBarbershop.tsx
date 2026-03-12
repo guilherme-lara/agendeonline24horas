@@ -80,6 +80,7 @@ export const useBarbershop = () => {
           ...data,
           plan_name: data.saas_plans?.[0]?.plan_name || "essential",
           plan_status: data.saas_plans?.[0]?.status || "active",
+          trial_ends_at: data.trial_ends_at,
         };
 
         // Atualiza estado estável
