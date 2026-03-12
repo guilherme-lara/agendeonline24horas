@@ -8,9 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { 
-  format, subDays, parseISO, startOfMonth, endOfMonth, 
-  isSameDay, addHours, startOfDay 
+  format, subDays, startOfMonth, endOfMonth, 
+  isSameDay, startOfDay 
 } from "date-fns";
+import { toBRT } from "@/lib/timezone";
 import { ptBR } from "date-fns/locale";
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, 
