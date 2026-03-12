@@ -32,9 +32,7 @@ const Dashboard = () => {
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
 
-  // --- 1. HELPER DE FUSO HORÁRIO (ESSENCIAL) ---
-  // Converte a data UTC do banco para o Horário de Brasília (UTC-3)
-  const toBRT = (dateStr: string) => addHours(parseISO(dateStr), -3);
+  // Fuso horário centralizado em src/lib/timezone.ts
 
   // --- 2. SISTEMA REALTIME (WEB SOCKETS) ---
   useEffect(() => {
