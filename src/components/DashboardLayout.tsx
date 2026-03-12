@@ -1,5 +1,5 @@
 // 1. Core React e React Router
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 
@@ -11,6 +11,7 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 // 3. Componentes de UI
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
+import TrialBlockModal from "@/components/TrialBlockModal";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
