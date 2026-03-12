@@ -24,6 +24,19 @@ const DashboardLayout = () => {
   // ÉPICO 2: Realtime silencioso — escuta mudanças na tabela appointments
   useLiveAppointments((barbershop as any)?.id);
 
+  // Bloqueio por expiração de trial
+  const isTrialExpired = useMemo(() => {
+    if (!barbershop) return false;
+    const shop = barbershop as any;
+    // Se tem plano ativo no saas_plans, não bloqueia
+    if (shop.plan_status === "active") return false;
+    // Se trial_ends_at existe e já passou
+    if (shop.trial_ends_at) {
+      return new Date(shop.trial_ends_at) < new Date();
+    }
+    return false;
+  }, [barbershop]);
+
   useEffect(() => {
     if (isInitialLoadRef.current) {
       if (!authLoading && !shopLoading) {
