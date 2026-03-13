@@ -115,14 +115,15 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
   }, [barbershopId]);
 
   const dateRange = useMemo(() => {
-    const now = new Date();
+    // Usa horário de Brasília como referência
+    const nowBRT = toBRT(new Date().toISOString());
     switch (dateFilter) {
-      case "today": return { start: startOfDay(now), end: endOfDay(now) };
-      case "week": return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfDay(now) };
-      case "month": return { start: startOfMonth(now), end: endOfDay(now) };
+      case "today": return { start: startOfDay(nowBRT), end: endOfDay(nowBRT) };
+      case "week": return { start: startOfWeek(nowBRT, { weekStartsOn: 1 }), end: endOfDay(nowBRT) };
+      case "month": return { start: startOfMonth(nowBRT), end: endOfDay(nowBRT) };
       case "custom": return {
-        start: customStart ? new Date(customStart) : startOfMonth(now),
-        end: customEnd ? endOfDay(new Date(customEnd)) : endOfDay(now),
+        start: customStart ? new Date(customStart) : startOfMonth(nowBRT),
+        end: customEnd ? endOfDay(new Date(customEnd)) : endOfDay(nowBRT),
       };
     }
   }, [dateFilter, customStart, customEnd]);
