@@ -96,11 +96,19 @@ const Servicos = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("services").delete().eq("id", id);
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23503') {
+          throw new Error("Este serviço possui agendamentos vinculados. Desative-o em vez de deletar.");
+        }
+        throw new Error(`Erro ao deletar: ${error.message}`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast({ title: "Serviço removido com sucesso." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao remover serviço", description: err.message, variant: "destructive" });
     },
   });
 
