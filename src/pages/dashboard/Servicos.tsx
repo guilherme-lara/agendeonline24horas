@@ -205,8 +205,8 @@ const Servicos = () => {
                 <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl" onClick={() => openEdit(s)}>
                   <Settings className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-xl" onClick={() => { if(confirm("Deletar este serviço permanentemente?")) deleteMutation.mutate(s.id); }} disabled={deleteMutation.isPending}>
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-xl" onClick={() => { if(confirm("Deletar este serviço permanentemente? Se houver agendamentos vinculados, prefira desativar.")) deleteMutation.mutate(s.id); }} disabled={deleteMutation.isPending}>
+                  {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
