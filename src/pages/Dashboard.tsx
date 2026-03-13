@@ -95,12 +95,11 @@ const Dashboard = () => {
 
   // --- 4. LÓGICA DE NEGÓCIO (CÁLCULO DE KPIs) ---
   const kpis = useMemo(() => {
-    const now = new Date();
-    const startMonth = startOfMonth(now);
-    const endMonth = endOfMonth(now);
-    
-    // Usa horário de Brasília como referência para "hoje"
-    const today = startOfDay(toBRT(new Date().toISOString()));
+    // Usa horário de Brasília como referência para "hoje" e "mês"
+    const nowBrt = toBRT(new Date().toISOString());
+    const today = startOfDay(nowBrt);
+    const startMonth = startOfMonth(nowBrt);
+    const endMonth = endOfMonth(nowBrt);
 
     let todayRevServices = 0;
     let todayRevProducts = 0;
