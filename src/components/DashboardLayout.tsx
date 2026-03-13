@@ -28,14 +28,17 @@ const DashboardLayout = () => {
   const isTrialExpired = useMemo(() => {
     if (!barbershop) return false;
     const shop = barbershop as any;
-    // Se tem plano ativo no saas_plans, não bloqueia
+    // Admin impersonating should never be blocked
+    if (isAdmin) return false;
+    // If there's an active plan, never block
     if (shop.plan_status === "active") return false;
-    // Se trial_ends_at existe e já passou
+    // If trial_ends_at exists and has passed
     if (shop.trial_ends_at) {
       return new Date(shop.trial_ends_at) < new Date();
     }
+    // No trial date and no active plan = block (legacy data safety)
     return false;
-  }, [barbershop]);
+  }, [barbershop, isAdmin]);
 
   useEffect(() => {
     if (isInitialLoadRef.current) {

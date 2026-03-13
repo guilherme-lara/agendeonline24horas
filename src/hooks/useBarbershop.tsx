@@ -76,10 +76,11 @@ export const useBarbershop = () => {
         }
 
         // Processa dados da barbearia
+        const activePlan = (data.saas_plans as any[])?.find((p: any) => p.status === "active");
         const processedBarbershop: Barbershop = {
           ...data,
-          plan_name: data.saas_plans?.[0]?.plan_name || "essential",
-          plan_status: data.saas_plans?.[0]?.status || "active",
+          plan_name: activePlan?.plan_name || "trial",
+          plan_status: activePlan?.status || "none",
           trial_ends_at: data.trial_ends_at,
         };
 

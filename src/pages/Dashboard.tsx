@@ -99,8 +99,8 @@ const Dashboard = () => {
     const startMonth = startOfMonth(now);
     const endMonth = endOfMonth(now);
     
-    // Normalização para comparação de "Hoje"
-    const today = startOfDay(now);
+    // Usa horário de Brasília como referência para "hoje"
+    const today = startOfDay(toBRT(new Date().toISOString()));
 
     let todayRevServices = 0;
     let todayRevProducts = 0;
