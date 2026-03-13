@@ -91,7 +91,6 @@ const Caixa = () => {
     setSelectedAppt(appt);
     const initialCart = [{ name: appt.service_name, price: appt.price, qty: 1, type: "service" }];
     
-    // Injeta desconto se já pagou sinal
     if (appt.has_signal && appt.signal_value > 0) {
        initialCart.push({
            name: "Desconto (Sinal Adiantado)",
@@ -105,55 +104,78 @@ const Caixa = () => {
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedAppt || !barbershop) throw new Error("Dados ausentes.");
-      const finalTotal = cartTotal < 0 ? 0 : cartTotal;
+      if (!selectedAppt || !barbershop) throw new Error("Dados ausentes. Selecione um agendamento.");
       
-      // 1. ARQUITETURA ORIGINAL: Insere na tabela orders (sem inventar colunas)
-      const { error: orderError } = await supabase.from("orders").insert({
+      // Verifica sessão antes de qualquer operação
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error("Sessão expirada. Faça login novamente para continuar.");
+      }
+      
+      const finalTotal = Math.max(0, cartTotal);
+      
+      // 1. Cria a order
+      const { data: orderData, error: orderError } = await supabase.from("orders").insert({
         barbershop_id: barbershop.id,
         appointment_id: selectedAppt.id,
         items: cart,
         total: finalTotal,
         payment_method: payMethod,
         status: payMethod === 'pix' ? "pendente" : "closed" 
-      });
+      }).select("id").single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        // Diagnóstico detalhado
+        if (orderError.code === '42501' || orderError.message?.includes('policy')) {
+          throw new Error(`Permissão negada ao criar comanda. Verifique se você é o dono desta barbearia. (Código: ${orderError.code})`);
+        }
+        if (orderError.code === '23505') {
+          throw new Error("Comanda duplicada. Este agendamento já foi finalizado.");
+        }
+        throw new Error(`Erro ao criar comanda: ${orderError.message} (Código: ${orderError.code || 'N/A'})`);
+      }
 
-      // 2. SE FOR PIX: Chama a Edge Function para gerar o link da InfinitePay
+      // 2. SE FOR PIX: Chama a Edge Function
       if (payMethod === 'pix' && finalTotal > 0) {
         const { data: pixData, error: pixError } = await supabase.functions.invoke('create-pix-charge', {
           body: {
             amount: Math.round(finalTotal * 100),
-            orderId: selectedAppt.id, // Referência do agendamento
+            orderId: selectedAppt.id,
             tenant_id: barbershop.id,
             description: `Comanda: ${selectedAppt.client_name}`
           }
         });
 
         if (pixError || !pixData?.success) {
-          throw new Error("Erro ao gerar o Pix na InfinitePay.");
+          throw new Error("Erro ao gerar o Pix na InfinitePay. Tente outra forma de pagamento.");
         }
 
-        // Abre o link do pix em nova aba pro cliente pagar
         window.open(pixData.payment_url, '_blank');
         return { isPix: true };
       }
 
-      // 3. SE NÃO FOR PIX: Dá baixa imediata no agendamento e estoque
+      // 3. SE NÃO FOR PIX: Dá baixa imediata no agendamento
       const { error: apptError } = await supabase.from("appointments").update({
         status: "completed",
         payment_status: "paid",
         total_price: finalTotal
       }).eq("id", selectedAppt.id);
 
-      if (apptError) throw apptError;
+      if (apptError) {
+        // Order já foi criada — não é fatal, mas avisa
+        console.error("Erro ao atualizar agendamento:", apptError);
+        throw new Error(`Comanda criada, mas erro ao fechar agendamento: ${apptError.message}. Verifique na Agenda.`);
+      }
 
+      // 4. Baixa de estoque para produtos
       for (const item of cart) {
-        if (item.type === "product") {
+        if (item.type === "product" && item.product_id) {
           const { data: current } = await supabase.from("inventory").select("quantity").eq("id", item.product_id).single();
           if (current) {
-            await supabase.from("inventory").update({ quantity: current.quantity - item.qty }).eq("id", item.product_id);
+            const { error: stockErr } = await supabase.from("inventory").update({ quantity: Math.max(0, current.quantity - item.qty) }).eq("id", item.product_id);
+            if (stockErr) {
+              console.warn(`Aviso: Falha ao baixar estoque de ${item.name}:`, stockErr.message);
+            }
           }
         }
       }
@@ -163,18 +185,22 @@ const Caixa = () => {
     onSuccess: (res) => {
       if (res?.isPix) {
         toast({ title: "Pix Gerado!", description: "Link aberto em nova aba. Aguardando pagamento..." });
-        // O carrinho continua montado até o webhook avisar
       } else {
         queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
-        toast({ title: "Venda Processada!", description: `Valor Total: R$ ${Math.max(0, cartTotal).toFixed(2)}` });
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        toast({ title: "✅ Venda Finalizada!", description: `Valor: R$ ${Math.max(0, cartTotal).toFixed(2).replace(".", ",")}` });
         setSelectedAppt(null);
         setCart([]);
       }
     },
     onError: (error: any) => {
-      toast({ title: "Erro na finalização", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "❌ Erro na finalização", 
+        description: error.message || "Erro desconhecido. Tente novamente.", 
+        variant: "destructive" 
+      });
     }
   });
 
@@ -186,6 +212,12 @@ const Caixa = () => {
     });
   };
 
+  const removeFromCart = (idx: number) => {
+    const item = cart[idx];
+    if (item.type === "service" || item.type === "discount") return; // não remove serviço base
+    setCart(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const openDetails = async (appt: any) => {
     setViewDetailsAppt(appt);
     setLoadingDetails(true);
@@ -193,8 +225,8 @@ const Caixa = () => {
       const { data, error } = await supabase.from("orders").select("*").eq("appointment_id", appt.id).maybeSingle();
       if (error) throw error;
       setOrderDetails(data);
-    } catch (err) {
-      toast({ title: "Erro", description: "Não foi possível carregar os detalhes.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro ao carregar detalhes", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setLoadingDetails(false);
     }
@@ -240,6 +272,11 @@ const Caixa = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          {loadingAppts && (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
           {appointments.filter((a:any) => a.client_name.toLowerCase().includes(search.toLowerCase())).map((a:any) => (
             <div key={a.id} className="p-4 bg-card border border-border rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all">
               <div>
@@ -266,6 +303,7 @@ const Caixa = () => {
               ) : (
                 <Button 
                   onClick={() => handleSelectAppt(a)}
+                  disabled={!!selectedAppt && selectedAppt.id === a.id}
                   className="gold-gradient text-primary-foreground font-bold rounded-xl h-9 px-6 shadow-gold"
                 >
                   Cobrar
@@ -273,6 +311,11 @@ const Caixa = () => {
               )}
             </div>
           ))}
+          {!loadingAppts && appointments.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              Nenhum agendamento para hoje.
+            </div>
+          )}
         </div>
 
         {selectedAppt && (
@@ -282,7 +325,7 @@ const Caixa = () => {
                 <h2 className="text-2xl font-black text-foreground font-display">Comanda Atual</h2>
                 <p className="text-primary text-xs font-bold uppercase tracking-widest">{selectedAppt.client_name}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedAppt(null)} className="rounded-full text-muted-foreground">
+              <Button variant="ghost" size="icon" onClick={() => { setSelectedAppt(null); setCart([]); }} className="rounded-full text-muted-foreground">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -295,6 +338,11 @@ const Caixa = () => {
                     {item.type !== 'discount' && <p className="text-[10px] text-muted-foreground">R$ {item.price.toFixed(2)} un.</p>}
                   </div>
                   <div className="flex items-center gap-4">
+                    {item.type !== 'discount' && item.type !== 'service' && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeFromCart(idx)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                     {item.type !== 'discount' && (
                       <div className="flex items-center bg-card rounded-lg p-1 border border-border">
                         <button onClick={() => setCart(prev => prev.map((it, i) => i === idx ? {...it, qty: Math.max(1, it.qty - 1)} : it))} className="p-1 hover:text-primary"><Minus className="h-3 w-3" /></button>
@@ -313,7 +361,7 @@ const Caixa = () => {
             <div className="mb-8">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">Adicionar Produto</label>
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
-                {inventory.map(p => (
+                {inventory.map((p: any) => (
                   <button key={p.id} onClick={() => addProductToCart(p)} className="flex items-center justify-between p-3 bg-background border border-border rounded-xl hover:border-primary/30 transition-all text-left">
                     <div>
                       <p className="text-[11px] font-bold text-foreground truncate">{p.name}</p>
@@ -348,14 +396,21 @@ const Caixa = () => {
               <Button 
                 onClick={() => checkoutMutation.mutate()}
                 disabled={checkoutMutation.isPending}
-                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-lg shadow-xl shadow-emerald-900/20"
+                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-lg shadow-xl shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {checkoutMutation.isPending ? <Loader2 className="animate-spin" /> : payMethod === 'pix' ? <><QrCode className="h-6 w-6 mr-2" /> Gerar Pix na InfinitePay</> : <><CheckCircle className="h-6 w-6 mr-2" /> Finalizar</>}
+                {checkoutMutation.isPending ? (
+                  <><Loader2 className="animate-spin h-6 w-6 mr-2" /> Processando...</>
+                ) : payMethod === 'pix' ? (
+                  <><QrCode className="h-6 w-6 mr-2" /> Gerar Pix na InfinitePay</>
+                ) : (
+                  <><CheckCircle className="h-6 w-6 mr-2" /> Finalizar Venda</>
+                )}
               </Button>
             </div>
           </div>
         )}
 
+        {/* MODAL PIX FIXO */}
         <Dialog open={showPixModal} onOpenChange={setShowPixModal}>
           <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl">
             <DialogHeader>
@@ -382,6 +437,7 @@ const Caixa = () => {
           </DialogContent>
         </Dialog>
 
+        {/* MODAL DETALHES / RECIBO */}
         <Dialog open={!!viewDetailsAppt} onOpenChange={(v) => !v && setViewDetailsAppt(null)}>
           <DialogContent className="bg-card border-border text-foreground max-w-md rounded-3xl p-0 overflow-hidden shadow-card">
             <div className="bg-secondary/50 p-6 border-b border-border flex items-center justify-between">
@@ -414,14 +470,14 @@ const Caixa = () => {
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground font-bold uppercase">Pagamento do Restante</span>
+                      <span className="text-xs text-muted-foreground font-bold uppercase">Pagamento</span>
                       <div className="flex items-center gap-1.5 bg-card px-2 py-1 rounded-md border border-border">
                         {getPaymentIcon(orderDetails.payment_method)}
                         <span className="text-xs font-bold text-foreground">{getPaymentName(orderDetails.payment_method)}</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center pt-3 border-t border-border/50">
-                      <span className="text-sm font-black text-foreground">TOTAL FINAL PAGO</span>
+                      <span className="text-sm font-black text-foreground">TOTAL FINAL</span>
                       <span className="text-2xl font-black text-emerald-500 tracking-tighter">
                         R$ {Number(orderDetails.total).toFixed(2).replace(".", ",")}
                       </span>
