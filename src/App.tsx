@@ -1,5 +1,5 @@
 // 1. Core React e Bibliotecas Externas
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -40,21 +40,21 @@ import NotFound from "./pages/NotFound";
 import SuperAdmin from "./pages/SuperAdmin";
 import Admin from "./pages/Admin";
 
-// 8. Sub-páginas do Dashboard
-import Dashboard from "./pages/Dashboard";
-import Agenda from "./pages/dashboard/Agenda";
-import Clientes from "./pages/dashboard/Clientes";
-import Servicos from "./pages/dashboard/Servicos";
-import Profissionais from "./pages/dashboard/Profissionais";
-import Configuracoes from "./pages/dashboard/Configuracoes";
-import AgendamentoOnline from "./pages/dashboard/AgendamentoOnline";
-import Caixa from "./pages/dashboard/Caixa";
-import Relatorios from "./pages/dashboard/Relatorios";
-import Despesas from "./pages/dashboard/Despesas";
-import Produtos from "./pages/dashboard/Produtos";
-import Aniversarios from "./pages/dashboard/Aniversarios";
-import Pacotes from "./pages/dashboard/Pacotes";
-import Pagamentos from "./pages/dashboard/Pagamentos";
+// 8. Sub-páginas do Dashboard (Lazy Loaded)
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Agenda = lazy(() => import("./pages/dashboard/Agenda"));
+const Clientes = lazy(() => import("./pages/dashboard/Clientes"));
+const Servicos = lazy(() => import("./pages/dashboard/Servicos"));
+const Profissionais = lazy(() => import("./pages/dashboard/Profissionais"));
+const Configuracoes = lazy(() => import("./pages/dashboard/Configuracoes"));
+const AgendamentoOnline = lazy(() => import("./pages/dashboard/AgendamentoOnline"));
+const Caixa = lazy(() => import("./pages/dashboard/Caixa"));
+const Relatorios = lazy(() => import("./pages/dashboard/Relatorios"));
+const Despesas = lazy(() => import("./pages/dashboard/Despesas"));
+const Produtos = lazy(() => import("./pages/dashboard/Produtos"));
+const Aniversarios = lazy(() => import("./pages/dashboard/Aniversarios"));
+const Pacotes = lazy(() => import("./pages/dashboard/Pacotes"));
+const Pagamentos = lazy(() => import("./pages/dashboard/Pagamentos"));
 
 
 // 9. Hook da Barbearia (para o PlanGate)
@@ -130,6 +130,13 @@ const PlanGate = ({ children, minPlan, featureName }: { children: React.ReactNod
 //   return null;
 // };
 
+// --- LAZY LOADING FALLBACK ---
+const LazyFallback = () => (
+  <div className="flex items-center justify-center min-h-[300px]">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
+
 // --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
   const { pathname } = useLocation();
@@ -159,26 +166,26 @@ const AppContent = () => {
         <Route path="/super-admin" element={<SuperAdmin />} />
         <Route path="/admin" element={<Admin />} />
 
-        {/* Dashboard e Sub-páginas com Sidebar */}
+        {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="agenda" element={<Agenda />} />
-          <Route path="clientes" element={<Clientes />} />
-          <Route path="servicos" element={<Servicos />} />
-          <Route path="profissionais" element={<Profissionais />} />
-          <Route path="configuracoes" element={<Configuracoes />} />
-          <Route path="agendamento-online" element={<AgendamentoOnline />} />
+          <Route index element={<Suspense fallback={<LazyFallback />}><Dashboard /></Suspense>} />
+          <Route path="agenda" element={<Suspense fallback={<LazyFallback />}><Agenda /></Suspense>} />
+          <Route path="clientes" element={<Suspense fallback={<LazyFallback />}><Clientes /></Suspense>} />
+          <Route path="servicos" element={<Suspense fallback={<LazyFallback />}><Servicos /></Suspense>} />
+          <Route path="profissionais" element={<Suspense fallback={<LazyFallback />}><Profissionais /></Suspense>} />
+          <Route path="configuracoes" element={<Suspense fallback={<LazyFallback />}><Configuracoes /></Suspense>} />
+          <Route path="agendamento-online" element={<Suspense fallback={<LazyFallback />}><AgendamentoOnline /></Suspense>} />
 
           {/* Prata Tier + */}
-          <Route path="caixa" element={<PlanGate minPlan="prata" featureName="Caixa"><Caixa /></PlanGate>} />
-          <Route path="relatorios" element={<PlanGate minPlan="prata" featureName="Relatórios"><Relatorios /></PlanGate>} />
-          <Route path="despesas" element={<PlanGate minPlan="prata" featureName="Despesas"><Despesas /></PlanGate>} />
-          <Route path="produtos" element={<PlanGate minPlan="prata" featureName="Produtos"><Produtos /></PlanGate>} />
-          <Route path="aniversarios" element={<PlanGate minPlan="prata" featureName="Aniversários"><Aniversarios /></PlanGate>} />
+          <Route path="caixa" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Caixa"><Caixa /></PlanGate></Suspense>} />
+          <Route path="relatorios" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Relatórios"><Relatorios /></PlanGate></Suspense>} />
+          <Route path="despesas" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Despesas"><Despesas /></PlanGate></Suspense>} />
+          <Route path="produtos" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Produtos"><Produtos /></PlanGate></Suspense>} />
+          <Route path="aniversarios" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Aniversários"><Aniversarios /></PlanGate></Suspense>} />
 
           {/* Ouro Tier + */}
-          <Route path="pacotes" element={<PlanGate minPlan="ouro" featureName="Pacotes"><Pacotes /></PlanGate>} />
-          <Route path="pagamentos" element={<PlanGate minPlan="ouro" featureName="Pagamentos"><Pagamentos /></PlanGate>} />
+          <Route path="pacotes" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="ouro" featureName="Pacotes"><Pacotes /></PlanGate></Suspense>} />
+          <Route path="pagamentos" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="ouro" featureName="Pagamentos"><Pagamentos /></PlanGate></Suspense>} />
           
         </Route>
 

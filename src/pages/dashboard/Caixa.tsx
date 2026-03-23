@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { toBRT } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
+import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -35,7 +36,10 @@ const Caixa = () => {
   const [copiedPix, setCopiedPix] = useState(false);
   const [successModal, setSuccessModal] = useState<{ open: boolean; total: number; clientName: string; clientPhone: string; serviceName: string } | null>(null);
 
+  const { successVibrate } = useHapticFeedback();
+
   const fireConfetti = useCallback(() => {
+    successVibrate();
     const end = Date.now() + 600;
     const frame = () => {
       confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#d4af37", "#f5d76e", "#ffd700"] });
@@ -43,7 +47,7 @@ const Caixa = () => {
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     frame();
-  }, []);
+  }, [successVibrate]);
 
   const handleWhatsAppReceipt = useCallback(() => {
     if (!successModal) return;

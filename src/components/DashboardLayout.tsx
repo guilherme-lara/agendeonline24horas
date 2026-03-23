@@ -12,6 +12,8 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import TrialBlockModal from "@/components/TrialBlockModal";
+import BottomNav from "@/components/BottomNav";
+import InstallAppBanner from "@/components/InstallAppBanner";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -82,10 +84,14 @@ const DashboardLayout = () => {
           </span>
         </div>
 
-        <main className="flex-1">
+        <main className="flex-1 pb-20 md:pb-0">
+          <div className="px-4 pt-4 md:px-0 md:pt-0">
+            <InstallAppBanner />
+          </div>
           <Outlet />
         </main>
       </div>
+      <BottomNav />
     </div>
   );
 };
