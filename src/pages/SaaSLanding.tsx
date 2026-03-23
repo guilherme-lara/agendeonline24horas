@@ -236,7 +236,7 @@ const SaaSLanding = () => {
                 </ul>
                 
                 <Button
-                  onClick={() => navigate("/login")}
+                  onClick={() => openPlanCheckout(plan.name.toLowerCase())}
                   className={`w-full h-14 font-black rounded-xl transition-all shadow-xl ${
                     plan.popular
                       ? "gold-gradient text-primary-foreground shadow-primary/20 hover:opacity-90"

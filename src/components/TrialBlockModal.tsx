@@ -1,14 +1,15 @@
-import { useNavigate } from "react-router-dom";
-import { Shield, ArrowRight, Check, Package, Sparkles, Star } from "lucide-react";
+import { Shield, Check, Package, Sparkles, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { useBarbershop } from "@/hooks/useBarbershop";
+import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 
 const plans = [
-  { name: "Bronze", price: "R$ 49,90", features: ["Agenda online 24h", "1 profissional", "Dashboard básico"], icon: Package },
-  { name: "Prata", price: "R$ 79,90", features: ["Checkout Pix", "Até 5 profissionais", "Lembretes"], icon: Sparkles, popular: true },
-  { name: "Ouro", price: "R$ 99,90", features: ["Estoque completo", "Profissionais ilimitados", "Suporte VIP"], icon: Star },
+  { key: "bronze", name: "Bronze", price: "R$ 49,90", features: ["Agenda online 24h", "1 profissional", "Dashboard básico"], icon: Package },
+  { key: "prata", name: "Prata", price: "R$ 79,90", features: ["Checkout Pix", "Até 5 profissionais", "Financeiro completo"], icon: Sparkles, popular: true },
+  { key: "ouro", name: "Ouro", price: "R$ 99,90", features: ["Estoque completo", "Profissionais ilimitados", "Suporte VIP"], icon: Star },
 ];
 
 interface TrialBlockModalProps {
@@ -16,7 +17,8 @@ interface TrialBlockModalProps {
 }
 
 const TrialBlockModal = ({ open }: TrialBlockModalProps) => {
-  const navigate = useNavigate();
+  const { barbershop } = useBarbershop();
+  const shop = barbershop as any;
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
@@ -53,16 +55,14 @@ const TrialBlockModal = ({ open }: TrialBlockModalProps) => {
                 ))}
               </ul>
               <Button
-                onClick={() => {
-                  // TODO: Replace with InfinitePay checkout handle when available
-                  navigate("/");
-                }}
+                onClick={() => openPlanCheckout(plan.key, shop?.id)}
                 className={`w-full mt-4 rounded-xl font-bold ${
                   plan.popular
                     ? "gold-gradient text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
                 }`}
               >
+                <ExternalLink className="h-3.5 w-3.5 mr-2" />
                 Assinar
               </Button>
             </div>
@@ -70,7 +70,7 @@ const TrialBlockModal = ({ open }: TrialBlockModalProps) => {
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground mt-4 font-bold uppercase tracking-widest">
-          Dúvidas? Entre em contato pelo WhatsApp
+          Pagamento seguro via InfinitePay · Acesso liberado em minutos
         </p>
       </DialogContent>
     </Dialog>
