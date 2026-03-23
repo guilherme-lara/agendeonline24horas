@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 import {
   CalendarDays, BarChart3, CreditCard, Bell, Users, Shield,
   Check, ArrowRight, Scissors, Star, Quote, Globe, Sparkles, Package
