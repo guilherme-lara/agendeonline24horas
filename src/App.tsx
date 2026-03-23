@@ -55,7 +55,7 @@ import Produtos from "./pages/dashboard/Produtos";
 import Aniversarios from "./pages/dashboard/Aniversarios";
 import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
-import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
+
 
 // 9. Hook da Barbearia (para o PlanGate)
 import { useBarbershop } from "@/hooks/useBarbershop";
