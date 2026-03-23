@@ -210,11 +210,21 @@ const Caixa = () => {
       if (res?.isPix) {
         toast({ title: "Pix Gerado!", description: "Link aberto em nova aba. Aguardando pagamento..." });
       } else {
+        const finalTotal = Math.max(0, cartTotal);
+        const appt = selectedAppt;
         queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["appointments"] });
-        toast({ title: "✅ Venda Finalizada!", description: `Valor: R$ ${Math.max(0, cartTotal).toFixed(2).replace(".", ",")}` });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        setSuccessModal({
+          open: true,
+          total: finalTotal,
+          clientName: appt?.client_name || "",
+          clientPhone: appt?.client_phone || "",
+          serviceName: appt?.service_name || "",
+        });
+        fireConfetti();
         setSelectedAppt(null);
         setCart([]);
       }
