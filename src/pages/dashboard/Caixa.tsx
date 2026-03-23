@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { toBRT } from "@/lib/timezone";
 import { useState, useMemo, useCallback } from "react";
+import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
