@@ -60,8 +60,9 @@ Deno.serve(async (req) => {
 
     // === ROTA 1: Pagamento de PLANO SaaS ===
     // Detecta via metadata.ref (barbershop_id) e valores de plano
-    const refBarbershopId = payload.metadata?.ref || payload.ref || 
-      new URL(payload.checkout_url || "https://x.com").searchParams.get("ref") || "";
+    const refBarbershopId = payload.metadata?.external_id || payload.external_id ||
+      payload.metadata?.ref || payload.ref || 
+      (() => { try { return new URL(payload.checkout_url || "").searchParams.get("external_id") || new URL(payload.checkout_url || "").searchParams.get("ref") || ""; } catch { return ""; } })();
     const amount = Number(payload.amount || payload.value || 0);
     
     // Valores dos planos (em centavos ou reais)

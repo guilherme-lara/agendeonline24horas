@@ -29,7 +29,7 @@ export const openPlanCheckout = (planKey: string, barbershopId?: string) => {
   // Append barbershop_id as query param for webhook identification
   const url = new URL(plan.url);
   if (barbershopId) {
-    url.searchParams.set("ref", barbershopId);
+    url.searchParams.set("external_id", barbershopId);
   }
 
   window.open(url.toString(), "_blank");
