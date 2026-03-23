@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle, RefreshCw, X, Minus, Eye, CreditCard, Banknote, QrCode, Copy, Check, DollarSign
+  ShoppingCart, Loader2, Search, Plus, Trash2, CheckCircle, Receipt, AlertTriangle, RefreshCw, X, Minus, Eye, CreditCard, Banknote, QrCode, Copy, Check, DollarSign, MessageCircle, PartyPopper
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -10,13 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { toBRT } from "@/lib/timezone";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import confetti from "canvas-confetti";
 
 const Caixa = () => {
   const { barbershop } = useBarbershop() as any;
@@ -32,6 +33,25 @@ const Caixa = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [successModal, setSuccessModal] = useState<{ open: boolean; total: number; clientName: string; clientPhone: string; serviceName: string } | null>(null);
+
+  const fireConfetti = useCallback(() => {
+    const end = Date.now() + 600;
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#d4af37", "#f5d76e", "#ffd700"] });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#d4af37", "#f5d76e", "#ffd700"] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  }, []);
+
+  const handleWhatsAppReceipt = useCallback(() => {
+    if (!successModal) return;
+    const phone = successModal.clientPhone.replace(/\D/g, "");
+    const intlPhone = phone.startsWith("55") ? phone : `55${phone}`;
+    const msg = `Olá ${successModal.clientName}, seu pagamento de R$ ${successModal.total.toFixed(2).replace(".", ",")} para o serviço ${successModal.serviceName} no ${barbershop?.name || "nosso estabelecimento"} foi confirmado! ✅ Obrigado pela preferência e até a próxima!`;
+    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  }, [successModal, barbershop?.name]);
 
   // Parse settings para Pix Estático do PDV
   const rawSettings = barbershop?.settings;
@@ -190,11 +210,21 @@ const Caixa = () => {
       if (res?.isPix) {
         toast({ title: "Pix Gerado!", description: "Link aberto em nova aba. Aguardando pagamento..." });
       } else {
+        const finalTotal = Math.max(0, cartTotal);
+        const appt = selectedAppt;
         queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["appointments"] });
-        toast({ title: "✅ Venda Finalizada!", description: `Valor: R$ ${Math.max(0, cartTotal).toFixed(2).replace(".", ",")}` });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        setSuccessModal({
+          open: true,
+          total: finalTotal,
+          clientName: appt?.client_name || "",
+          clientPhone: appt?.client_phone || "",
+          serviceName: appt?.service_name || "",
+        });
+        fireConfetti();
         setSelectedAppt(null);
         setCart([]);
       }
@@ -494,6 +524,43 @@ const Caixa = () => {
             </div>
             <div className="p-4 border-t border-border bg-secondary/30">
               <Button onClick={() => setViewDetailsAppt(null)} variant="outline" className="w-full border-border font-bold rounded-xl">Fechar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        {/* MODAL DE SUCESSO */}
+        <Dialog open={!!successModal?.open} onOpenChange={(v) => !v && setSuccessModal(null)}>
+          <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl text-center">
+            <div className="flex flex-col items-center gap-6 py-6">
+              <div className="h-20 w-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center animate-in zoom-in-50 duration-500">
+                <CheckCircle className="h-10 w-10 text-emerald-500 animate-in spin-in-180 duration-700" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-foreground font-display">Venda Concluída!</h2>
+                <p className="text-muted-foreground text-sm mt-1">{successModal?.clientName}</p>
+              </div>
+              <div className="bg-secondary/50 rounded-2xl px-8 py-4 border border-border">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total Recebido</p>
+                <p className="text-4xl font-black text-emerald-500 tracking-tighter">
+                  R$ {(successModal?.total || 0).toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+              <div className="flex gap-3 w-full">
+                {successModal?.clientPhone && (
+                  <Button
+                    onClick={handleWhatsAppReceipt}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl h-12"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" /> Recibo WhatsApp
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setSuccessModal(null)}
+                  variant="outline"
+                  className="flex-1 border-border font-bold rounded-xl h-12"
+                >
+                  Fechar
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
