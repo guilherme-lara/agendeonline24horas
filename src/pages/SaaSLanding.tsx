@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 import {
   CalendarDays, BarChart3, CreditCard, Bell, Users, Shield,
   Check, ArrowRight, Scissors, Star, Quote, Globe, Sparkles, Package
@@ -235,7 +236,7 @@ const SaaSLanding = () => {
                 </ul>
                 
                 <Button
-                  onClick={() => navigate("/login")}
+                  onClick={() => openPlanCheckout(plan.name.toLowerCase())}
                   className={`w-full h-14 font-black rounded-xl transition-all shadow-xl ${
                     plan.popular
                       ? "gold-gradient text-primary-foreground shadow-primary/20 hover:opacity-90"
