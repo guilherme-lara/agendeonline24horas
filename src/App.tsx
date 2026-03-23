@@ -1,5 +1,5 @@
 // 1. Core React e Bibliotecas Externas
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -40,21 +40,21 @@ import NotFound from "./pages/NotFound";
 import SuperAdmin from "./pages/SuperAdmin";
 import Admin from "./pages/Admin";
 
-// 8. Sub-páginas do Dashboard
-import Dashboard from "./pages/Dashboard";
-import Agenda from "./pages/dashboard/Agenda";
-import Clientes from "./pages/dashboard/Clientes";
-import Servicos from "./pages/dashboard/Servicos";
-import Profissionais from "./pages/dashboard/Profissionais";
-import Configuracoes from "./pages/dashboard/Configuracoes";
-import AgendamentoOnline from "./pages/dashboard/AgendamentoOnline";
-import Caixa from "./pages/dashboard/Caixa";
-import Relatorios from "./pages/dashboard/Relatorios";
-import Despesas from "./pages/dashboard/Despesas";
-import Produtos from "./pages/dashboard/Produtos";
-import Aniversarios from "./pages/dashboard/Aniversarios";
-import Pacotes from "./pages/dashboard/Pacotes";
-import Pagamentos from "./pages/dashboard/Pagamentos";
+// 8. Sub-páginas do Dashboard (Lazy Loaded)
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Agenda = lazy(() => import("./pages/dashboard/Agenda"));
+const Clientes = lazy(() => import("./pages/dashboard/Clientes"));
+const Servicos = lazy(() => import("./pages/dashboard/Servicos"));
+const Profissionais = lazy(() => import("./pages/dashboard/Profissionais"));
+const Configuracoes = lazy(() => import("./pages/dashboard/Configuracoes"));
+const AgendamentoOnline = lazy(() => import("./pages/dashboard/AgendamentoOnline"));
+const Caixa = lazy(() => import("./pages/dashboard/Caixa"));
+const Relatorios = lazy(() => import("./pages/dashboard/Relatorios"));
+const Despesas = lazy(() => import("./pages/dashboard/Despesas"));
+const Produtos = lazy(() => import("./pages/dashboard/Produtos"));
+const Aniversarios = lazy(() => import("./pages/dashboard/Aniversarios"));
+const Pacotes = lazy(() => import("./pages/dashboard/Pacotes"));
+const Pagamentos = lazy(() => import("./pages/dashboard/Pagamentos"));
 
 
 // 9. Hook da Barbearia (para o PlanGate)
