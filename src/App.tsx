@@ -169,16 +169,16 @@ const AppContent = () => {
           <Route path="configuracoes" element={<Configuracoes />} />
           <Route path="agendamento-online" element={<AgendamentoOnline />} />
 
-          {/* Growth Tier + */}
-          <Route path="caixa" element={<PlanGate minPlan="growth"><Caixa /></PlanGate>} />
-          <Route path="relatorios" element={<PlanGate minPlan="growth"><Relatorios /></PlanGate>} />
-          <Route path="despesas" element={<PlanGate minPlan="growth"><Despesas /></PlanGate>} />
-          <Route path="produtos" element={<PlanGate minPlan="growth"><Produtos /></PlanGate>} />
-          <Route path="aniversarios" element={<PlanGate minPlan="growth"><Aniversarios /></PlanGate>} />
+          {/* Prata Tier + */}
+          <Route path="caixa" element={<PlanGate minPlan="prata" featureName="Caixa"><Caixa /></PlanGate>} />
+          <Route path="relatorios" element={<PlanGate minPlan="prata" featureName="Relatórios"><Relatorios /></PlanGate>} />
+          <Route path="despesas" element={<PlanGate minPlan="prata" featureName="Despesas"><Despesas /></PlanGate>} />
+          <Route path="produtos" element={<PlanGate minPlan="prata" featureName="Produtos"><Produtos /></PlanGate>} />
+          <Route path="aniversarios" element={<PlanGate minPlan="prata" featureName="Aniversários"><Aniversarios /></PlanGate>} />
 
-          {/* Pro Tier + */}
-          <Route path="pacotes" element={<PlanGate minPlan="pro"><Pacotes /></PlanGate>} />
-          <Route path="pagamentos" element={<PlanGate minPlan="pro"><Pagamentos /></PlanGate>} />
+          {/* Ouro Tier + */}
+          <Route path="pacotes" element={<PlanGate minPlan="ouro" featureName="Pacotes"><Pacotes /></PlanGate>} />
+          <Route path="pagamentos" element={<PlanGate minPlan="ouro" featureName="Pagamentos"><Pagamentos /></PlanGate>} />
           
         </Route>
 
