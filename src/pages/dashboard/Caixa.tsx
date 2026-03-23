@@ -527,6 +527,43 @@ const Caixa = () => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* MODAL DE SUCESSO */}
+        <Dialog open={!!successModal?.open} onOpenChange={(v) => !v && setSuccessModal(null)}>
+          <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl text-center">
+            <div className="flex flex-col items-center gap-6 py-6">
+              <div className="h-20 w-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center animate-in zoom-in-50 duration-500">
+                <CheckCircle className="h-10 w-10 text-emerald-500 animate-in spin-in-180 duration-700" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-foreground font-display">Venda Concluída!</h2>
+                <p className="text-muted-foreground text-sm mt-1">{successModal?.clientName}</p>
+              </div>
+              <div className="bg-secondary/50 rounded-2xl px-8 py-4 border border-border">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total Recebido</p>
+                <p className="text-4xl font-black text-emerald-500 tracking-tighter">
+                  R$ {(successModal?.total || 0).toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+              <div className="flex gap-3 w-full">
+                {successModal?.clientPhone && (
+                  <Button
+                    onClick={handleWhatsAppReceipt}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl h-12"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" /> Recibo WhatsApp
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setSuccessModal(null)}
+                  variant="outline"
+                  className="flex-1 border-border font-bold rounded-xl h-12"
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
