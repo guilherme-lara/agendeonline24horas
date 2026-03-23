@@ -33,6 +33,25 @@ const Caixa = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [successModal, setSuccessModal] = useState<{ open: boolean; total: number; clientName: string; clientPhone: string; serviceName: string } | null>(null);
+
+  const fireConfetti = useCallback(() => {
+    const end = Date.now() + 600;
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#d4af37", "#f5d76e", "#ffd700"] });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#d4af37", "#f5d76e", "#ffd700"] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  }, []);
+
+  const handleWhatsAppReceipt = useCallback(() => {
+    if (!successModal) return;
+    const phone = successModal.clientPhone.replace(/\D/g, "");
+    const intlPhone = phone.startsWith("55") ? phone : `55${phone}`;
+    const msg = `Olá ${successModal.clientName}, seu pagamento de R$ ${successModal.total.toFixed(2).replace(".", ",")} para o serviço ${successModal.serviceName} no ${barbershop?.name || "nosso estabelecimento"} foi confirmado! ✅ Obrigado pela preferência e até a próxima!`;
+    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+  }, [successModal, barbershop?.name]);
 
   // Parse settings para Pix Estático do PDV
   const rawSettings = barbershop?.settings;
