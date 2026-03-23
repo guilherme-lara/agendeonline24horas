@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
+import { toBRT } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -54,13 +55,16 @@ const Caixa = () => {
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ["daily-appointments", barbershop?.id],
     queryFn: async () => {
-      const todayStr = format(new Date(), "yyyy-MM-dd");
+      // Usa horário de Brasília para filtrar "hoje"
+      const nowBrt = toBRT(new Date().toISOString());
+      const dayStart = startOfDay(nowBrt);
+      const dayEnd = endOfDay(nowBrt);
       const { data, error } = await supabase
         .from("appointments")
         .select("*")
         .eq("barbershop_id", barbershop.id)
-        .gte("scheduled_at", `${todayStr}T00:00:00`)
-        .lte("scheduled_at", `${todayStr}T23:59:59`)
+        .gte("scheduled_at", dayStart.toISOString())
+        .lte("scheduled_at", dayEnd.toISOString())
         .neq("status", "cancelled")
         .order("scheduled_at");
       if (error) throw error;
