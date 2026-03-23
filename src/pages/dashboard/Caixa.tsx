@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
+import { toBRT } from "@/lib/timezone";
 import { useState, useMemo } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
