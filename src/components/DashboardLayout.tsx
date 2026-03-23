@@ -12,6 +12,8 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import TrialBlockModal from "@/components/TrialBlockModal";
+import BottomNav from "@/components/BottomNav";
+import InstallAppBanner from "@/components/InstallAppBanner";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
