@@ -88,6 +88,7 @@ const DashboardLayout = () => {
         <main className="flex-1 pb-20 md:pb-0">
           <div className="px-4 pt-4 md:px-0 md:pt-0">
             <InstallAppBanner />
+            <ExpirationBanner />
           </div>
           <Outlet />
         </main>
