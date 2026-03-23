@@ -55,7 +55,7 @@ import Produtos from "./pages/dashboard/Produtos";
 import Aniversarios from "./pages/dashboard/Aniversarios";
 import Pacotes from "./pages/dashboard/Pacotes";
 import Pagamentos from "./pages/dashboard/Pagamentos";
-import AprovacaoSinais from "./pages/dashboard/AprovacaoSinais";
+
 
 // 9. Hook da Barbearia (para o PlanGate)
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -167,7 +167,7 @@ const AppContent = () => {
           {/* Pro Tier + */}
           <Route path="pacotes" element={<PlanGate minPlan="pro"><Pacotes /></PlanGate>} />
           <Route path="pagamentos" element={<PlanGate minPlan="pro"><Pagamentos /></PlanGate>} />
-          <Route path="aprovacao-sinais" element={<PlanGate minPlan="pro"><AprovacaoSinais /></PlanGate>} />
+          
         </Route>
 
         <Route path="*" element={<NotFound />} />

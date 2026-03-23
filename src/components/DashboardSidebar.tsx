@@ -3,7 +3,7 @@ import {
   MessageCircle, CalendarDays, Globe, TrendingDown,
   BarChart3, Smile, Users, Scissors, ShoppingBag, PackageCheck,
   Cake, Settings, LogOut, X, ChevronRight,
-  CreditCard, LayoutDashboard, ShoppingCart, AlertTriangle,
+  CreditCard, LayoutDashboard, ShoppingCart, 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ const navItems = [
   { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
   { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
-  { label: "Aprovação de Sinais", icon: AlertTriangle, path: "/dashboard/aprovacao-sinais" },
+  
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
