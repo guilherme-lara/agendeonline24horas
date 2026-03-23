@@ -22,7 +22,7 @@ const navItems = [
   { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
   { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
-  { label: "Aprovação de Sinais", icon: AlertTriangle, path: "/dashboard/aprovacao-sinais" },
+  
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
