@@ -61,8 +61,10 @@ import Pagamentos from "./pages/dashboard/Pagamentos";
 import { useBarbershop } from "@/hooks/useBarbershop";
 
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
-const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: 'essential' | 'growth' | 'pro' }) => {
+const PlanGate = ({ children, minPlan, featureName }: { children: React.ReactNode, minPlan: PlanTier, featureName?: string }) => {
+  const { canAccessFeature, getUpgradePlan, currentPlan } = usePlanGate();
   const { barbershop, loading } = useBarbershop() as any;
+  const [showUpgrade, setShowUpgrade] = React.useState(false);
 
   if (loading) {
     return (
@@ -73,26 +75,35 @@ const PlanGate = ({ children, minPlan }: { children: React.ReactNode, minPlan: '
     );
   }
 
-  const planRank = { essential: 0, growth: 1, pro: 2 };
-  const currentPlan = (barbershop?.plan_name?.toLowerCase() || 'essential') as keyof typeof planRank;
-
-  if (planRank[currentPlan] < planRank[minPlan]) {
+  if (!canAccessFeature(minPlan)) {
+    const requiredPlan = getUpgradePlan(minPlan);
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-300">
-        <div className="bg-primary/10 p-6 rounded-[2rem] mb-6 border border-primary/20">
-          <ShieldAlert className="h-12 w-12 text-primary" />
+      <>
+        <UpgradeModal
+          open={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          requiredPlan={requiredPlan}
+          featureName={featureName || "Este recurso"}
+        />
+        <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-300">
+          <div className="bg-primary/10 p-6 rounded-[2rem] mb-6 border border-primary/20">
+            <ShieldAlert className="h-12 w-12 text-primary" />
+          </div>
+          <h2 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Recurso Premium</h2>
+          <p className="text-muted-foreground max-w-md mb-4 text-sm">
+            O acesso a este módulo está disponível a partir do plano <span className="text-primary font-bold">{requiredPlan}</span>.
+          </p>
+          <p className="text-muted-foreground/70 max-w-md mb-8 text-xs">
+            Seu plano atual: <span className="font-bold text-foreground">{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</span>
+          </p>
+          <Button
+            onClick={() => setShowUpgrade(true)}
+            className="gold-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-gold"
+          >
+            <Rocket className="h-5 w-5 mr-2" /> Fazer Upgrade Agora
+          </Button>
         </div>
-        <h2 className="text-2xl font-black text-foreground mb-2 tracking-tight font-display">Recurso Premium</h2>
-        <p className="text-muted-foreground max-w-md mb-8 text-sm">
-          O acesso a este módulo está disponível apenas nos planos <span className="text-primary font-bold">Growth</span> ou <span className="text-primary font-bold">Pro</span>.
-        </p>
-        <Button
-          onClick={() => window.location.href = '/dashboard/configuracoes'}
-          className="gold-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-gold"
-        >
-          <Rocket className="h-5 w-5 mr-2" /> Fazer Upgrade Agora
-        </Button>
-      </div>
+      </>
     );
   }
 
