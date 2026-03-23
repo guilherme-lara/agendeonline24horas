@@ -53,7 +53,6 @@ const Agenda = () => {
         .from("appointments")
         .select("*")
         .eq("barbershop_id", barbershop?.id)
-        .neq("status", "pendente_sinal")
         .order("scheduled_at", { ascending: true });
       if (error) throw error;
       return data || [];
