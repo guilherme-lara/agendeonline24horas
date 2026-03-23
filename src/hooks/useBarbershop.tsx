@@ -76,11 +76,19 @@ export const useBarbershop = () => {
         }
 
         // Processa dados da barbearia
-        const activePlan = (data.saas_plans as any[])?.find((p: any) => p.status === "active");
+        const plans = (data.saas_plans as any[]) || [];
+        const activePlan = plans.find((p: any) => p.status === "active");
+        
+        // Check if active plan is expired
+        let planStatus = activePlan?.status || "none";
+        if (activePlan?.expires_at && new Date(activePlan.expires_at) < new Date()) {
+          planStatus = "expired";
+        }
+
         const processedBarbershop: Barbershop = {
           ...data,
           plan_name: activePlan?.plan_name || "trial",
-          plan_status: activePlan?.status || "none",
+          plan_status: planStatus,
           trial_ends_at: data.trial_ends_at,
         };
 
