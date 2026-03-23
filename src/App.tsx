@@ -167,7 +167,7 @@ const AppContent = () => {
           {/* Pro Tier + */}
           <Route path="pacotes" element={<PlanGate minPlan="pro"><Pacotes /></PlanGate>} />
           <Route path="pagamentos" element={<PlanGate minPlan="pro"><Pagamentos /></PlanGate>} />
-          <Route path="aprovacao-sinais" element={<PlanGate minPlan="pro"><AprovacaoSinais /></PlanGate>} />
+          
         </Route>
 
         <Route path="*" element={<NotFound />} />

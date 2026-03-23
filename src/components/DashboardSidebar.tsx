@@ -3,7 +3,7 @@ import {
   MessageCircle, CalendarDays, Globe, TrendingDown,
   BarChart3, Smile, Users, Scissors, ShoppingBag, PackageCheck,
   Cake, Settings, LogOut, X, ChevronRight,
-  CreditCard, LayoutDashboard, ShoppingCart, AlertTriangle,
+  CreditCard, LayoutDashboard, ShoppingCart, 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
