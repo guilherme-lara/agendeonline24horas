@@ -65,7 +65,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen w-full">
-      <TrialBlockModal open={isTrialExpired} />
+      {isTrialExpired && <LicenseOverlay barbershopId={(barbershop as any)?.id} />}
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
