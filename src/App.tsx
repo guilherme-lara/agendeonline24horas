@@ -59,7 +59,8 @@ import Pagamentos from "./pages/dashboard/Pagamentos";
 
 // 9. Hook da Barbearia (para o PlanGate)
 import { useBarbershop } from "@/hooks/useBarbershop";
-
+import { usePlanGate, type PlanTier } from "@/hooks/usePlanGate";
+import UpgradeModal from "@/components/UpgradeModal";
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
 const PlanGate = ({ children, minPlan, featureName }: { children: React.ReactNode, minPlan: PlanTier, featureName?: string }) => {
   const { canAccessFeature, getUpgradePlan, currentPlan } = usePlanGate();
