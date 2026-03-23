@@ -11,9 +11,10 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 // 3. Componentes de UI
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
-import TrialBlockModal from "@/components/TrialBlockModal";
 import BottomNav from "@/components/BottomNav";
 import InstallAppBanner from "@/components/InstallAppBanner";
+import ExpirationBanner from "@/components/ExpirationBanner";
+import LicenseOverlay from "@/components/LicenseOverlay";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen w-full">
-      <TrialBlockModal open={isTrialExpired} />
+      {isTrialExpired && <LicenseOverlay barbershopId={(barbershop as any)?.id} />}
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -87,6 +88,7 @@ const DashboardLayout = () => {
         <main className="flex-1 pb-20 md:pb-0">
           <div className="px-4 pt-4 md:px-0 md:pt-0">
             <InstallAppBanner />
+            <ExpirationBanner />
           </div>
           <Outlet />
         </main>
