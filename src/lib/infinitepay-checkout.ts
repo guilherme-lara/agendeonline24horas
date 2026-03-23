@@ -1,21 +1,19 @@
 // InfinitePay Checkout URLs for SaaS subscriptions
 // Handle: ribeiro-guilherme-11k
 
-const INFINITEPAY_HANDLE = "ribeiro-guilherme-11k";
-
 export const PLAN_CHECKOUT_URLS: Record<string, { url: string; price: string; label: string }> = {
   bronze: {
-    url: `https://pay.infinitepay.io/${INFINITEPAY_HANDLE}/49-90`,
+    url: "https://invoice.infinitepay.io/plans/ribeiro-guilherme-11k/3l2BzaH8kP",
     price: "R$ 49,90",
     label: "Bronze",
   },
   prata: {
-    url: `https://pay.infinitepay.io/${INFINITEPAY_HANDLE}/79-90`,
+    url: "https://invoice.infinitepay.io/plans/ribeiro-guilherme-11k/7W4Ofh22H5",
     price: "R$ 79,90",
     label: "Prata",
   },
   ouro: {
-    url: `https://pay.infinitepay.io/${INFINITEPAY_HANDLE}/99-90`,
+    url: "https://invoice.infinitepay.io/plans/ribeiro-guilherme-11k/7W4PZovb3d",
     price: "R$ 99,90",
     label: "Ouro",
   },
@@ -31,7 +29,7 @@ export const openPlanCheckout = (planKey: string, barbershopId?: string) => {
   // Append barbershop_id as query param for webhook identification
   const url = new URL(plan.url);
   if (barbershopId) {
-    url.searchParams.set("ref", barbershopId);
+    url.searchParams.set("external_id", barbershopId);
   }
 
   window.open(url.toString(), "_blank");
