@@ -11,9 +11,10 @@ import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 // 3. Componentes de UI
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
-import TrialBlockModal from "@/components/TrialBlockModal";
 import BottomNav from "@/components/BottomNav";
 import InstallAppBanner from "@/components/InstallAppBanner";
+import ExpirationBanner from "@/components/ExpirationBanner";
+import LicenseOverlay from "@/components/LicenseOverlay";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
