@@ -70,21 +70,27 @@ const Login = () => {
       if (!loggedUser) return;
 
       try {
-        // 2. O GPS MANUAL: Descobre quem é o cara direto na fonte (Banco de Dados)
-        const { data: roleData } = await supabase
+        // Descobre o role do usuário
+        const { data: roles } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", loggedUser.id)
-          .eq("role", "admin")
-          .maybeSingle();
+          .eq("user_id", loggedUser.id);
 
-        // É O SUPER ADMIN? Redireciona na hora e morre a execução aqui.
-        if (roleData) {
+        const roleSet = new Set((roles || []).map((r: any) => r.role));
+
+        // Admin → Super Admin
+        if (roleSet.has("admin")) {
           window.location.href = "/super-admin";
           return;
         }
 
-        // NÃO É O ADMIN. Vamos ver se ele já configurou a barbearia.
+        // Barbeiro → Dashboard do Barbeiro
+        if (roleSet.has("barber")) {
+          window.location.href = "/barber/dashboard";
+          return;
+        }
+
+        // Dono → Dashboard ou Onboarding
         const { data: shopData } = await supabase
           .from("barbershops")
           .select("id")
@@ -92,10 +98,8 @@ const Login = () => {
           .maybeSingle();
 
         if (shopData) {
-          // Tem barbearia -> Painel Normal
           window.location.href = "/dashboard";
         } else {
-          // Não tem barbearia -> Fazer Onboarding
           window.location.href = "/onboarding";
         }
 
