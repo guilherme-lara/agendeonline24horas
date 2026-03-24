@@ -14,7 +14,7 @@ const Login = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin, isBarber } = useAuth();
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,11 +25,13 @@ const Login = () => {
     if (!authLoading && user) {
       if (isAdmin) {
         navigate("/super-admin", { replace: true });
+      } else if (isBarber) {
+        navigate("/barber/dashboard", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
       }
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, isAdmin, isBarber, authLoading, navigate]);
 
   // --- MUTAÇÃO: LOGIN / CADASTRO COM ROTEAMENTO IMPERATIVO (FORÇADO) ---
   const authMutation = useMutation({
