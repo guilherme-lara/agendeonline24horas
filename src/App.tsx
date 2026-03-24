@@ -24,6 +24,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
+import BarberDashboard from "./pages/BarberDashboard";
 
 // 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
@@ -140,7 +141,7 @@ const LazyFallback = () => (
 // --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
   const { pathname } = useLocation();
-  const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin");
+  const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin") || pathname.startsWith("/barber");
 
   return (
     <>
@@ -165,6 +166,9 @@ const AppContent = () => {
         {/* Gestão Administrativa */}
         <Route path="/super-admin" element={<SuperAdmin />} />
         <Route path="/admin" element={<Admin />} />
+
+        {/* Dashboard do Barbeiro */}
+        <Route path="/barber/dashboard" element={<BarberDashboard />} />
 
         {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
