@@ -51,7 +51,16 @@ export const createInfinitePayCharge = async (
   const data = await res.json();
 
   if (!res.ok) {
-    return { success: false, error: data.error || "Erro ao gerar cobrança" };
+    console.error("❌ create-pix-charge error:", {
+      status: res.status,
+      data,
+    });
+    return {
+      success: false,
+      error: data.error || "Erro ao gerar cobrança",
+      ...(data.details && { details: data.details }),
+      ...(data.http_status && { http_status: data.http_status }),
+    };
   }
 
   return {
