@@ -67,6 +67,8 @@ const Caixa = () => {
   }
   const pixKey = shopSettings?.pix_key || "";
   const pixBeneficiary = shopSettings?.pix_beneficiary || barbershop?.name || "";
+  const pixStaticQrUrl = shopSettings?.pix_static_qr_url || "";
+  const pixKeyType = shopSettings?.pix_key_type || "";
 
   const handleCopyPix = () => {
     if (!pixKey) return;
@@ -288,7 +290,7 @@ const Caixa = () => {
         <h1 className="text-3xl font-black text-foreground flex items-center gap-3 font-display">
           <ShoppingCart className="text-primary" /> Frente de Caixa
         </h1>
-        {pixKey && (
+        {(pixKey || pixStaticQrUrl) && (
           <Button 
             onClick={() => setShowPixModal(true)} 
             variant="outline" 
@@ -461,15 +463,24 @@ const Caixa = () => {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Beneficiário</p>
                 <p className="text-lg font-black text-foreground">{pixBeneficiary}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chave Pix</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-sm text-foreground break-all border border-border">{pixKey}</div>
-                  <Button onClick={handleCopyPix} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
-                    {copiedPix ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+              {pixStaticQrUrl && (
+                <div className="flex justify-center">
+                  <img src={pixStaticQrUrl} alt="QR Code Pix" className="h-48 w-48 rounded-xl border border-border object-contain bg-white p-2" />
                 </div>
-              </div>
+              )}
+              {pixKey && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Chave Pix {pixKeyType ? `(${pixKeyType.toUpperCase()})` : ""}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-sm text-foreground break-all border border-border">{pixKey}</div>
+                    <Button onClick={handleCopyPix} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
+                      {copiedPix ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
               <Button onClick={() => setShowPixModal(false)} variant="outline" className="w-full rounded-xl border-border">Fechar</Button>
             </div>
           </DialogContent>

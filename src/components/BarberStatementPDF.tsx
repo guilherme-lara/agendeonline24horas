@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X, Download, Printer } from "lucide-react";
+import { X, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toBRT } from "@/lib/timezone";
 
@@ -99,16 +99,15 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
             </div>
           </div>
 
-          {/* Table */}
+          {/* Table - Only barber's own services */}
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="bg-gray-50">
                 <th className="py-2 px-3 text-left font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Data</th>
-                <th className="py-2 px-3 text-left font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Hora</th>
                 <th className="py-2 px-3 text-left font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Cliente</th>
                 <th className="py-2 px-3 text-left font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Serviço</th>
-                <th className="py-2 px-3 text-right font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Valor</th>
-                <th className="py-2 px-3 text-right font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Comissão</th>
+                <th className="py-2 px-3 text-right font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Valor Total</th>
+                <th className="py-2 px-3 text-right font-bold text-[10px] uppercase tracking-wider border-b-2 border-gray-200">Minha Comissão</th>
               </tr>
             </thead>
             <tbody>
@@ -117,8 +116,7 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
                 const commission = (appt.price || 0) * (commissionRate / 100);
                 return (
                   <tr key={appt.id} className="border-b border-gray-100">
-                    <td className="py-2 px-3">{format(date, "dd/MM")}</td>
-                    <td className="py-2 px-3">{format(date, "HH:mm")}</td>
+                    <td className="py-2 px-3">{format(date, "dd/MM HH:mm")}</td>
                     <td className="py-2 px-3">{appt.client_name}</td>
                     <td className="py-2 px-3">{appt.service_name}</td>
                     <td className="py-2 px-3 text-right">R$ {(appt.price || 0).toFixed(2)}</td>
@@ -127,12 +125,12 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
                 );
               })}
               {completedAppointments.length === 0 && (
-                <tr><td colSpan={6} className="py-6 text-center text-gray-400">Nenhum atendimento finalizado no período.</td></tr>
+                <tr><td colSpan={5} className="py-6 text-center text-gray-400">Nenhum atendimento finalizado no período.</td></tr>
               )}
             </tbody>
             <tfoot>
               <tr className="bg-green-50 font-bold">
-                <td colSpan={4} className="py-3 px-3 text-right">TOTAL ({totals.count} atendimentos)</td>
+                <td colSpan={3} className="py-3 px-3 text-right">TOTAL ({totals.count} atendimentos)</td>
                 <td className="py-3 px-3 text-right">R$ {totals.gross.toFixed(2)}</td>
                 <td className="py-3 px-3 text-right text-green-700">R$ {totals.commission.toFixed(2)}</td>
               </tr>
