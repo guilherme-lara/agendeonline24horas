@@ -67,6 +67,8 @@ const Caixa = () => {
   }
   const pixKey = shopSettings?.pix_key || "";
   const pixBeneficiary = shopSettings?.pix_beneficiary || barbershop?.name || "";
+  const pixStaticQrUrl = shopSettings?.pix_static_qr_url || "";
+  const pixKeyType = shopSettings?.pix_key_type || "";
 
   const handleCopyPix = () => {
     if (!pixKey) return;
