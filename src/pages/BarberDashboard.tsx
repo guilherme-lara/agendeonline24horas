@@ -33,6 +33,21 @@ const BarberDashboard = () => {
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
   const today = nowBRT();
 
+  const { data: barber, isLoading: barberLoading } = useQuery({
+    queryKey: ["barber-self", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("barbers") as any)
+        .select("*, barbershops:barbershop_id(name, logo_url, slug)")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const barberBarbershopId = barber?.barbershop_id;
+
   // Realtime: escuta mudanças em appointments da barbearia do barbeiro
   useEffect(() => {
     if (!barberBarbershopId) return;
@@ -50,19 +65,6 @@ const BarberDashboard = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [barberBarbershopId, queryClient]);
-
-  const { data: barber, isLoading: barberLoading } = useQuery({
-    queryKey: ["barber-self", user?.id],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("barbers") as any)
-        .select("*, barbershops:barbershop_id(name, logo_url, slug)")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
 
   const { data: appointments = [], isLoading: apptLoading } = useQuery({
     queryKey: ["barber-appointments", barber?.name, barber?.barbershop_id],
