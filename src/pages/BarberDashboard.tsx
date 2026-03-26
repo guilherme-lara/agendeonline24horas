@@ -264,7 +264,7 @@ const BarberDashboard = () => {
             </div>
 
             {/* Upcoming */}
-            {appointments.filter((a: any) => {
+            {confirmedAppointments.filter((a: any) => {
               const d = toBRT(a.scheduled_at);
               return d > endOfDay(today) && a.status !== "cancelled";
             }).length > 0 && (
@@ -303,11 +303,11 @@ const BarberDashboard = () => {
         {activeTab === "ganhos" && (
           <div className="space-y-4">
             <h2 className="text-sm font-bold">Serviços Concluídos no Mês</h2>
-            {appointments.filter((a: any) => a.status === "completed").length === 0 ? (
+            {confirmedAppointments.filter((a: any) => a.status === "completed").length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço concluído este mês.</p>
             ) : (
               <div className="space-y-2">
-                {appointments.filter((a: any) => a.status === "completed").map((appt: any) => {
+                {confirmedAppointments.filter((a: any) => a.status === "completed").map((appt: any) => {
                   const commission = (appt.price || 0) * (commissionRate / 100);
                   return (
                     <div key={appt.id} className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
