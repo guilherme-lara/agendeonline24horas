@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import {
   DollarSign, Loader2, TrendingUp, Clock, Users,
   AlertTriangle, Building2, Bell, RefreshCw, Scissors, Package
@@ -31,6 +32,7 @@ const Dashboard = () => {
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
+  const { playCaching } = useSoundFeedback();
 
   // Fuso horário centralizado em src/lib/timezone.ts
 
@@ -45,8 +47,11 @@ const Dashboard = () => {
         schema: 'public', 
         table: 'appointments', 
         filter: `barbershop_id=eq.${barbershop.id}` 
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+        if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
+          playCaching();
+        }
       })
       .on('postgres_changes', { 
         event: '*', 
