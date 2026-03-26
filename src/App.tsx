@@ -25,6 +25,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
 import BarberDashboard from "./pages/BarberDashboard";
+import BarberProfile from "./pages/BarberProfile";
 
 // 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
@@ -169,6 +170,7 @@ const AppContent = () => {
 
         {/* Dashboard do Barbeiro */}
         <Route path="/barber/dashboard" element={<BarberDashboard />} />
+        <Route path="/barber/perfil" element={<BarberProfile />} />
 
         {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>

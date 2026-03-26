@@ -350,11 +350,11 @@ const BarberDashboard = () => {
             <span className="text-[10px] font-bold">Extrato</span>
           </button>
           <button
-            onClick={signOut}
+            onClick={() => navigate("/barber/perfil")}
             className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-colors text-muted-foreground"
           >
-            <LogOut className="h-5 w-5" />
-            <span className="text-[10px] font-bold">Sair</span>
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-bold">Perfil</span>
           </button>
         </div>
       </nav>
