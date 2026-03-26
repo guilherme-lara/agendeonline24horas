@@ -2,12 +2,14 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Camera, Save, ArrowLeft, User, Mail, Lock, Percent } from "lucide-react";
+import { Loader2, Camera, Save, ArrowLeft, User, Mail, Lock, Percent, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 
 const BarberProfile = () => {
   const { user } = useAuth();
@@ -21,6 +23,7 @@ const BarberProfile = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [uploading, setUploading] = useState(false);
+  const { enabled: soundEnabled, toggleSound, playCaching } = useSoundFeedback();
 
   const { data: barber, isLoading } = useQuery({
     queryKey: ["barber-profile", user?.id],
@@ -159,6 +162,19 @@ const BarberProfile = () => {
             </label>
             <Input value={`${barber?.commission_pct || 0}%`} disabled className="bg-muted border-border h-11 opacity-60 font-bold" />
             <p className="text-[10px] text-muted-foreground">Definida pelo administrador da barbearia.</p>
+          </CardContent>
+        </Card>
+
+        {/* Sound Toggle */}
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Volume2 className="h-3 w-3" /> Sons de Notificação
+              </label>
+              <Switch checked={soundEnabled} onCheckedChange={() => { toggleSound(); playCaching(); }} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Reproduz um som ao receber novos agendamentos.</p>
           </CardContent>
         </Card>
 
