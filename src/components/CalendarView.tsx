@@ -56,7 +56,15 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
   const getAppointmentsForDay = (day: Date) =>
-    appointments.filter((a) => isSameDay(new Date(a.scheduled_at), day) && a.status !== "cancelled");
+    appointments.filter((a) => {
+      if (isSameDay(new Date(a.scheduled_at), day) && a.status !== "cancelled") {
+        // No Pay No Slot: hide pix_online with pending payment
+        const appt = a as any;
+        if (appt.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(appt.payment_status)) return false;
+        return true;
+      }
+      return false;
+    });
 
   const rescheduleMutation = useMutation({
     mutationFn: async ({ id, newDateStr }: { id: string; newDateStr: string }) => {
