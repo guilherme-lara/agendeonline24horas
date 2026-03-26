@@ -98,6 +98,13 @@ const BarberDashboard = () => {
     enabled: !!barber?.name && !!barber?.barbershop_id,
   });
 
+  // No Pay No Slot: filtra agendamentos pix_online com pagamento pendente
+  const confirmedAppointments = useMemo(() => 
+    appointments.filter((a: any) => {
+      if (a.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(a.payment_status)) return false;
+      return true;
+    }), [appointments]);
+
   const commissionRate = barber?.commission_pct || 50;
 
   const stats = useMemo(() => {
