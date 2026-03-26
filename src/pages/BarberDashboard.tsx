@@ -1,15 +1,19 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User } from "lucide-react";
+import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User, Target, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { toBRT, nowBRT } from "@/lib/timezone";
 import BarberStatementPDF from "@/components/BarberStatementPDF";
+import { useSoundFeedback } from "@/hooks/useSoundFeedback";
+import confetti from "canvas-confetti";
 
 const statusColors: Record<string, string> = {
   completed: "border-emerald-500/30 bg-emerald-500/5",
@@ -25,6 +29,8 @@ const statusLabel: Record<string, { text: string; color: string }> = {
   pending: { text: "Pendente", color: "text-yellow-500" },
 };
 
+const DAILY_GOAL_KEY = "barber_daily_goal";
+
 const BarberDashboard = () => {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
@@ -32,6 +38,13 @@ const BarberDashboard = () => {
   const [showStatement, setShowStatement] = useState(false);
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
   const today = nowBRT();
+  const { playCaching } = useSoundFeedback();
+  const prevCountRef = useRef<number | null>(null);
+  const goalCelebratedRef = useRef(false);
+  const [dailyGoal, setDailyGoal] = useState(() => {
+    const stored = localStorage.getItem(DAILY_GOAL_KEY);
+    return stored ? Number(stored) : 300;
+  });
 
   const { data: barber, isLoading: barberLoading } = useQuery({
     queryKey: ["barber-self", user?.id],
@@ -48,7 +61,7 @@ const BarberDashboard = () => {
 
   const barberBarbershopId = barber?.barbershop_id;
 
-  // Realtime: escuta mudanças em appointments da barbearia do barbeiro
+  // Realtime: escuta mudanças em appointments da barbearia do barbeiro + som
   useEffect(() => {
     if (!barberBarbershopId) return;
     const channel = supabase
@@ -58,13 +71,17 @@ const BarberDashboard = () => {
         schema: "public",
         table: "appointments",
         filter: `barbershop_id=eq.${barberBarbershopId}`,
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
+        // Play sound on new confirmed appointment
+        if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
+          playCaching();
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [barberBarbershopId, queryClient]);
+  }, [barberBarbershopId, queryClient, playCaching]);
 
   const { data: appointments = [], isLoading: apptLoading } = useQuery({
     queryKey: ["barber-appointments", barber?.name, barber?.barbershop_id],
@@ -125,12 +142,42 @@ const BarberDashboard = () => {
       a.status === "confirmed" || a.status === "pending"
     );
 
+    const todayEarnings = todayGross * (commissionRate / 100);
+    const completedTodayCount = completedToday.length;
+
     return {
-      todayEarnings: todayGross * (commissionRate / 100),
+      todayEarnings,
       monthCommission: monthGross * (commissionRate / 100),
       pendingCount: pendingAppts.length,
+      completedTodayCount,
     };
   }, [confirmedAppointments, commissionRate, today]);
+
+  // Goal progress
+  const goalProgress = dailyGoal > 0 ? Math.min((stats.todayEarnings / dailyGoal) * 100, 100) : 0;
+
+  // Celebrate on 100% goal
+  useEffect(() => {
+    if (goalProgress >= 100 && !goalCelebratedRef.current) {
+      goalCelebratedRef.current = true;
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      playCaching();
+    }
+    if (goalProgress < 100) goalCelebratedRef.current = false;
+  }, [goalProgress, playCaching]);
+
+  const handleGoalChange = useCallback((val: string) => {
+    const n = Number(val.replace(/\D/g, ""));
+    setDailyGoal(n);
+    localStorage.setItem(DAILY_GOAL_KEY, String(n));
+  }, []);
+
+  const handleCloseDay = useCallback(() => {
+    const todayStr = format(today, "dd/MM/yyyy");
+    const msg = `📊 *Relatório Final de Hoje (${todayStr})*%0A✅ Atendimentos: ${stats.completedTodayCount}%0A💰 Minha Comissão: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! 🎯`;
+    const phone = "";
+    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+  }, [today, stats]);
 
   const todayAppointments = useMemo(() => {
     const todayStr = format(today, "yyyy-MM-dd");
@@ -220,6 +267,43 @@ const BarberDashboard = () => {
         <p className="text-[10px] text-muted-foreground text-center">
           Comissão: {commissionRate}% sobre serviços concluídos
         </p>
+
+        {/* Daily Goal Progress */}
+        <Card className="border-border bg-card overflow-hidden">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Target className="h-3 w-3" /> Meta Diária
+              </label>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">R$</span>
+                <Input
+                  value={dailyGoal}
+                  onChange={(e) => handleGoalChange(e.target.value)}
+                  className="h-7 w-20 text-xs text-right bg-secondary border-border"
+                />
+              </div>
+            </div>
+            <Progress value={goalProgress} className="h-3 bg-secondary [&>div]:bg-gradient-to-r [&>div]:from-emerald-400 [&>div]:via-cyan-400 [&>div]:to-cyan-300 [&>div]:shadow-[0_0_12px_rgba(0,255,200,0.4)]" />
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-foreground">
+                R$ {stats.todayEarnings.toFixed(0)} <span className="text-muted-foreground font-normal">/ R$ {dailyGoal}</span>
+              </span>
+              <span className={`text-xs font-black ${goalProgress >= 100 ? "text-emerald-400" : "text-cyan-400"}`}>
+                {goalProgress.toFixed(0)}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Close Day Button */}
+        <Button
+          variant="outline"
+          onClick={handleCloseDay}
+          className="w-full h-10 rounded-xl border-border text-xs font-black flex items-center gap-2"
+        >
+          <Send className="h-3.5 w-3.5" /> Fechar Dia (WhatsApp)
+        </Button>
 
         {/* Tab content based on activeTab */}
         {activeTab === "agenda" && (
