@@ -111,17 +111,17 @@ const BarberDashboard = () => {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
 
-    const completedToday = appointments.filter((a: any) => {
+    const completedToday = confirmedAppointments.filter((a: any) => {
       const d = toBRT(a.scheduled_at);
       return d >= todayStart && d <= todayEnd && a.status === "completed";
     });
 
     const todayGross = completedToday.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
     
-    const monthCompleted = appointments.filter((a: any) => a.status === "completed");
+    const monthCompleted = confirmedAppointments.filter((a: any) => a.status === "completed");
     const monthGross = monthCompleted.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
 
-    const pendingAppts = appointments.filter((a: any) =>
+    const pendingAppts = confirmedAppointments.filter((a: any) =>
       a.status === "confirmed" || a.status === "pending"
     );
 
@@ -130,15 +130,15 @@ const BarberDashboard = () => {
       monthCommission: monthGross * (commissionRate / 100),
       pendingCount: pendingAppts.length,
     };
-  }, [appointments, commissionRate, today]);
+  }, [confirmedAppointments, commissionRate, today]);
 
   const todayAppointments = useMemo(() => {
     const todayStr = format(today, "yyyy-MM-dd");
-    return appointments.filter((a: any) => {
+    return confirmedAppointments.filter((a: any) => {
       const d = toBRT(a.scheduled_at);
       return format(d, "yyyy-MM-dd") === todayStr && a.status !== "cancelled";
     });
-  }, [appointments, today]);
+  }, [confirmedAppointments, today]);
 
   const handleMarkDone = async (appointmentId: string) => {
     await supabase
