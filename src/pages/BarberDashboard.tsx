@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toBRT, nowBRT } from "@/lib/timezone";
@@ -27,6 +28,7 @@ const statusLabel: Record<string, { text: string; color: string }> = {
 const BarberDashboard = () => {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showStatement, setShowStatement] = useState(false);
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
   const today = nowBRT();
@@ -43,6 +45,26 @@ const BarberDashboard = () => {
     },
     enabled: !!user?.id,
   });
+
+  const barberBarbershopId = barber?.barbershop_id;
+
+  // Realtime: escuta mudanças em appointments da barbearia do barbeiro
+  useEffect(() => {
+    if (!barberBarbershopId) return;
+    const channel = supabase
+      .channel(`barber-live-${barberBarbershopId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "appointments",
+        filter: `barbershop_id=eq.${barberBarbershopId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [barberBarbershopId, queryClient]);
 
   const { data: appointments = [], isLoading: apptLoading } = useQuery({
     queryKey: ["barber-appointments", barber?.name, barber?.barbershop_id],
@@ -76,23 +98,30 @@ const BarberDashboard = () => {
     enabled: !!barber?.name && !!barber?.barbershop_id,
   });
 
+  // No Pay No Slot: filtra agendamentos pix_online com pagamento pendente
+  const confirmedAppointments = useMemo(() => 
+    appointments.filter((a: any) => {
+      if (a.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(a.payment_status)) return false;
+      return true;
+    }), [appointments]);
+
   const commissionRate = barber?.commission_pct || 50;
 
   const stats = useMemo(() => {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
 
-    const completedToday = appointments.filter((a: any) => {
+    const completedToday = confirmedAppointments.filter((a: any) => {
       const d = toBRT(a.scheduled_at);
       return d >= todayStart && d <= todayEnd && a.status === "completed";
     });
 
     const todayGross = completedToday.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
     
-    const monthCompleted = appointments.filter((a: any) => a.status === "completed");
+    const monthCompleted = confirmedAppointments.filter((a: any) => a.status === "completed");
     const monthGross = monthCompleted.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
 
-    const pendingAppts = appointments.filter((a: any) =>
+    const pendingAppts = confirmedAppointments.filter((a: any) =>
       a.status === "confirmed" || a.status === "pending"
     );
 
@@ -101,15 +130,15 @@ const BarberDashboard = () => {
       monthCommission: monthGross * (commissionRate / 100),
       pendingCount: pendingAppts.length,
     };
-  }, [appointments, commissionRate, today]);
+  }, [confirmedAppointments, commissionRate, today]);
 
   const todayAppointments = useMemo(() => {
     const todayStr = format(today, "yyyy-MM-dd");
-    return appointments.filter((a: any) => {
+    return confirmedAppointments.filter((a: any) => {
       const d = toBRT(a.scheduled_at);
       return format(d, "yyyy-MM-dd") === todayStr && a.status !== "cancelled";
     });
-  }, [appointments, today]);
+  }, [confirmedAppointments, today]);
 
   const handleMarkDone = async (appointmentId: string) => {
     await supabase
@@ -235,7 +264,7 @@ const BarberDashboard = () => {
             </div>
 
             {/* Upcoming */}
-            {appointments.filter((a: any) => {
+            {confirmedAppointments.filter((a: any) => {
               const d = toBRT(a.scheduled_at);
               return d > endOfDay(today) && a.status !== "cancelled";
             }).length > 0 && (
@@ -274,11 +303,11 @@ const BarberDashboard = () => {
         {activeTab === "ganhos" && (
           <div className="space-y-4">
             <h2 className="text-sm font-bold">Serviços Concluídos no Mês</h2>
-            {appointments.filter((a: any) => a.status === "completed").length === 0 ? (
+            {confirmedAppointments.filter((a: any) => a.status === "completed").length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço concluído este mês.</p>
             ) : (
               <div className="space-y-2">
-                {appointments.filter((a: any) => a.status === "completed").map((appt: any) => {
+                {confirmedAppointments.filter((a: any) => a.status === "completed").map((appt: any) => {
                   const commission = (appt.price || 0) * (commissionRate / 100);
                   return (
                     <div key={appt.id} className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
@@ -328,11 +357,11 @@ const BarberDashboard = () => {
             <span className="text-[10px] font-bold">Extrato</span>
           </button>
           <button
-            onClick={signOut}
+            onClick={() => navigate("/barber/perfil")}
             className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-colors text-muted-foreground"
           >
-            <LogOut className="h-5 w-5" />
-            <span className="text-[10px] font-bold">Sair</span>
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-bold">Perfil</span>
           </button>
         </div>
       </nav>
