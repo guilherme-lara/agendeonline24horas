@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toBRT, nowBRT } from "@/lib/timezone";
@@ -27,9 +28,28 @@ const statusLabel: Record<string, { text: string; color: string }> = {
 const BarberDashboard = () => {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showStatement, setShowStatement] = useState(false);
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
   const today = nowBRT();
+
+  // Realtime: escuta mudanças em appointments da barbearia do barbeiro
+  useEffect(() => {
+    if (!barberBarbershopId) return;
+    const channel = supabase
+      .channel(`barber-live-${barberBarbershopId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "appointments",
+        filter: `barbershop_id=eq.${barberBarbershopId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [barberBarbershopId, queryClient]);
 
   const { data: barber, isLoading: barberLoading } = useQuery({
     queryKey: ["barber-self", user?.id],
