@@ -18,7 +18,7 @@ import LicenseOverlay from "@/components/LicenseOverlay";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, isBarber, loading: authLoading } = useAuth();
   const { barbershop, loading: shopLoading, isImpersonating } = useBarbershop();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -50,14 +50,34 @@ const DashboardLayout = () => {
           navigate("/auth", { replace: true });
           return;
         }
+        // Barbeiros devem ir para seu dashboard específico
+        if (isBarber) {
+          navigate("/barber/dashboard", { replace: true });
+          return;
+        }
         if (isAdmin && !barbershop && !isImpersonating) {
           navigate("/super-admin", { replace: true });
+          return;
+        }
+        // SEGURANÇA DE ROTA: Se o carregamento terminou e barbershop é nulo,
+        // redireciona o usuário para o onboarding
+        if (!isAdmin && !barbershop) {
+          navigate("/onboarding", { replace: true });
           return;
         }
         isInitialLoadRef.current = false;
       }
     }
-  }, [user, isAdmin, barbershop, isImpersonating, authLoading, shopLoading, navigate]);
+  }, [
+    user,
+    isAdmin,
+    isBarber,
+    barbershop,
+    isImpersonating,
+    authLoading,
+    shopLoading,
+    navigate,
+  ]);
 
   if (isInitialLoadRef.current && (authLoading || shopLoading)) {
     return <DashboardSkeleton />;

@@ -174,25 +174,136 @@ const AppContent = () => {
 
         {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Suspense fallback={<LazyFallback />}><Dashboard /></Suspense>} />
-          <Route path="agenda" element={<Suspense fallback={<LazyFallback />}><Agenda /></Suspense>} />
-          <Route path="clientes" element={<Suspense fallback={<LazyFallback />}><Clientes /></Suspense>} />
-          <Route path="servicos" element={<Suspense fallback={<LazyFallback />}><Servicos /></Suspense>} />
-          <Route path="profissionais" element={<Suspense fallback={<LazyFallback />}><Profissionais /></Suspense>} />
-          <Route path="configuracoes" element={<Suspense fallback={<LazyFallback />}><Configuracoes /></Suspense>} />
-          <Route path="agendamento-online" element={<Suspense fallback={<LazyFallback />}><AgendamentoOnline /></Suspense>} />
+          <Route
+            index
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Dashboard />
+              </Suspense>
+            }
+          />
+          <Route
+            path="agenda"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Agenda />
+              </Suspense>
+            }
+          />
+          <Route
+            path="clientes"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Clientes />
+              </Suspense>
+            }
+          />
+          <Route
+            path="servicos"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Servicos />
+              </Suspense>
+            }
+          />
+          <Route
+            path="profissionais"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Profissionais />
+              </Suspense>
+            }
+          />
+          <Route
+            path="configuracoes"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Configuracoes />
+              </Suspense>
+            }
+          />
+          <Route
+            path="agendamento-online"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <AgendamentoOnline />
+              </Suspense>
+            }
+          />
 
-          {/* Prata Tier + */}
-          <Route path="caixa" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Caixa"><Caixa /></PlanGate></Suspense>} />
-          <Route path="relatorios" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Relatórios"><Relatorios /></PlanGate></Suspense>} />
-          <Route path="despesas" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Despesas"><Despesas /></PlanGate></Suspense>} />
-          <Route path="produtos" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Produtos"><Produtos /></PlanGate></Suspense>} />
-          <Route path="aniversarios" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="prata" featureName="Aniversários"><Aniversarios /></PlanGate></Suspense>} />
+          {/* Bronze Tier + (Caixa disponível em todos os planos) */}
+          <Route
+            path="caixa"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="bronze" featureName="Caixa">
+                  <Caixa />
+                </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="relatorios"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="prata" featureName="Relatórios">
+                  <Relatorios />
+                </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="despesas"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="prata" featureName="Despesas">
+                  <Despesas />
+                </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="produtos"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="prata" featureName="Produtos">
+                  <Produtos />
+                </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="aniversarios"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="prata" featureName="Aniversários">
+                  <Aniversarios />
+                </PlanGate>
+              </Suspense>
+            }
+          />
 
           {/* Ouro Tier + */}
-          <Route path="pacotes" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="ouro" featureName="Pacotes"><Pacotes /></PlanGate></Suspense>} />
-          <Route path="pagamentos" element={<Suspense fallback={<LazyFallback />}><PlanGate minPlan="ouro" featureName="Pagamentos"><Pagamentos /></PlanGate></Suspense>} />
-          
+          <Route
+            path="pacotes"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="ouro" featureName="Pacotes">
+                  <Pacotes />
+                </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="pagamentos"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <PlanGate minPlan="ouro" featureName="Pagamentos">
+                  <Pagamentos />
+                </PlanGate>
+              </Suspense>
+            }
+          />
         </Route>
 
         <Route path="*" element={<NotFound />} />

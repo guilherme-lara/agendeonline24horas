@@ -21,14 +21,16 @@ export interface Barbershop {
 
 // Hook de Barbearia - ARQUITETURA DE NÍVEL ENTERPRISE
 export const useBarbershop = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isBarber } = useAuth();
   const queryClient = useQueryClient();
 
   // Estado estável para proteção contra flickering
   const stableDataRef = useRef<Barbershop | null>(null);
 
   // ID de impersonação (apenas para admins)
-  const impersonateId = isAdmin ? localStorage.getItem("impersonate_barbershop_id") : null;
+  const impersonateId = isAdmin
+    ? localStorage.getItem("impersonate_barbershop_id")
+    : null;
 
   // Query Key robusta - inclui todos os fatores que afetam o resultado
   const queryKey = ["current-barbershop", user?.id, impersonateId];
@@ -50,6 +52,25 @@ export const useBarbershop = () => {
       }
 
       try {
+        let barbershopId: string | null = null;
+
+        // Se for barbeiro, busca o barbershop_id pela tabela barbers
+        if (isBarber && !impersonateId) {
+          const { data: barberData, error: barberError } = await supabase
+            .from("barbers")
+            .select("barbershop_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (barberError) {
+            console.error(
+              "[useBarbershop] Erro ao buscar barbeiro:",
+              barberError,
+            );
+          }
+          barbershopId = barberData?.barbershop_id || null;
+        }
+
         // CORREÇÃO: Encadeamento correto da query do Supabase
         let baseQuery = supabase
           .from("barbershops")
@@ -58,6 +79,9 @@ export const useBarbershop = () => {
         if (impersonateId && isAdmin) {
           // Modo impersonação - busca barbearia específica
           baseQuery = baseQuery.eq("id", impersonateId);
+        } else if (isBarber && barbershopId) {
+          // Modo barbeiro - busca barbearia vinculada
+          baseQuery = baseQuery.eq("id", barbershopId);
         } else {
           // Modo normal - busca barbearia do proprietário
           baseQuery = baseQuery.eq("owner_id", user.id);
@@ -78,10 +102,13 @@ export const useBarbershop = () => {
         // Processa dados da barbearia
         const plans = (data.saas_plans as any[]) || [];
         const activePlan = plans.find((p: any) => p.status === "active");
-        
+
         // Check if active plan is expired
         let planStatus = activePlan?.status || "none";
-        if (activePlan?.expires_at && new Date(activePlan.expires_at) < new Date()) {
+        if (
+          activePlan?.expires_at &&
+          new Date(activePlan.expires_at) < new Date()
+        ) {
           planStatus = "expired";
         }
 
@@ -96,7 +123,6 @@ export const useBarbershop = () => {
         stableDataRef.current = processedBarbershop;
 
         return processedBarbershop;
-
       } catch (error) {
         console.error("[useBarbershop] Erro na busca:", error);
         throw error;
@@ -119,6 +145,7 @@ export const useBarbershop = () => {
   // - Só mostra loading na PRIMEIRA carga
   // - Após primeira carga, mantém dados antigos (stale-while-revalidate)
   // - Se já tem dados no cache, NUNCA volta para loading
+  // - Se a query retornou null (usuário novo), loading = false imediatamente
   const isInitialLoading = isLoading && !barbershop && !stableDataRef.current;
 
   // Função para limpar impersonação
