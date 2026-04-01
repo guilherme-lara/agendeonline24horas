@@ -172,7 +172,7 @@ const Onboarding = () => {
             expires_at: new Date(
               Date.now() + 30 * 24 * 60 * 60 * 1000,
             ).toISOString(),
-          }),
+          }).then(),
           supabase
             .from("barbershops")
             .update({ trial_used: true })
