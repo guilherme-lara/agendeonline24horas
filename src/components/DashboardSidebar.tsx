@@ -123,17 +123,23 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
 
         {/* Trial Badge */}
         {trialDaysLeft && (
-          <div className="px-5 py-3 border-b border-border bg-amber-500/5">
-            <div className="flex items-center gap-2 mb-1">
-              <Crown className="h-4 w-4 text-amber-600" />
-              <Badge className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5">
-                PRO - MODO TRIAL
+          <div className="px-5 py-3 border-b border-border bg-gradient-to-r from-amber-500/10 via-primary/5 to-amber-500/10">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Crown className="h-4 w-4 text-amber-500 animate-pulse" />
+              <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-lg shadow-amber-500/20">
+                ⭐ PRO TRIAL
               </Badge>
             </div>
-            <p className="text-[10px] text-amber-600 font-bold">
-              Seu acesso Premium expira em{" "}
-              <span className="text-amber-700">{trialDaysLeft} dias</span>
+            <p className="text-[10px] text-muted-foreground font-bold">
+              Acesso Premium expira em{" "}
+              <span className="text-amber-500 font-black">{trialDaysLeft} dias</span>
             </p>
+            <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div 
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 transition-all duration-1000"
+                style={{ width: `${Math.max(5, Math.min(100, ((30 - trialDaysLeft) / 30) * 100))}%` }}
+              />
+            </div>
           </div>
         )}
 
