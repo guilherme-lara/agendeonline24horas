@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
+import ExpirationBanner from "@/components/ExpirationBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
