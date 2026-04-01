@@ -219,8 +219,7 @@ const Caixa = () => {
         .insert({
           barbershop_id: barbershop.id,
           appointment_id: selectedAppt.id,
-          barber_id: selectedAppt.barber_id,
-          barber_name: selectedAppt.barber_name,
+          barber_name: selectedAppt.barber_name || "",
           items: cart,
           total: finalTotal,
           payment_method: payMethod,
