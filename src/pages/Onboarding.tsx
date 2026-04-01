@@ -147,7 +147,8 @@ const Onboarding = () => {
       const operations: Promise<any>[] = [
         supabase
           .from("business_hours")
-          .insert(hours.map((h) => ({ ...h, barbershop_id: shop.id }))),
+          .insert(hours.map((h) => ({ ...h, barbershop_id: shop.id })))
+          .then(),
         supabase.from("services").insert(
           services
             .filter((s) => s.name.trim())
@@ -158,7 +159,7 @@ const Onboarding = () => {
               duration: parseInt(s.duration) || 30,
               sort_order: i,
             })),
-        ),
+        ).then(),
       ];
 
       // Se NÃO tem plano ativo e trial não foi usado, concede trial Pro de 30 dias
