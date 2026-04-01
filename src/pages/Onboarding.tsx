@@ -145,10 +145,10 @@ const Onboarding = () => {
 
       // 3. Operações Paralelas (Performance Industrial)
       const operations: Promise<any>[] = [
-        supabase
+        (supabase
           .from("business_hours")
-          .insert(hours.map((h) => ({ ...h, barbershop_id: shop.id }))),
-        supabase.from("services").insert(
+          .insert(hours.map((h) => ({ ...h, barbershop_id: shop.id }))) as unknown as Promise<any>),
+        (supabase.from("services").insert(
           services
             .filter((s) => s.name.trim())
             .map((s, i) => ({
@@ -158,24 +158,24 @@ const Onboarding = () => {
               duration: parseInt(s.duration) || 30,
               sort_order: i,
             })),
-        ),
+        ) as unknown as Promise<any>),
       ];
 
       // Se NÃO tem plano ativo e trial não foi usado, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
-          supabase.from("saas_plans").insert({
+          (supabase.from("saas_plans").insert({
             barbershop_id: shop.id,
             plan_name: "pro",
             status: "active",
             expires_at: new Date(
               Date.now() + 30 * 24 * 60 * 60 * 1000,
             ).toISOString(),
-          }),
-          supabase
+          }) as unknown as Promise<any>),
+          (supabase
             .from("barbershops")
             .update({ trial_used: true })
-            .eq("id", shop.id),
+            .eq("id", shop.id) as unknown as Promise<any>),
         );
       }
 

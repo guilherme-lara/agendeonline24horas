@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
+import ExpirationBanner from "@/components/ExpirationBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -180,6 +181,8 @@ const Dashboard = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
       <UpgradeModal open={upgradeModal.open} onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })} requiredPlan={upgradeModal.plan} featureName={upgradeModal.feature} />
+
+      <ExpirationBanner />
 
       {/* HEADER */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

@@ -204,6 +204,11 @@ const PublicBooking = () => {
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
         const hasConflict = existingAppts.some((appt: any) => {
+          // Ignora agendamentos cancelados ou com pagamento pendente expirado (>10min)
+          if (appt.status === 'cancelled') return false;
+          if (appt.status === 'pendente_pagamento' || appt.status === 'pendente_sinal') {
+            return false; // Slots com pagamento pendente NÃO bloqueiam — pg_cron limpa após 10min
+          }
           const aStart = new Date(appt.scheduled_at);
           const aEnd = addMinutes(aStart, 40);
           return slotStart < aEnd && slotEnd > aStart;

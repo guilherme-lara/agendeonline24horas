@@ -235,6 +235,7 @@ export type Database = {
           setup_completed: boolean
           slug: string
           trial_ends_at: string | null
+          trial_used: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -250,6 +251,7 @@ export type Database = {
           setup_completed?: boolean
           slug: string
           trial_ends_at?: string | null
+          trial_used?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -265,6 +267,7 @@ export type Database = {
           setup_completed?: boolean
           slug?: string
           trial_ends_at?: string | null
+          trial_used?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
