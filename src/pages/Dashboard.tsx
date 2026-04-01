@@ -182,6 +182,8 @@ const Dashboard = () => {
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
       <UpgradeModal open={upgradeModal.open} onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })} requiredPlan={upgradeModal.plan} featureName={upgradeModal.feature} />
 
+      <ExpirationBanner />
+
       {/* HEADER */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
