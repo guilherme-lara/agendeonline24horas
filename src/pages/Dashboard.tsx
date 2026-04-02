@@ -32,8 +32,16 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
   const { playCaching } = useSoundFeedback();
+
+  // Auto-hide "Atualizado Agora" badge after 5 seconds
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const timer = setTimeout(() => setLastUpdated(null), 5000);
+    return () => clearTimeout(timer);
+  }, [lastUpdated]);
 
   // Fuso horário centralizado em src/lib/timezone.ts
 
