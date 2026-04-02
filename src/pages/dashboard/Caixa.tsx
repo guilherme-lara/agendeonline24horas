@@ -259,25 +259,40 @@ const Caixa = () => {
         );
       }
 
-      // 2. SE FOR PIX: Chama a Edge Function
+      // 2. SE FOR PIX: Chama a Edge Function e abre modal com QR
       if (payMethod === "pix" && finalTotal > 0) {
+        setPixOnlineModal({ open: true, loading: true, brcode: "", qrBase64: "", paymentId: "", pixKey: "", pixBeneficiary: "", mode: "" });
+
         const { data: pixData, error: pixError } =
           await supabase.functions.invoke("create-pix-charge", {
             body: {
+              appointment_id: selectedAppt.id,
+              barbershop_id: barbershop.id,
               amount: Math.round(finalTotal * 100),
-              orderId: selectedAppt.id,
-              tenant_id: barbershop.id,
-              description: `Comanda: ${selectedAppt.client_name}`,
+              document_number: "",
+              first_name: selectedAppt.client_name?.split(" ")[0] || "Cliente",
+              last_name: selectedAppt.client_name?.split(" ").slice(1).join(" ") || "",
             },
           });
 
         if (pixError || !pixData?.success) {
+          setPixOnlineModal(prev => ({ ...prev, open: false, loading: false }));
           throw new Error(
-            "Erro ao gerar o Pix na InfinitePay. Tente outra forma de pagamento.",
+            pixData?.error || "Erro ao gerar o Pix. Tente outra forma de pagamento.",
           );
         }
 
-        window.open(pixData.payment_url, "_blank");
+        setPixOnlineModal({
+          open: true,
+          loading: false,
+          brcode: pixData.brcode || "",
+          qrBase64: pixData.qr_code_base64 || "",
+          paymentId: pixData.payment_id || "",
+          pixKey: pixData.pix_key || "",
+          pixBeneficiary: pixData.pix_beneficiary || "",
+          mode: pixData.mode || "infinitepay",
+        });
+
         return { isPix: true };
       }
 
