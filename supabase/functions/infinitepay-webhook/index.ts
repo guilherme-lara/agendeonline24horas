@@ -28,6 +28,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // PING test — returns immediately
+    if (payload.ping === true) {
+      return new Response(JSON.stringify({ ok: true, message: "Webhook endpoint is active" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 🔒 LOG BRUTO ANTES DE PROCESSAR
     const paymentId = payload.id || payload.payment_id || payload.transaction_id || "";
     const eventType = payload.event || payload.type || payload.status || "unknown";
@@ -37,6 +45,15 @@ Deno.serve(async (req) => {
       payment_id: paymentId,
       raw_payload: payload,
       processed: false,
+    });
+
+    // Log detalhado na tabela payment_logs para debug
+    await supabase.from("payment_logs").insert({
+      source: "infinitepay-webhook",
+      event_type: eventType,
+      status_code: 200,
+      request_body: payload,
+      payment_id: paymentId,
     });
 
     if (!paymentId) {

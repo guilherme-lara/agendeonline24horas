@@ -598,6 +598,57 @@ export type Database = {
           },
         ]
       }
+      payment_logs: {
+        Row: {
+          barbershop_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payment_id: string | null
+          request_body: Json
+          response_body: Json | null
+          source: string
+          status_code: number | null
+        }
+        Insert: {
+          barbershop_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payment_id?: string | null
+          request_body?: Json
+          response_body?: Json | null
+          source?: string
+          status_code?: number | null
+        }
+        Update: {
+          barbershop_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payment_id?: string | null
+          request_body?: Json
+          response_body?: Json | null
+          source?: string
+          status_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_logs_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_logs_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           barbershop_id: string | null
