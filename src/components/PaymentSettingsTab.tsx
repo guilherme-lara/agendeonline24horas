@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, QrCode, ShieldCheck, Check, Upload, Image, X } from "lucide-react";
+import { Loader2, Save, QrCode, ShieldCheck, Check, Upload, X, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
