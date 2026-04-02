@@ -27,6 +27,8 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [pingStatus, setPingStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [pingMessage, setPingMessage] = useState("");
 
   useEffect(() => {
     const loadSettings = async () => {
