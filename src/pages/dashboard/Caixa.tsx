@@ -861,6 +861,81 @@ const Caixa = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* MODAL PIX ONLINE - QR CODE */}
+        <Dialog open={pixOnlineModal.open} onOpenChange={(v) => { if (!v) setPixOnlineModal(prev => ({ ...prev, open: false })); }}>
+          <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black flex items-center gap-2 font-display">
+                <QrCode className="h-5 w-5 text-primary" /> Pagamento Pix
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {pixOnlineModal.loading ? (
+                <div className="flex flex-col items-center gap-4 py-10">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="text-sm font-bold text-muted-foreground animate-pulse">Gerando QR Code...</p>
+                </div>
+              ) : pixOnlineModal.mode === "static" ? (
+                <>
+                  <div className="bg-secondary/50 border border-border rounded-2xl p-4 text-center">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Beneficiário</p>
+                    <p className="text-lg font-black text-foreground">{pixOnlineModal.pixBeneficiary}</p>
+                  </div>
+                  {pixOnlineModal.pixKey && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chave Pix</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-sm text-foreground break-all border border-border">
+                          {pixOnlineModal.pixKey}
+                        </div>
+                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.pixKey); setCopiedBrcode(true); toast({ title: "Chave copiada!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
+                          {copiedBrcode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-amber-500 bg-amber-500/10 rounded-xl px-4 py-3 border border-amber-500/20">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <p className="text-xs font-bold">Confirme o pagamento manualmente após receber.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {pixOnlineModal.qrBase64 && (
+                    <div className="flex justify-center">
+                      <img
+                        src={pixOnlineModal.qrBase64.startsWith("data:") ? pixOnlineModal.qrBase64 : `data:image/png;base64,${pixOnlineModal.qrBase64}`}
+                        alt="QR Code Pix"
+                        className="h-52 w-52 rounded-xl border border-border object-contain bg-white p-2"
+                      />
+                    </div>
+                  )}
+                  {pixOnlineModal.brcode && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pix Copia e Cola</p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 bg-background rounded-xl px-3 py-2.5 font-mono text-[10px] text-foreground break-all border border-border max-h-20 overflow-y-auto">
+                          {pixOnlineModal.brcode}
+                        </div>
+                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.brcode); setCopiedBrcode(true); toast({ title: "Código Pix copiado!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
+                          {copiedBrcode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-primary bg-primary/10 rounded-xl px-4 py-3 border border-primary/20">
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    <p className="text-xs font-bold">Aguardando pagamento... A confirmação será automática.</p>
+                  </div>
+                </>
+              )}
+              <Button onClick={() => setPixOnlineModal(prev => ({ ...prev, open: false }))} variant="outline" className="w-full rounded-xl border-border">
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* MODAL DE SUCESSO */}
         <Dialog
           open={!!successModal?.open}
