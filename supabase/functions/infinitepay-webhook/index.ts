@@ -28,6 +28,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // PING test — returns immediately
+    if (payload.ping === true) {
+      return new Response(JSON.stringify({ ok: true, message: "Webhook endpoint is active" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 🔒 LOG BRUTO ANTES DE PROCESSAR
     const paymentId = payload.id || payload.payment_id || payload.transaction_id || "";
     const eventType = payload.event || payload.type || payload.status || "unknown";
