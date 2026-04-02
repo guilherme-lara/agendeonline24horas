@@ -1,15 +1,22 @@
-// Supabase Client - sem tipagem estrita para compatibilidade com SDK v2.95+
-import { createClient } from '@supabase/supabase-js';
+// Supabase Client - Seguro e Flexível
+import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://whtlqimtclodchfdljcg.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndodGxxaW10Y2xvZGNoZmRsamNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MzI3NDMsImV4cCI6MjA4NjQwODc0M30.wQeww1HOx2rQlmF_RA7rB8BnS8_7hfjVanArHkBY0CQ";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    "Faltam variáveis de ambiente do Supabase. Verifique seu arquivo .env",
+  );
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    lock: (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
+    lock: (_name: string, _acquireTimeout: number, fn: () => Promise<any>) =>
+      fn(),
   },
   realtime: {
     params: {
