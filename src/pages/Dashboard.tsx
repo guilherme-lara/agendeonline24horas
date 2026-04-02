@@ -59,8 +59,13 @@ const Dashboard = () => {
         schema: 'public', 
         table: 'orders', 
         filter: `barbershop_id=eq.${barbershop.id}` 
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        if (payload.eventType === "INSERT") {
+          playCaching();
+          setLastUpdated(new Date());
+        }
       })
       .subscribe();
 
