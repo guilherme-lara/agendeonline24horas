@@ -241,6 +241,39 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
               {copiedWebhook ? <Check className="h-4 w-4 text-emerald-500" /> : "Copiar URL"}
             </Button>
           </div>
+          <div className="flex items-center gap-3 mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pingStatus === "loading"}
+              onClick={async () => {
+                setPingStatus("loading");
+                setPingMessage("");
+                try {
+                  const { data, error } = await supabase.functions.invoke("infinitepay-webhook", {
+                    method: "POST",
+                    body: { ping: true },
+                  });
+                  if (error) throw error;
+                  setPingStatus("ok");
+                  setPingMessage(data?.ok ? "Webhook ativo e respondendo ✓" : "Webhook respondeu, mas sem confirmação");
+                } catch (err: any) {
+                  setPingStatus("error");
+                  setPingMessage(err.message || "Falha ao conectar com o webhook");
+                }
+                setTimeout(() => setPingStatus("idle"), 5000);
+              }}
+              className={`h-9 rounded-lg text-xs font-bold ${pingStatus === "ok" ? "border-emerald-500/30 text-emerald-500" : pingStatus === "error" ? "border-destructive/30 text-destructive" : "border-border"}`}
+            >
+              {pingStatus === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : pingStatus === "ok" ? <Wifi className="h-3.5 w-3.5 mr-1.5" /> : pingStatus === "error" ? <WifiOff className="h-3.5 w-3.5 mr-1.5" /> : <Wifi className="h-3.5 w-3.5 mr-1.5" />}
+              Testar Webhook
+            </Button>
+            {pingMessage && (
+              <span className={`text-[10px] font-bold ${pingStatus === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+                {pingMessage}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
