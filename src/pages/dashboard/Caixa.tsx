@@ -60,6 +60,17 @@ const Caixa = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [pixOnlineModal, setPixOnlineModal] = useState<{
+    open: boolean;
+    loading: boolean;
+    brcode: string;
+    qrBase64: string;
+    paymentId: string;
+    pixKey: string;
+    pixBeneficiary: string;
+    mode: string;
+  }>({ open: false, loading: false, brcode: "", qrBase64: "", paymentId: "", pixKey: "", pixBeneficiary: "", mode: "" });
+  const [copiedBrcode, setCopiedBrcode] = useState(false);
   const [successModal, setSuccessModal] = useState<{
     open: boolean;
     total: number;
