@@ -101,12 +101,32 @@ Deno.serve(async (req) => {
 
     // --- INTEGRAÇÃO INFINITEPAY ---
 
+    // 0. VALIDAÇÃO DE PREÇO: busca o valor real do serviço no banco
+    const { data: serviceData } = await supabase
+      .from("services")
+      .select("price")
+      .eq("barbershop_id", barbershop_id)
+      .eq("name", appt.service_name)
+      .eq("active", true)
+      .maybeSingle();
+
+    const truePriceCents = serviceData ? Math.round(Number(serviceData.price) * 100) : null;
+
     // 1. AMOUNT: garantir inteiro em centavos
     const rawPrice = amount || Number(appt.price) || 0;
     // Se o valor parecer estar em reais (< 1000 e tem decimais), converter para centavos
     const priceInCents = Number.isInteger(rawPrice) && rawPrice >= 100
       ? rawPrice
       : Math.round(rawPrice * 100);
+
+    // Se temos o preço real do serviço, valida que o frontend não mandou um valor adulterado
+    if (truePriceCents && Math.abs(priceInCents - truePriceCents) > 100) {
+      console.error("🚨 PRICE MISMATCH DETECTED!", { sent: priceInCents, expected: truePriceCents });
+      return new Response(
+        JSON.stringify({ error: "Valor divergente do cadastrado. Operação bloqueada por segurança." }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 2. SANITIZAÇÃO: remover caracteres especiais do document_number
     const sanitizedDoc = (document_number || "").replace(/[^0-9]/g, "");

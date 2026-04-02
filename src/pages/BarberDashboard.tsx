@@ -74,8 +74,18 @@ const BarberDashboard = () => {
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
-        // Play sound on new confirmed appointment
         if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
+          playCaching();
+        }
+      })
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: `barbershop_id=eq.${barberBarbershopId}`,
+      }, (payload) => {
+        queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
+        if (payload.eventType === "INSERT") {
           playCaching();
         }
       })
