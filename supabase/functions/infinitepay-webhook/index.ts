@@ -47,6 +47,15 @@ Deno.serve(async (req) => {
       processed: false,
     });
 
+    // Log detalhado na tabela payment_logs para debug
+    await supabase.from("payment_logs").insert({
+      source: "infinitepay-webhook",
+      event_type: eventType,
+      status_code: 200,
+      request_body: payload,
+      payment_id: paymentId,
+    });
+
     if (!paymentId) {
       console.warn("Webhook sem payment_id, ignorando");
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
