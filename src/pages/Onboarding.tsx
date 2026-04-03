@@ -98,6 +98,29 @@ const Onboarding = () => {
         .update({ barbershop_id: shop.id })
         .eq("user_id", user?.id);
 
+      // --- CONCESSÃO AUTOMÁTICA DO TRIAL PRO (30 DIAS) ---
+      if (!shop.trial_used) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        await supabase
+          .from("saas_plans")
+          .upsert(
+            {
+              barbershop_id: shop.id,
+              plan_name: "pro",
+              status: "active",
+              expires_at: expiresAt.toISOString(),
+            },
+            { onConflict: "barbershop_id" }
+          );
+
+        await supabase
+          .from("barbershops")
+          .update({ trial_used: true })
+          .eq("id", shop.id);
+      }
+
       return shop;
     },
     onSuccess: (shop) => {
@@ -135,15 +158,7 @@ const Onboarding = () => {
 
       if (shopError) throw shopError;
 
-      // 2. Verifica se já possui plano ativo antes de conceder trial
-      const { data: existingPlan } = await supabase
-        .from("saas_plans")
-        .select("id, status")
-        .eq("barbershop_id", shop.id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      // 3. Operações Paralelas (Performance Industrial)
+      // 2. Operações Paralelas (Performance Industrial)
       const operations: Promise<any>[] = [
         (supabase
           .from("business_hours")
@@ -160,24 +175,6 @@ const Onboarding = () => {
             })),
         ) as unknown as Promise<any>),
       ];
-
-      // Se NÃO tem plano ativo e trial não foi usado, concede trial Pro de 30 dias
-      if (!existingPlan) {
-        operations.push(
-          (supabase.from("saas_plans").insert({
-            barbershop_id: shop.id,
-            plan_name: "pro",
-            status: "active",
-            expires_at: new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-          }) as unknown as Promise<any>),
-          (supabase
-            .from("barbershops")
-            .update({ trial_used: true })
-            .eq("id", shop.id) as unknown as Promise<any>),
-        );
-      }
 
       await Promise.all(operations);
 
