@@ -13,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatInTimeZone } from "date-fns-tz"; // NOVO: Importação para correção do Fuso Horário
 
 const BUFFER_MINUTES = 10;
 
@@ -90,15 +91,45 @@ const PublicBooking = () => {
       return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
-    refetchInterval: 5000,
+    // Removido o refetchInterval de 5000, o Realtime vai cuidar disso agora!
   });
+
+  // --- NOVO: REALTIME PARA ATUALIZAR AGENDA NA HORA ---
+  useEffect(() => {
+    if (!shop?.id) return;
+
+    const channel = supabase
+      .channel('public_booking_realtime')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'appointments',
+          filter: `barbershop_id=eq.${shop.id}` 
+        },
+        () => {
+          // Se qualquer agendamento for criado/alterado, busca os horários de novo
+          queryClient.invalidateQueries({ queryKey: ["slots"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [shop?.id, queryClient]);
 
   // --- MOTOR DE CHECKOUT SEM CORS ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
+      const timeZone = 'America/Sao_Paulo';
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
+
+      // NOVO: Sanitiza a data para enviar o Offset exato de Brasília (-03:00) ao banco
+      const formattedDateForDB = formatInTimeZone(scheduledAt, timeZone, "yyyy-MM-dd'T'HH:mm:ssXXX");
 
       const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
       const initialStatus = isOnline ? 'pendente_pagamento' : 'confirmed';
@@ -113,7 +144,7 @@ const PublicBooking = () => {
         _client_phone: clientData.phone.trim(),
         _service_name: selectedService.name,
         _price: selectedService.price,
-        _scheduled_at: scheduledAt.toISOString(),
+        _scheduled_at: formattedDateForDB, // Data com o Fuso Horário corrigido
         _payment_method: isOnline ? "pix" : "local"
       });
 
@@ -143,33 +174,24 @@ const PublicBooking = () => {
       const itemName = hasSignal ? `Sinal: ${selectedService.name}` : selectedService.name;
       const priceInCents = Math.round(amountToCharge * 100); 
 
-      // TRAVA DE SEGURANÇA: Evita a tela preta "Algo deu errado" da InfinitePay
+      // TRAVA DE SEGURANÇA
       if (priceInCents < 100) {
         throw new Error("Para usar o checkout online, o valor do serviço/teste deve ser de no mínimo R$ 1,00.");
       }
 
-      const items = JSON.stringify([
-        {
-          name: itemName,
-          price: priceInCents,
-          quantity: 1
-        }
-      ]);
-
+      const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
-
-      // Montamos a URL oficial e passamos o apptId como "order_nsu" (Crachá do Webhook)
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
       return { type: 'online', url: checkoutUrl };
     },
     onSuccess: (res) => {
       if (res.type === 'online' && res.url) {
-        // Redireciona o usuário (Browser faz isso nativamente sem bloquear)
         window.location.href = res.url; 
       } else {
         setSuccess(true);
         setStep(5);
+        queryClient.invalidateQueries({ queryKey: ["slots"] }); // Limpa o cache após sucesso
       }
     },
     onError: (error: any) => {
@@ -203,16 +225,19 @@ const PublicBooking = () => {
         slotStart.setHours(h, m, 0, 0);
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+        
         const hasConflict = existingAppts.some((appt: any) => {
-          // Ignora agendamentos cancelados ou com pagamento pendente expirado (>10min)
           if (appt.status === 'cancelled') return false;
-          if (appt.status === 'pendente_pagamento' || appt.status === 'pendente_sinal') {
-            return false; // Slots com pagamento pendente NÃO bloqueiam — pg_cron limpa após 10min
-          }
+          
+          // NOVO: Removido o 'return false' para status pendentes!
+          // Agora, se o agendamento está 'pendente_pagamento', o sistema vai prosseguir 
+          // com o cálculo abaixo e retornará 'true' (Conflito), bloqueando o horário na tela.
+          
           const aStart = new Date(appt.scheduled_at);
           const aEnd = addMinutes(aStart, 40);
           return slotStart < aEnd && slotEnd > aStart;
         });
+        
         if (!hasConflict) {
           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
@@ -431,7 +456,7 @@ const PublicBooking = () => {
             </div>
         )}
 
-        {/* TELA FINAL: SUCESSO (ACESSADA AUTOMATICAMENTE AO VOLTAR DO CHECKOUT) */}
+        {/* TELA FINAL: SUCESSO */}
         {success && !cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
