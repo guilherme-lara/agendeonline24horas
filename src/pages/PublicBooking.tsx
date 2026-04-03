@@ -122,7 +122,7 @@ const PublicBooking = () => {
   // --- MOTOR DE CHECKOUT SEM CORS ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
-      const timeZone = 'America/Sao_Paulo';
+      
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
