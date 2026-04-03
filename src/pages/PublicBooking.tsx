@@ -229,12 +229,23 @@ const PublicBooking = () => {
         const hasConflict = existingAppts.some((appt: any) => {
           if (appt.status === 'cancelled') return false;
           
-          // NOVO: Removido o 'return false' para status pendentes!
-          // Agora, se o agendamento está 'pendente_pagamento', o sistema vai prosseguir 
-          // com o cálculo abaixo e retornará 'true' (Conflito), bloqueando o horário na tela.
+          // --- SOLUÇÃO ANTI-FUSO HORÁRIO ---
+          // Extraímos apenas os 5 caracteres da hora "HH:mm" da string crua do banco.
+          // Ex: "2026-04-03T09:30:00-03:00" vira "09:30"
+          const timeString = appt.scheduled_at.includes('T') 
+            ? appt.scheduled_at.split('T')[1].substring(0, 5) 
+            : appt.scheduled_at.split(' ')[1].substring(0, 5);
           
-          const aStart = new Date(appt.scheduled_at);
-          const aEnd = addMinutes(aStart, 40);
+          const [dbH, dbM] = timeString.split(':').map(Number);
+
+          // Montamos a hora cravada baseada no banco sem interferência de fuso UTC local
+          const aStart = new Date(selectedDate);
+          aStart.setHours(dbH, dbM, 0, 0);
+
+          // Puxamos a duração correta (ou 40m de fallback)
+          const aEnd = addMinutes(aStart, selectedService?.duration || 40);
+
+          // Compara os blocos reais
           return slotStart < aEnd && slotEnd > aStart;
         });
         
