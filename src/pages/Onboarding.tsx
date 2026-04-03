@@ -98,6 +98,29 @@ const Onboarding = () => {
         .update({ barbershop_id: shop.id })
         .eq("user_id", user?.id);
 
+      // --- CONCESSÃO AUTOMÁTICA DO TRIAL PRO (30 DIAS) ---
+      if (!shop.trial_used) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        await supabase
+          .from("saas_plans")
+          .upsert(
+            {
+              barbershop_id: shop.id,
+              plan_name: "pro",
+              status: "active",
+              expires_at: expiresAt.toISOString(),
+            },
+            { onConflict: "barbershop_id" }
+          );
+
+        await supabase
+          .from("barbershops")
+          .update({ trial_used: true })
+          .eq("id", shop.id);
+      }
+
       return shop;
     },
     onSuccess: (shop) => {
