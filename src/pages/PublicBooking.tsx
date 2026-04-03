@@ -127,8 +127,9 @@ const PublicBooking = () => {
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
 
-      // NOVO: Sanitiza a data para enviar o Offset exato de Brasília (-03:00) ao banco
-      const formattedDateForDB = formatInTimeZone(scheduledAt, timeZone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+      // Formata com offset fixo de Brasília (-03:00)
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
       const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
       const initialStatus = isOnline ? 'pendente_pagamento' : 'confirmed';
