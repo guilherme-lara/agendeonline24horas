@@ -344,9 +344,22 @@ const BarberDashboard = () => {
                           <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {appt.price}</p>
                         </div>
                         {!isDone ? (
-                          <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Realizado
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {appt.client_phone && (
+                              <Button size="sm" variant="ghost" onClick={() => {
+                                const cleanPhone = appt.client_phone.replace(/\D/g, "");
+                                const dateStr = format(toBRT(appt.scheduled_at), "dd/MM");
+                                const timeStr = format(toBRT(appt.scheduled_at), "HH:mm");
+                                const msg = encodeURIComponent(`Olá, ${appt.client_name}! Passando para confirmar seu agendamento na nossa barbearia para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
+                                window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
+                              }} className="h-8 text-xs text-emerald-500">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Realizado
+                            </Button>
+                          </div>
                         ) : (
                           <span className={`text-[10px] font-bold ${status.color}`}>{status.text}</span>
                         )}
