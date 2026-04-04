@@ -144,6 +144,8 @@ const Onboarding = () => {
         ) as unknown as Promise<any>),
       ];
 
+<<<<<<< HEAD
+      // Se NÃO tem plano ativo, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
           (supabase.from("saas_plans").insert({
@@ -157,6 +159,8 @@ const Onboarding = () => {
         );
       }
 
+=======
+>>>>>>> origin/main
       await Promise.all(operations);
 
       if (firstBarberName.trim()) {
