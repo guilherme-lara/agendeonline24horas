@@ -16,11 +16,11 @@ const PLAN_RANK: Record<string, number> = {
   pro: 3, // legacy alias
 };
 
-const PLAN_LIMITS: Record<string, { maxBarbers: number; hasFinanceiro: boolean; hasExport: boolean; hasPacotes: boolean }> = {
-  trial:  { maxBarbers: 1, hasFinanceiro: false, hasExport: false, hasPacotes: false },
-  bronze: { maxBarbers: 1, hasFinanceiro: false, hasExport: false, hasPacotes: false },
-  prata:  { maxBarbers: 5, hasFinanceiro: true,  hasExport: false, hasPacotes: false },
-  ouro:   { maxBarbers: Infinity, hasFinanceiro: true, hasExport: true, hasPacotes: true },
+const PLAN_LIMITS: Record<string, { hasFinanceiro: boolean; hasExport: boolean; hasPacotes: boolean }> = {
+  trial:  { hasFinanceiro: false, hasExport: false, hasPacotes: false },
+  bronze: { hasFinanceiro: false, hasExport: false, hasPacotes: false },
+  prata:  { hasFinanceiro: true,  hasExport: false, hasPacotes: false },
+  ouro:   { hasFinanceiro: true, hasExport: true, hasPacotes: true },
 };
 
 function normalizePlanName(raw: string): PlanTier {
