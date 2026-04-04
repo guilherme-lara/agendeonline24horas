@@ -65,7 +65,7 @@ export const usePlanGate = () => {
 
   const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.trial;
 
-  const canAddBarber = isAdmin || barberCount < limits.maxBarbers;
+  const canAddBarber = true; // Barbeiros ilimitados para todos os planos
   const hasFinanceiro = isAdmin || limits.hasFinanceiro;
   const hasExport = isAdmin || limits.hasExport;
   const hasPacotes = isAdmin || limits.hasPacotes;
