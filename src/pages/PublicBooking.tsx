@@ -75,22 +75,34 @@ const PublicBooking = () => {
   });
 
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
-    queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
+    queryKey: ["slots", shop?.id, selectedDate?.toISOString(), selectedBarber?.id],
     queryFn: async () => {
-      const dayStart = startOfDay(selectedDate!).toISOString();
-      const dayEnd = new Date(selectedDate!);
-      dayEnd.setHours(23, 59, 59);
-      const { data, error } = await supabase
-        .from("appointments_public" as any)
-        .select("scheduled_at, service_name, status")
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const y = selectedDate!.getFullYear();
+      const m = pad(selectedDate!.getMonth() + 1);
+      const d = pad(selectedDate!.getDate());
+      // Query using fixed Brasília offset to avoid timezone mismatch
+      const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
+      const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
+
+      let query = supabase
+        .from("appointments")
+        .select("scheduled_at, service_name, status, barber_name")
         .eq("barbershop_id", shop!.id)
+        .neq("status", "cancelled")
         .gte("scheduled_at", dayStart)
-        .lte("scheduled_at", dayEnd.toISOString());
+        .lte("scheduled_at", dayEnd);
+      
+      // Filter by selected barber to only block their slots
+      if (selectedBarber?.name) {
+        query = query.eq("barber_name", selectedBarber.name);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
-    // Removido o refetchInterval de 5000, o Realtime vai cuidar disso agora!
   });
 
   // --- NOVO: REALTIME PARA ATUALIZAR AGENDA NA HORA ---
@@ -456,7 +468,14 @@ const PublicBooking = () => {
                     <div className="pt-4 flex items-center justify-between gap-4">
                       <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
                       <Button 
-                          onClick={() => bookingMutation.mutate()} 
+                          onClick={() => {
+                            const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
+                            if (isOnline && !shop?.settings?.infinitepay_tag) {
+                              toast({ title: "Erro", description: "A barbearia ainda não configurou o método de pagamento.", variant: "destructive" });
+                              return;
+                            }
+                            bookingMutation.mutate();
+                          }} 
                           disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
                           className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                       >

@@ -35,7 +35,7 @@ const Servicos = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
-  const [requiresAdvance, setRequiresAdvance] = useState(false);
+  const [requiresAdvance, setRequiresAdvance] = useState(true);
   const [advanceValue, setAdvanceValue] = useState("");
 
   const queryEnabled = !!barbershop?.id;
@@ -118,7 +118,7 @@ const Servicos = () => {
     setRequiresAdvance(s.requires_advance_payment || false); setAdvanceValue(String(s.advance_payment_value || 0));
     setIsDialogOpen(true);
   };
-  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setRequiresAdvance(false); setAdvanceValue(""); };
+  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setRequiresAdvance(true); setAdvanceValue(""); };
 
   const shouldShowLoading = isLoading && queryEnabled && !services.length && !isError;
 
