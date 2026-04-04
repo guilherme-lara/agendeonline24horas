@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Scissors, Loader2, ArrowRight, ArrowLeft, Clock, 
-  Plus, Trash2, Check, Users, AlertCircle, Building2, Globe, Sparkles 
+  Plus, Trash2, Users, AlertCircle, Building2, Globe, Sparkles 
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +11,6 @@ import { useBarbershop } from "@/hooks/useBarbershop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-
-// ID da barbearia criada no Step 1 (persistido no estado do componente)
-// Usado para atualizar nos Steps 2, 3 e 4
 
 const DAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -25,7 +21,6 @@ const Onboarding = () => {
   const { barbershop, loading: shopLoading } = useBarbershop() as any;
   const { toast } = useToast();
 
-  // --- ESTADOS DO FORMULÁRIO ---
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -43,17 +38,14 @@ const Onboarding = () => {
     { name: "Corte Degradê", price: "50", duration: "40" },
   ]);
   const [firstBarberName, setFirstBarberName] = useState("");
-  // ID da barbearia criada no Step 1 — usado para update nos Steps 2, 3 e 4
   const [createdBarbershopId, setCreatedBarbershopId] = useState<string | null>(null);
 
-  // --- REDIRECIONAMENTO DE SEGURANÇA ---
   useEffect(() => {
     if (authLoading || shopLoading) return;
     if (!user) {
       navigate("/login", { replace: true });
       return;
     }
-    // Barbeiros NUNCA devem ver o Onboarding
     if (isBarber) {
       navigate("/barber/dashboard", { replace: true });
       return;
@@ -64,9 +56,6 @@ const Onboarding = () => {
     }
   }, [user, isBarber, barbershop, authLoading, shopLoading, navigate]);
 
-  // --- MUTAÇÃO STEP 1: CRIAR BARBEARIA (ANTI-GHOST) ---
-  // Cria o registro antecipadamente com setup_completed: false
-  // Evita "lojas fantasma" se o usuário desistir no meio do onboarding
   const createBarbershopMutation = useMutation({
     mutationFn: async () => {
       const finalSlug =
@@ -92,34 +81,10 @@ const Onboarding = () => {
         throw shopError;
       }
 
-      // Vincula o perfil do usuário à barbearia
       await supabase
         .from("profiles")
         .update({ barbershop_id: shop.id })
         .eq("user_id", user?.id);
-
-      // --- CONCESSÃO AUTOMÁTICA DO TRIAL PRO (30 DIAS) ---
-      if (!shop.trial_used) {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-
-        await supabase
-          .from("saas_plans")
-          .upsert(
-            {
-              barbershop_id: shop.id,
-              plan_name: "pro",
-              status: "active",
-              expires_at: expiresAt.toISOString(),
-            },
-            { onConflict: "barbershop_id" }
-          );
-
-        await supabase
-          .from("barbershops")
-          .update({ trial_used: true })
-          .eq("id", shop.id);
-      }
 
       return shop;
     },
@@ -136,15 +101,11 @@ const Onboarding = () => {
     },
   });
 
-  // --- MUTAÇÃO STEP 4: FINALIZAR ECOSSISTEMA DA BARBEARIA ---
-  // Atualiza a barbearia existente (criada no Step 1) com todos os dados
-  // Marca setup_completed: true apenas no final
   const createMutation = useMutation({
     mutationFn: async () => {
       const shopId = createdBarbershopId;
       if (!shopId) throw new Error("Barbearia não foi criada. Reinicie o processo.");
 
-      // 1. Atualizar Barbearia com dados restantes e marcar como completa
       const { data: shop, error: shopError } = await supabase
         .from("barbershops")
         .update({
@@ -158,8 +119,6 @@ const Onboarding = () => {
 
       if (shopError) throw shopError;
 
-<<<<<<< HEAD
-      // 2. Verifica se já possui plano ativo antes de conceder trial
       const { data: existingPlan } = await supabase
         .from("saas_plans")
         .select("id, status")
@@ -167,10 +126,6 @@ const Onboarding = () => {
         .or("status.eq.active,status.eq.trialing")
         .maybeSingle();
 
-      // 3. Operações Paralelas (Performance Industrial)
-=======
-      // 2. Operações Paralelas (Performance Industrial)
->>>>>>> origin/main
       const operations: Promise<any>[] = [
         (supabase
           .from("business_hours")
@@ -184,31 +139,26 @@ const Onboarding = () => {
               price: parseFloat(s.price) || 0,
               duration: parseInt(s.duration) || 30,
               sort_order: i,
-              requires_advance_payment: true, // Ponto 2: Adiantamento é padrão
+              requires_advance_payment: true,
             })),
         ) as unknown as Promise<any>),
       ];
 
-<<<<<<< HEAD
-      // Se NÃO tem plano ativo, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
           (supabase.from("saas_plans").insert({
             barbershop_id: shop.id,
             plan_name: "pro",
-            status: "trialing", // Ponto 4: Status de trial
+            status: "trialing",
             expires_at: new Date(
               Date.now() + 30 * 24 * 60 * 60 * 1000,
-            ).toISOString(), // Ponto 4: Expiração em 30 dias
+            ).toISOString(),
           }) as unknown as Promise<any>),
         );
       }
 
-=======
->>>>>>> origin/main
       await Promise.all(operations);
 
-      // 4. Primeiro Profissional
       if (firstBarberName.trim()) {
         await supabase.from("barbers").insert({
           barbershop_id: shop.id,
@@ -220,14 +170,12 @@ const Onboarding = () => {
       return shop;
     },
     onSuccess: () => {
-      // Invalida o cache para que o hook useBarbershop carregue a nova loja na hora
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
       toast({
         title: "Boas-vindas ao time!",
         description: "Sua barbearia foi configurada com sucesso. Aproveite seus 30 dias de Plano PRO gratuito!",
         variant: "success",
       });
-      // Ponto 3: Redirecionamento Imediato
       navigate("/dashboard", { replace: true });
     },
     onError: (err: any) => {
@@ -243,7 +191,7 @@ const Onboarding = () => {
     val
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
@@ -259,11 +207,8 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-[#0b1224] flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
-      {/* BACKGROUND ELEMENTS */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 blur-[120px] rounded-full -z-10" />
-
       <div className="w-full max-w-xl">
-        {/* PROGRESS INDICATOR */}
         <div className="text-center mb-10">
           <div className="mx-auto mb-6 relative group inline-block">
             <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full" />
@@ -274,7 +219,6 @@ const Onboarding = () => {
           <h1 className="text-4xl font-black text-white tracking-tight mb-4">
             Seja bem-vindo!
           </h1>
-
           <div className="flex items-center justify-center gap-2 max-w-[200px] mx-auto">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -289,7 +233,6 @@ const Onboarding = () => {
         </div>
 
         <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] backdrop-blur-xl shadow-2xl relative">
-          {/* STEP 1: IDENTIDADE */}
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
@@ -337,7 +280,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* STEP 2: HORÁRIOS */}
           {step === 2 && (
             <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-6">
@@ -429,7 +371,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* STEP 3: TIME E REGRAS */}
           {step === 3 && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-3 mb-4">
@@ -489,7 +430,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* STEP 4: SERVIÇOS */}
           {step === 4 && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
               <div className="flex items-center justify-between mb-4">
@@ -619,7 +559,6 @@ const Onboarding = () => {
             </div>
           )}
         </div>
-
         <p className="text-center text-[10px] text-slate-600 mt-10 font-bold uppercase tracking-[0.4em]">
           Ambiente Criptografado &bull; Guilherme Lara Ecosystem 2026
         </p>

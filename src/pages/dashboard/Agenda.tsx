@@ -25,14 +25,6 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
-const paymentBadgeConfig: Record<string, { label: string; className: string }> = {
-  paid: { label: "100% Pago", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  awaiting: { label: "Aguardando Pix", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  pending_local: { label: "Pagar no Local", className: "bg-muted text-muted-foreground border-border" },
-  expired: { label: "Expirado", className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
-
 const Agenda = () => {
   const { barbershop } = useBarbershop() as any;
   const { toast } = useToast();
@@ -81,14 +73,6 @@ const Agenda = () => {
     }
   });
 
-  const { data: barbers = [] } = useQuery({
-    queryKey: ["barbers", barbershop?.id], enabled: queryEnabled,
-    queryFn: async () => {
-      const { data } = await supabase.from("barbers" as any).select("*").eq("barbershop_id", barbershop?.id);
-      return data || [];
-    }
-  });
-
   const updateMutation = useMutation({
     mutationFn: async (payload: any) => {
       const { id, ...updates } = payload;
@@ -114,7 +98,7 @@ const Agenda = () => {
     const time = format(parseISO(appt.scheduled_at), "HH:mm");
     const shopName = barbershop.name;
 
-    const message = `Olá, ${clientName}! Seu agendamento para o serviço "${serviceName}" no dia ${date} às ${time} na barbearia ${shopName} está super confirmado! Aguardamos você.`;
+    const message = `Olá, ${clientName}! Passando para confirmar seu agendamento para o serviço "${serviceName}" no dia ${date} às ${time} na ${shopName}. Estamos te esperando!`;
     
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${encodedMessage}`;
@@ -149,7 +133,6 @@ const Agenda = () => {
   return (
     <div className="w-full min-h-screen bg-background p-4 lg:p-8 animate-in fade-in duration-500">
       
-      {/* HEADER */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tighter flex items-center gap-3 font-display"><CalendarDays className="text-primary" /> Agenda</h1>
@@ -184,7 +167,7 @@ const Agenda = () => {
               </tr></thead>
               <tbody className="divide-y divide-border/50">
                 {filtered.map((a: any) => (
-                  <tr key={a.id} className={`hover:bg-secondary/30 transition-colors group`}>
+                  <tr key={a.id} className={`hover:bg-secondary/30 transition-colors group ${a.status === 'pendente_pagamento' ? 'opacity-50' : ''}`}>
                     <td className="px-8 py-5 text-primary font-black text-lg">{format(parseISO(a.scheduled_at), "HH:mm")}</td>
                     <td className="px-8 py-5">
                       <p className="text-foreground font-bold">{a.client_name}</p>
@@ -209,48 +192,15 @@ const Agenda = () => {
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
-<<<<<<< HEAD
-                        {a.status === 'confirmed' && (
+                        {a.status === 'confirmed' && a.client_phone && (
                           <Button variant="ghost" size="icon" onClick={() => handleWhatsAppClick(a)} className="h-10 w-10 rounded-xl hover:bg-green-500/10 text-green-500" title="Confirmar agendamento com cliente via WhatsApp">
                             <MessageSquare className="h-4 w-4" />
-=======
-                        {a.client_phone && (
-                          <Button 
-                            variant="ghost" size="icon" 
-                            onClick={() => {
-                              const cleanPhone = a.client_phone.replace(/\D/g, "");
-                              const dateStr = format(parseISO(a.scheduled_at), "dd/MM", { locale: ptBR });
-                              const timeStr = format(parseISO(a.scheduled_at), "HH:mm");
-                              const msg = encodeURIComponent(`Olá, ${a.client_name}! Passando para confirmar seu agendamento na nossa barbearia para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
-                              window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
-                            }}
-                            className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500"
-                            title="Enviar confirmação via WhatsApp"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" size="icon" 
-                          onClick={() => handleOpenEdit(a)}
-                          className="h-10 w-10 rounded-xl hover:bg-secondary text-muted-foreground hover:text-primary"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {activeTab === "active" && !isExpiredPix && (
-                          <Button 
-                            variant="ghost" size="icon" 
-                            onClick={() => window.location.href = '/dashboard/caixa'}
-                            className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500"
-                          >
-                            <ArrowRight className="h-4 w-4" />
->>>>>>> origin/main
                           </Button>
                         )}
                         <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(a)} className="h-10 w-10 rounded-xl hover:bg-secondary text-muted-foreground hover:text-primary" title="Editar Agendamento">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {activeTab === "active" && (
+                        {activeTab === "active" && a.status !== 'pendente_pagamento' && (
                           <Button variant="ghost" size="icon" onClick={() => window.location.href = '/dashboard/caixa'} className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500" title="Iniciar Checkout e Fechar Conta">
                             <ArrowRight className="h-4 w-4" />
                           </Button>
@@ -259,7 +209,7 @@ const Agenda = () => {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && ( <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground text-sm">Nenhum agendamento encontrado.</td></tr> )}
+                {filtered.length === 0 && ( <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground text-sm">Nenhum agendamento encontrado para os filtros selecionados.</td></tr> )}
               </tbody>
             </table>
           </div>
@@ -268,7 +218,6 @@ const Agenda = () => {
         <CalendarView appointments={filtered} barbershopId={barbershop?.id} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} onEventClick={handleOpenEdit} />
       )}
 
-      {/* MODAL DE EDIÇÃO */}
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
         <DialogContent className="bg-card border-border text-foreground max-w-2xl rounded-3xl">
           <DialogHeader><DialogTitle className="text-2xl font-black flex items-center gap-2 font-display"><Pencil className="text-primary h-6 w-6" /> Editar Agendamento</DialogTitle></DialogHeader>
@@ -276,7 +225,7 @@ const Agenda = () => {
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">
               <div className="space-y-2"><label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Nome do Cliente</label><Input defaultValue={editModal.appt.client_name} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, client_name: e.target.value })} className="bg-background border-border" /></div>
               <div className="space-y-2"><label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Telefone (WhatsApp)</label><Input defaultValue={editModal.appt.client_phone} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, client_phone: e.target.value })} className="bg-background border-border font-mono" /></div>
-              <div className="space-y-2"><label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</label><select defaultValue={editModal.appt.status} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, status: e.target.value })} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground"><option value="pending">Pendente</option><option value="confirmed">Confirmado</option><option value="completed">Concluído</option><option value="cancelled">Cancelado</option></select></div>
+              <div className="space-y-2"><label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</label><select defaultValue={editModal.appt.status} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, status: e.target.value })} className="w-full bg-background border border-border rounded-xl h-10 px-3 text-sm text-foreground"><option value="pendente_pagamento">Aguardando Pagamento</option><option value="confirmed">Confirmado</option><option value="completed">Concluído</option><option value="cancelled">Cancelado</option></select></div>
             </div>
           )}
         </DialogContent>

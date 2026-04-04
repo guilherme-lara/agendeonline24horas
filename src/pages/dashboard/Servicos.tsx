@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, X, ShieldCheck
+  Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck 
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -35,10 +35,6 @@ const Servicos = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
-<<<<<<< HEAD
-=======
-  const [requiresAdvance, setRequiresAdvance] = useState(true);
->>>>>>> origin/main
   const [advanceValue, setAdvanceValue] = useState("");
 
   const queryEnabled = !!barbershop?.id;
@@ -66,12 +62,15 @@ const Servicos = () => {
       if (numericAdvanceValue > numericPrice) {
         throw new Error("O valor do adiantamento não pode ser maior que o preço final do serviço.");
       }
+      if (numericAdvanceValue <= 0) {
+        throw new Error("O valor do adiantamento deve ser maior que R$ 0,00.");
+      }
 
       const payload = {
         name: name.trim(),
         price: numericPrice,
         duration: Number(duration) || 30,
-        requires_advance_payment: true, // Ponto 1: Sempre obrigatório
+        requires_advance_payment: true,
         advance_payment_value: numericAdvanceValue,
       };
 
@@ -127,11 +126,7 @@ const Servicos = () => {
     setAdvanceValue(String(s.advance_payment_value || 0));
     setIsDialogOpen(true);
   };
-<<<<<<< HEAD
   const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setAdvanceValue(""); };
-=======
-  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setRequiresAdvance(true); setAdvanceValue(""); };
->>>>>>> origin/main
 
   if (isLoading && queryEnabled && !services.length && !isError) {
     return (

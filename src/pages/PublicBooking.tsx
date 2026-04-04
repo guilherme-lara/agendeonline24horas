@@ -23,19 +23,16 @@ const PublicBooking = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // --- ESTADOS DE NAVEGAÇÃO ---
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   
-  // Captura o retorno da InfinitePay
   const [success, setSuccess] = useState(searchParams.get("success") === "true"); 
   const [cancelled, setCancelled] = useState(false);
 
-  // --- QUERIES ---
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
@@ -51,13 +48,13 @@ const PublicBooking = () => {
     staleTime: 0,
   });
 
-  const { data: shopResources } = useQuery({
+  const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shop-resources", shop?.id],
     queryFn: async () => {
       const [servs, hours, barbers] = await Promise.all([
         supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
-        supabase.from("barbers_public" as any).select("*").eq("barbershop_id", shop!.id),
+        supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
       ]);
       return { services: servs.data || [], hours: hours.data || [], barbers: barbers.data || [] };
     },
@@ -71,7 +68,6 @@ const PublicBooking = () => {
       const y = selectedDate!.getFullYear();
       const m = pad(selectedDate!.getMonth() + 1);
       const d = pad(selectedDate!.getDate());
-      // Query using fixed Brasília offset to avoid timezone mismatch
       const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
       const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
 
@@ -83,7 +79,6 @@ const PublicBooking = () => {
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd);
       
-      // Filter by selected barber to only block their slots
       if (selectedBarber?.name) {
         query = query.eq("barber_name", selectedBarber.name);
       }
@@ -95,127 +90,71 @@ const PublicBooking = () => {
     enabled: !!shop?.id && !!selectedDate,
   });
   
-  // PONTO 1: VALIDAÇÃO DE PAGAMENTOS
   const isPaymentConfigured = !!shop?.settings?.infinitepay_tag;
 
-  // --- NOVO: REALTIME PARA ATUALIZAR AGENDA NA HORA ---
   useEffect(() => {
     if (!shop?.id) return;
-
     const channel = supabase
       .channel('public_booking_realtime')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'appointments',
-          filter: `barbershop_id=eq.${shop.id}` 
-        },
-        () => {
-          // Se qualquer agendamento for criado/alterado, busca os horários de novo
-          queryClient.invalidateQueries({ queryKey: ["slots"] });
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `barbershop_id=eq.${shop.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["slots"] }); }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
 
-  // --- MOTOR DE CHECKOUT SEM CORS ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
-      
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
-      scheduledAt.setHours(h, m, 0, 0);
-
-<<<<<<< HEAD
-      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
-        ? selectedService.advance_payment_value
-        : selectedService.price;
-=======
-      // Formata com offset fixo de Brasília (-03:00)
       const pad = (n: number) => String(n).padStart(2, '0');
       const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
-      const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
-      const initialStatus = isOnline ? 'pendente_pagamento' : 'confirmed';
-      const hasSignal = paymentOption === 'online_signal';
-      const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
-      const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
->>>>>>> origin/main
+      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
+        ? selectedService.advance_payment_value
+        : selectedService.price;
 
-      // 1. Cria o agendamento no Supabase COM STATUS PENDENTE
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
         _client_phone: clientData.phone.trim(),
         _service_name: selectedService.name,
         _price: selectedService.price,
-<<<<<<< HEAD
-        _scheduled_at: scheduledAt.toISOString(),
-        _payment_method: "pix" // PONTO 1: Pagamento sempre online
-=======
-        _scheduled_at: formattedDateForDB, // Data com o Fuso Horário corrigido
-        _payment_method: isOnline ? "pix" : "local"
->>>>>>> origin/main
+        _scheduled_at: formattedDateForDB,
+        _payment_method: "pix"
       });
 
       if (rpcError) throw rpcError;
-
       const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 2. Trava a vaga na agenda com status pendente
       await supabase.from("appointments").update({ 
         barber_name: selectedBarber.name,
-        status: 'pendente_pagamento', // PONTO 1: Status inicial é sempre pendente
+        status: 'pendente_pagamento',
         has_signal: (selectedService.advance_payment_value || 0) > 0,
         signal_value: selectedService.advance_payment_value || 0
       }).eq("id", apptId);
 
-      // 3. MÁGICA: Redirecionamento Direto para InfinitePay
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) throw new Error("Esta barbearia não está configurada para receber pagamentos online.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
       const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
-      const priceInCents = Math.round(amountToCharge * 100); 
+      const priceInCents = Math.round(amountToCharge * 100);
 
-<<<<<<< HEAD
-=======
-      // TRAVA DE SEGURANÇA
->>>>>>> origin/main
       if (priceInCents < 100) {
         throw new Error("O valor do serviço deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/main
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
       return { url: checkoutUrl };
     },
     onSuccess: (res) => {
-<<<<<<< HEAD
       if (res.url) {
-        // Redireciona o usuário para o checkout
-        window.location.href = res.url; 
-=======
-      if (res.type === 'online' && res.url) {
-        window.location.href = res.url; 
-      } else {
-        setSuccess(true);
-        setStep(5);
-        queryClient.invalidateQueries({ queryKey: ["slots"] }); // Limpa o cache após sucesso
->>>>>>> origin/main
+        window.location.href = res.url;
       }
     },
     onError: (error: any) => {
@@ -230,7 +169,6 @@ const PublicBooking = () => {
     }
   });
 
-  // --- LÓGICA DE HORÁRIOS ---
   const timeSlots = useMemo(() => {
     if (!selectedDate || !selectedService || !shopResources) return [];
     const dayOfWeek = selectedDate.getDay();
@@ -251,31 +189,12 @@ const PublicBooking = () => {
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
         
         const hasConflict = existingAppts.some((appt: any) => {
-<<<<<<< HEAD
-          if (appt.status === 'cancelled' || appt.status === 'pendente_pagamento') return false;
-          const aStart = new Date(appt.scheduled_at);
-          const aEnd = addMinutes(aStart, 40); // Considerando duração fixa de 40min para conflito
-=======
           if (appt.status === 'cancelled') return false;
-          
-          // --- SOLUÇÃO ANTI-FUSO HORÁRIO ---
-          // Extraímos apenas os 5 caracteres da hora "HH:mm" da string crua do banco.
-          // Ex: "2026-04-03T09:30:00-03:00" vira "09:30"
-          const timeString = appt.scheduled_at.includes('T') 
-            ? appt.scheduled_at.split('T')[1].substring(0, 5) 
-            : appt.scheduled_at.split(' ')[1].substring(0, 5);
-          
+          const timeString = appt.scheduled_at.includes('T') ? appt.scheduled_at.split('T')[1].substring(0, 5) : appt.scheduled_at.split(' ')[1].substring(0, 5);
           const [dbH, dbM] = timeString.split(':').map(Number);
-
-          // Montamos a hora cravada baseada no banco sem interferência de fuso UTC local
           const aStart = new Date(selectedDate);
           aStart.setHours(dbH, dbM, 0, 0);
-
-          // Puxamos a duração correta (ou 40m de fallback)
           const aEnd = addMinutes(aStart, selectedService?.duration || 40);
-
-          // Compara os blocos reais
->>>>>>> origin/main
           return slotStart < aEnd && slotEnd > aStart;
         });
         
@@ -297,7 +216,6 @@ const PublicBooking = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* HEADER */}
       <div className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -315,8 +233,6 @@ const PublicBooking = () => {
       </div>
 
       <div className="container max-w-2xl mt-8 px-4">
-
-        {/* PONTO 1: BLOQUEIO SE PAGAMENTO NÃO ESTIVER CONFIGURADO */}
         {!isPaymentConfigured ? (
            <div className="animate-in fade-in-50 text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
               <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
@@ -329,60 +245,56 @@ const PublicBooking = () => {
 
         !success && !cancelled ? (
           <div>
-            {/* STEP INDICATOR */}
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "gold-gradient shadow-gold" : "bg-secondary"}`} />
               ))}
             </div>
 
-            {/* STEP 1: SERVIÇOS */}
             {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                     <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">Qual serviço você deseja?</h3>
                     <p className="text-sm text-muted-foreground mb-8 font-medium">O pagamento do sinal ou valor total é obrigatório.</p>
                     <div className="grid gap-3">
-                        {shopResources?.services.map((s: any) => (
-                            <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg text-foreground">{s.name}</p>
-                                        <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                        <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
-                                            <ShieldCheck className="h-3 w-3 text-amber-500" />
-                                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">
-                                              Pagamento Online Obrigatório
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <p className="text-xl font-black text-primary">R$ {Number(s.price).toFixed(2)}</p>
-                                </div>
-                            </button>
-                        ))}
+                      {loadingResources ? <Loader2 className="animate-spin text-primary mx-auto" /> : shopResources?.services.map((s: any) => (
+                          <button key={s.id} onClick={() => { setSelectedService(s); setStep(2); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
+                              <div className="flex justify-between items-start">
+                                  <div>
+                                      <p className="font-bold text-lg text-foreground">{s.name}</p>
+                                      <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
+                                      <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
+                                          <ShieldCheck className="h-3 w-3 text-amber-500" />
+                                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">
+                                            Pagamento Online Obrigatório
+                                          </span>
+                                      </div>
+                                  </div>
+                                  <p className="text-xl font-black text-primary">R$ {Number(s.price).toFixed(2)}</p>
+                              </div>
+                          </button>
+                      ))}
                     </div>
                 </div>
             )}
 
-            {/* STEP 2: BARBEIRO */}
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
                     <div className="grid grid-cols-2 gap-4">
-                        {shopResources?.barbers.map((b: any) => (
-                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
-                                <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
-                                    <AvatarImage src={b.avatar_url} />
-                                    <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
-                            </button>
-                        ))}
+                      {loadingResources ? <Loader2 className="animate-spin text-primary mx-auto" /> : shopResources?.barbers.map((b: any) => (
+                          <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
+                              <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
+                                  <AvatarImage src={b.avatar_url} />
+                                  <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
+                          </button>
+                      ))}
                     </div>
                     <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
                 </div>
             )}
 
-            {/* STEP 3: DATA E HORA */}
             {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-8 text-foreground font-display">Data e Horário</h3>
@@ -415,11 +327,9 @@ const PublicBooking = () => {
                 </div>
             )}
 
-            {/* STEP 4: DADOS DO CLIENTE E PAGAMENTO */}
             {step === 4 && (
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
-                    
                     <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-1.5">
@@ -472,35 +382,13 @@ const PublicBooking = () => {
                           </Button>
                         </div>
                     </div>
-<<<<<<< HEAD
-=======
-
-                    <div className="pt-4 flex items-center justify-between gap-4">
-                      <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
-                      <Button 
-                          onClick={() => {
-                            const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
-                            if (isOnline && !shop?.settings?.infinitepay_tag) {
-                              toast({ title: "Erro", description: "A barbearia ainda não configurou o método de pagamento.", variant: "destructive" });
-                              return;
-                            }
-                            bookingMutation.mutate();
-                          }} 
-                          disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
-                          className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
-                      >
-                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : paymentOption === 'local' ? <><Check className="mr-2 h-5 w-5" /> Agendar Horário</> : <><QrCode className="mr-2 h-5 w-5" /> Ir para Checkout Externo</>}
-                      </Button>
-                    </div>
->>>>>>> origin/main
                 </div>
             )}
           </div>
         ) : (
-          <div /> // Fallback para success/cancelled
+          <div />
         )}
 
-        {/* TELA FINAL: SUCESSO */}
         {success && !cancelled && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
@@ -510,13 +398,12 @@ const PublicBooking = () => {
                 <p className="text-muted-foreground mb-8 max-w-xs mx-auto">Seu pagamento foi aprovado. A sua vaga está garantida e te esperamos no horário marcado.</p>
 
                  <div className="flex flex-col gap-3 mb-6">
-                  {selectedDate && selectedTime && selectedService && (
                     <Button 
                       variant="outline"
                       onClick={() => {
                         const start = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`);
-                        const end = addMinutes(start, selectedService.duration || 30);
-                        const title = encodeURIComponent(`${selectedService.name}${shop?.name ? ` - ${shop.name}` : ''}`);
+                        const end = addMinutes(start, selectedService?.duration || 30);
+                        const title = encodeURIComponent(`${selectedService?.name}${shop?.name ? ` - ${shop.name}` : ''}`);
                         const dates = `${format(start, "yyyyMMdd'T'HHmmss")}/${format(end, "yyyyMMdd'T'HHmmss")}`;
                         const location = encodeURIComponent(shop?.address || '');
                         window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}`, '_blank');
@@ -525,7 +412,6 @@ const PublicBooking = () => {
                     >
                       <CalendarDays className="h-5 w-5" /> Adicionar ao Google Agenda
                     </Button>
-                  )}
                   
                   {shop?.address && (
                     <Button 

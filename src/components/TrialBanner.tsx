@@ -1,6 +1,6 @@
 import { useBarbershop } from "@/hooks/useBarbershop";
-import { Rocket } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Rocket, Sparkles } from "lucide-react";
+import { differenceInDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -16,22 +16,33 @@ const TrialBanner = () => {
     return null;
   }
 
-  const formattedEndDate = format(parseISO(trialEndDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const endDate = parseISO(trialEndDate);
+  const today = new Date();
+  const daysRemaining = differenceInDays(endDate, today);
+
+  let message;
+  if (daysRemaining > 1) {
+    message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias.`;
+  } else if (daysRemaining === 1) {
+    message = "Seu teste grátis termina amanhã! Não perca os recursos PRO.";
+  } else {
+    message = "Seu período de teste gratuito terminou. Faça um upgrade para continuar aproveitando.";
+  }
 
   return (
-    <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
+    <div className="gold-gradient-dark text-primary-foreground rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg animate-in fade-in duration-300">
       <div className="flex items-center gap-4">
-        <Rocket className="h-8 w-8" />
+        <Sparkles className="h-8 w-8 text-yellow-300" />
         <div>
-          <h3 className="font-black text-lg">Você está no Plano PRO!</h3>
-          <p className="text-sm opacity-90">Seu período de teste gratuito termina em <strong>{formattedEndDate}</strong>.</p>
+          <h3 className="font-black text-lg text-white">Bem-vindo ao seu teste do Plano PRO!</h3>
+          <p className="text-sm text-yellow-200/90">{message}</p>
         </div>
       </div>
       <Button 
-        onClick={() => navigate('/subscribe')}
-        className="bg-white text-blue-600 hover:bg-gray-100 font-bold h-11 px-6 rounded-xl transition-transform active:scale-95 flex-shrink-0"
+        onClick={() => navigate('/subscribe/pro')} // Ponto 3: Rota corrigida
+        className="bg-white text-blue-600 hover:bg-gray-100 font-bold h-11 px-6 rounded-xl transition-transform active:scale-95 flex-shrink-0 shadow-lg"
       >
-        Ver Planos
+        <Rocket className="h-4 w-4 mr-2" /> Fazer Upgrade Agora
       </Button>
     </div>
   );
