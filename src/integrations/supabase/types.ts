@@ -729,14 +729,14 @@ export type Database = {
           {
             foreignKeyName: "saas_plans_barbershop_id_fkey"
             columns: ["barbershop_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "barbershops"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "saas_plans_barbershop_id_fkey"
             columns: ["barbershop_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "barbershops_public"
             referencedColumns: ["id"]
           },
