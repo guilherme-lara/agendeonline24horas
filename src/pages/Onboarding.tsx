@@ -98,6 +98,29 @@ const Onboarding = () => {
         .update({ barbershop_id: shop.id })
         .eq("user_id", user?.id);
 
+      // --- CONCESSÃO AUTOMÁTICA DO TRIAL PRO (30 DIAS) ---
+      if (!shop.trial_used) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        await supabase
+          .from("saas_plans")
+          .upsert(
+            {
+              barbershop_id: shop.id,
+              plan_name: "pro",
+              status: "active",
+              expires_at: expiresAt.toISOString(),
+            },
+            { onConflict: "barbershop_id" }
+          );
+
+        await supabase
+          .from("barbershops")
+          .update({ trial_used: true })
+          .eq("id", shop.id);
+      }
+
       return shop;
     },
     onSuccess: (shop) => {
@@ -135,6 +158,7 @@ const Onboarding = () => {
 
       if (shopError) throw shopError;
 
+<<<<<<< HEAD
       // 2. Verifica se já possui plano ativo antes de conceder trial
       const { data: existingPlan } = await supabase
         .from("saas_plans")
@@ -144,6 +168,9 @@ const Onboarding = () => {
         .maybeSingle();
 
       // 3. Operações Paralelas (Performance Industrial)
+=======
+      // 2. Operações Paralelas (Performance Industrial)
+>>>>>>> origin/main
       const operations: Promise<any>[] = [
         (supabase
           .from("business_hours")
@@ -162,6 +189,7 @@ const Onboarding = () => {
         ) as unknown as Promise<any>),
       ];
 
+<<<<<<< HEAD
       // Se NÃO tem plano ativo, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
@@ -176,6 +204,8 @@ const Onboarding = () => {
         );
       }
 
+=======
+>>>>>>> origin/main
       await Promise.all(operations);
 
       // 4. Primeiro Profissional

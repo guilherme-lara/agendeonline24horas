@@ -16,11 +16,11 @@ const PLAN_RANK: Record<string, number> = {
   pro: 3, // legacy alias
 };
 
-const PLAN_LIMITS: Record<string, { maxBarbers: number; hasFinanceiro: boolean; hasExport: boolean; hasPacotes: boolean }> = {
-  trial:  { maxBarbers: 1, hasFinanceiro: false, hasExport: false, hasPacotes: false },
-  bronze: { maxBarbers: 1, hasFinanceiro: false, hasExport: false, hasPacotes: false },
-  prata:  { maxBarbers: 5, hasFinanceiro: true,  hasExport: false, hasPacotes: false },
-  ouro:   { maxBarbers: Infinity, hasFinanceiro: true, hasExport: true, hasPacotes: true },
+const PLAN_LIMITS: Record<string, { hasFinanceiro: boolean; hasExport: boolean; hasPacotes: boolean }> = {
+  trial:  { hasFinanceiro: false, hasExport: false, hasPacotes: false },
+  bronze: { hasFinanceiro: false, hasExport: false, hasPacotes: false },
+  prata:  { hasFinanceiro: true,  hasExport: false, hasPacotes: false },
+  ouro:   { hasFinanceiro: true, hasExport: true, hasPacotes: true },
 };
 
 function normalizePlanName(raw: string): PlanTier {
@@ -65,7 +65,7 @@ export const usePlanGate = () => {
 
   const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.trial;
 
-  const canAddBarber = isAdmin || barberCount < limits.maxBarbers;
+  const canAddBarber = true; // Barbeiros ilimitados para todos os planos
   const hasFinanceiro = isAdmin || limits.hasFinanceiro;
   const hasExport = isAdmin || limits.hasExport;
   const hasPacotes = isAdmin || limits.hasPacotes;
@@ -92,7 +92,6 @@ export const usePlanGate = () => {
     isActive,
     canAddBarber,
     barberCount,
-    maxBarbers: limits.maxBarbers,
     hasFinanceiro,
     hasExport,
     hasPacotes,

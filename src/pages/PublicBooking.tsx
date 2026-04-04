@@ -65,37 +65,88 @@ const PublicBooking = () => {
   });
 
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
-    queryKey: ["slots", shop?.id, selectedDate?.toISOString()],
+    queryKey: ["slots", shop?.id, selectedDate?.toISOString(), selectedBarber?.id],
     queryFn: async () => {
-      const dayStart = startOfDay(selectedDate!).toISOString();
-      const dayEnd = new Date(selectedDate!);
-      dayEnd.setHours(23, 59, 59);
-      const { data, error } = await supabase
-        .from("appointments_public" as any)
-        .select("scheduled_at, service_name, status")
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const y = selectedDate!.getFullYear();
+      const m = pad(selectedDate!.getMonth() + 1);
+      const d = pad(selectedDate!.getDate());
+      // Query using fixed Brasília offset to avoid timezone mismatch
+      const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
+      const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
+
+      let query = supabase
+        .from("appointments")
+        .select("scheduled_at, service_name, status, barber_name")
         .eq("barbershop_id", shop!.id)
+        .neq("status", "cancelled")
         .gte("scheduled_at", dayStart)
-        .lte("scheduled_at", dayEnd.toISOString());
+        .lte("scheduled_at", dayEnd);
+      
+      // Filter by selected barber to only block their slots
+      if (selectedBarber?.name) {
+        query = query.eq("barber_name", selectedBarber.name);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     enabled: !!shop?.id && !!selectedDate,
-    refetchInterval: 5000,
   });
   
   // PONTO 1: VALIDAÇÃO DE PAGAMENTOS
   const isPaymentConfigured = !!shop?.settings?.infinitepay_tag;
 
+  // --- NOVO: REALTIME PARA ATUALIZAR AGENDA NA HORA ---
+  useEffect(() => {
+    if (!shop?.id) return;
+
+    const channel = supabase
+      .channel('public_booking_realtime')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'appointments',
+          filter: `barbershop_id=eq.${shop.id}` 
+        },
+        () => {
+          // Se qualquer agendamento for criado/alterado, busca os horários de novo
+          queryClient.invalidateQueries({ queryKey: ["slots"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [shop?.id, queryClient]);
+
   // --- MOTOR DE CHECKOUT SEM CORS ---
   const bookingMutation = useMutation({
     mutationFn: async () => {
+      
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       scheduledAt.setHours(h, m, 0, 0);
 
+<<<<<<< HEAD
       const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
         ? selectedService.advance_payment_value
         : selectedService.price;
+=======
+      // Formata com offset fixo de Brasília (-03:00)
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
+
+      const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
+      const initialStatus = isOnline ? 'pendente_pagamento' : 'confirmed';
+      const hasSignal = paymentOption === 'online_signal';
+      const signalValue = hasSignal ? selectedService.advance_payment_value : 0;
+      const amountToCharge = paymentOption === 'online_full' ? selectedService.price : selectedService.advance_payment_value;
+>>>>>>> origin/main
 
       // 1. Cria o agendamento no Supabase COM STATUS PENDENTE
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
@@ -104,8 +155,13 @@ const PublicBooking = () => {
         _client_phone: clientData.phone.trim(),
         _service_name: selectedService.name,
         _price: selectedService.price,
+<<<<<<< HEAD
         _scheduled_at: scheduledAt.toISOString(),
         _payment_method: "pix" // PONTO 1: Pagamento sempre online
+=======
+        _scheduled_at: formattedDateForDB, // Data com o Fuso Horário corrigido
+        _payment_method: isOnline ? "pix" : "local"
+>>>>>>> origin/main
       });
 
       if (rpcError) throw rpcError;
@@ -129,28 +185,37 @@ const PublicBooking = () => {
       const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
       const priceInCents = Math.round(amountToCharge * 100); 
 
+<<<<<<< HEAD
+=======
+      // TRAVA DE SEGURANÇA
+>>>>>>> origin/main
       if (priceInCents < 100) {
         throw new Error("O valor do serviço deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
-      const items = JSON.stringify([
-        {
-          name: itemName,
-          price: priceInCents,
-          quantity: 1
-        }
-      ]);
-
+      const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
       return { url: checkoutUrl };
     },
     onSuccess: (res) => {
+<<<<<<< HEAD
       if (res.url) {
         // Redireciona o usuário para o checkout
         window.location.href = res.url; 
+=======
+      if (res.type === 'online' && res.url) {
+        window.location.href = res.url; 
+      } else {
+        setSuccess(true);
+        setStep(5);
+        queryClient.invalidateQueries({ queryKey: ["slots"] }); // Limpa o cache após sucesso
+>>>>>>> origin/main
       }
     },
     onError: (error: any) => {
@@ -184,12 +249,36 @@ const PublicBooking = () => {
         slotStart.setHours(h, m, 0, 0);
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+        
         const hasConflict = existingAppts.some((appt: any) => {
+<<<<<<< HEAD
           if (appt.status === 'cancelled' || appt.status === 'pendente_pagamento') return false;
           const aStart = new Date(appt.scheduled_at);
           const aEnd = addMinutes(aStart, 40); // Considerando duração fixa de 40min para conflito
+=======
+          if (appt.status === 'cancelled') return false;
+          
+          // --- SOLUÇÃO ANTI-FUSO HORÁRIO ---
+          // Extraímos apenas os 5 caracteres da hora "HH:mm" da string crua do banco.
+          // Ex: "2026-04-03T09:30:00-03:00" vira "09:30"
+          const timeString = appt.scheduled_at.includes('T') 
+            ? appt.scheduled_at.split('T')[1].substring(0, 5) 
+            : appt.scheduled_at.split(' ')[1].substring(0, 5);
+          
+          const [dbH, dbM] = timeString.split(':').map(Number);
+
+          // Montamos a hora cravada baseada no banco sem interferência de fuso UTC local
+          const aStart = new Date(selectedDate);
+          aStart.setHours(dbH, dbM, 0, 0);
+
+          // Puxamos a duração correta (ou 40m de fallback)
+          const aEnd = addMinutes(aStart, selectedService?.duration || 40);
+
+          // Compara os blocos reais
+>>>>>>> origin/main
           return slotStart < aEnd && slotEnd > aStart;
         });
+        
         if (!hasConflict) {
           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
@@ -383,6 +472,27 @@ const PublicBooking = () => {
                           </Button>
                         </div>
                     </div>
+<<<<<<< HEAD
+=======
+
+                    <div className="pt-4 flex items-center justify-between gap-4">
+                      <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
+                      <Button 
+                          onClick={() => {
+                            const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
+                            if (isOnline && !shop?.settings?.infinitepay_tag) {
+                              toast({ title: "Erro", description: "A barbearia ainda não configurou o método de pagamento.", variant: "destructive" });
+                              return;
+                            }
+                            bookingMutation.mutate();
+                          }} 
+                          disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
+                          className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
+                      >
+                          {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : paymentOption === 'local' ? <><Check className="mr-2 h-5 w-5" /> Agendar Horário</> : <><QrCode className="mr-2 h-5 w-5" /> Ir para Checkout Externo</>}
+                      </Button>
+                    </div>
+>>>>>>> origin/main
                 </div>
             )}
           </div>

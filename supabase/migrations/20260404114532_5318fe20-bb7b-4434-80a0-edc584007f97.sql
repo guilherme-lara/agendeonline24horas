@@ -1,0 +1,1 @@
+ALTER TABLE public.saas_plans ADD CONSTRAINT saas_plans_barbershop_id_key UNIQUE (barbershop_id);

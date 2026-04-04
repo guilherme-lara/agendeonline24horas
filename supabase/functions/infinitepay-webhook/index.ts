@@ -18,10 +18,53 @@ Deno.serve(async (req) => {
   try {
     const payload = await req.json();
 
+<<<<<<< HEAD
     const appointmentId = payload.order_nsu;
     if (!appointmentId) {
       console.warn("Webhook recebido sem 'order_nsu'. Ignorando.");
       return new Response(JSON.stringify({ ok: true, skipped: "Missing order_nsu" }), {
+=======
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // PING test — returns immediately
+    if (payload.ping === true) {
+      return new Response(JSON.stringify({ ok: true, message: "Webhook endpoint is active" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 🔒 LOG BRUTO ANTES DE PROCESSAR
+    const paymentId = payload.id || payload.payment_id || payload.transaction_id || "";
+    const eventType = payload.event || payload.type || payload.status || "unknown";
+
+    await supabase.from("webhook_logs").insert({
+      event_type: eventType,
+      payment_id: paymentId,
+      raw_payload: payload,
+      processed: false,
+    });
+
+    // Log detalhado na tabela payment_logs para debug
+    await supabase.from("payment_logs").insert({
+      source: "infinitepay-webhook",
+      event_type: eventType,
+      status_code: 200,
+      request_body: payload,
+      payment_id: paymentId,
+    });
+
+    if (!paymentId) {
+      console.warn("Webhook sem payment_id, ignorando");
+      return new Response(JSON.stringify({ ok: true, skipped: true }), {
+>>>>>>> origin/main
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

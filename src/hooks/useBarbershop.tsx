@@ -100,8 +100,14 @@ export const useBarbershop = () => {
         }
 
         // Processa dados da barbearia
-        const plans = (data.saas_plans as any[]) || [];
-        const activePlan = plans.find((p: any) => p.status === "active");
+        // saas_plans pode vir como objeto (1:1 via unique constraint) ou array
+        const rawPlans = data.saas_plans;
+        let activePlan: any = null;
+        if (Array.isArray(rawPlans)) {
+          activePlan = rawPlans.find((p: any) => p.status === "active") || null;
+        } else if (rawPlans && typeof rawPlans === "object") {
+          activePlan = (rawPlans as any).status === "active" ? rawPlans : null;
+        }
 
         // Check if active plan is expired
         let planStatus = activePlan?.status || "none";

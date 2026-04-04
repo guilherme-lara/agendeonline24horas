@@ -33,8 +33,16 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
   const { playCaching } = useSoundFeedback();
+
+  // Auto-hide "Atualizado Agora" badge after 5 seconds
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const timer = setTimeout(() => setLastUpdated(null), 5000);
+    return () => clearTimeout(timer);
+  }, [lastUpdated]);
 
   // Fuso horário centralizado em src/lib/timezone.ts
 
@@ -60,8 +68,13 @@ const Dashboard = () => {
         schema: 'public', 
         table: 'orders', 
         filter: `barbershop_id=eq.${barbershop.id}` 
-      }, () => {
+      }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        if (payload.eventType === "INSERT") {
+          playCaching();
+          setLastUpdated(new Date());
+        }
       })
       .subscribe();
 
@@ -228,10 +241,17 @@ const Dashboard = () => {
         {/* GRÁFICO PRINCIPAL */}
         <div className="lg:col-span-2 rounded-[2.5rem] border border-border bg-card p-8 shadow-card">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black flex items-center gap-3 font-display">
-              <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
-              Desempenho Semanal
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-black flex items-center gap-3 font-display">
+                <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+                Desempenho Semanal
+              </h2>
+              {lastUpdated && (
+                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black uppercase tracking-wider animate-in fade-in slide-in-from-right-2 duration-300">
+                  ⚡ Atualizado Agora
+                </Badge>
+              )}
+            </div>
           </div>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
