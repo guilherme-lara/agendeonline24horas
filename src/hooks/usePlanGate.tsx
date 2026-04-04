@@ -92,7 +92,6 @@ export const usePlanGate = () => {
     isActive,
     canAddBarber,
     barberCount,
-    maxBarbers: limits.maxBarbers,
     hasFinanceiro,
     hasExport,
     hasPacotes,
