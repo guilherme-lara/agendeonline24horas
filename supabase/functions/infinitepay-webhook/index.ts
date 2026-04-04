@@ -16,196 +16,78 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const rawBody = await req.text();
-    let payload: any;
+    const payload = await req.json();
 
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 🔒 LOG BRUTO ANTES DE PROCESSAR
-    const paymentId = payload.id || payload.payment_id || payload.transaction_id || "";
-    const eventType = payload.event || payload.type || payload.status || "unknown";
-
-    await supabase.from("webhook_logs").insert({
-      event_type: eventType,
-      payment_id: paymentId,
-      raw_payload: payload,
-      processed: false,
-    });
-
-    if (!paymentId) {
-      console.warn("Webhook sem payment_id, ignorando");
-      return new Response(JSON.stringify({ ok: true, skipped: true }), {
+    const appointmentId = payload.order_nsu;
+    if (!appointmentId) {
+      console.warn("Webhook recebido sem 'order_nsu'. Ignorando.");
+      return new Response(JSON.stringify({ ok: true, skipped: "Missing order_nsu" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Verifica status do pagamento
+    
     const status = payload.status || payload.payment_status || "";
     const isPaid = ["paid", "approved", "completed", "confirmed"].includes(status.toLowerCase());
 
     if (!isPaid) {
       return new Response(
-        JSON.stringify({ ok: true, payment_confirmed: false }),
+        JSON.stringify({ ok: true, payment_confirmed: false, reason: `Status [${status}] não é um pagamento válido.` }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // === ROTA 1: Pagamento de PLANO SaaS ===
-    // Detecta via metadata.ref (barbershop_id) e valores de plano
-    const refBarbershopId = payload.metadata?.external_id || payload.external_id ||
-      payload.metadata?.ref || payload.ref || 
-      (() => { try { return new URL(payload.checkout_url || "").searchParams.get("external_id") || new URL(payload.checkout_url || "").searchParams.get("ref") || ""; } catch { return ""; } })();
-    const amount = Number(payload.amount || payload.value || 0);
-    
-    // Valores dos planos (em centavos ou reais)
-    const planPrices: Record<string, string> = {
-      "49.9": "bronze", "49.90": "bronze", "4990": "bronze",
-      "79.9": "prata", "79.90": "prata", "7990": "prata",
-      "99.9": "ouro", "99.90": "ouro", "9990": "ouro",
-    };
-
-    const detectedPlan = planPrices[String(amount)] || planPrices[String(amount / 100)] || "";
-
-    if (refBarbershopId && detectedPlan) {
-      console.log(`Plan payment detected: ${detectedPlan} for barbershop ${refBarbershopId}`);
-      
-      // Check idempotency - don't create duplicate plan entries
-      const { data: existingPlan } = await supabase
-        .from("saas_plans")
-        .select("id")
-        .eq("barbershop_id", refBarbershopId)
-        .eq("status", "active")
-        .gte("expires_at", new Date().toISOString())
-        .maybeSingle();
-
-      if (!existingPlan) {
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        
-        // Deactivate any existing plans
-        await supabase
-          .from("saas_plans")
-          .update({ status: "expired" })
-          .eq("barbershop_id", refBarbershopId)
-          .eq("status", "active");
-
-        // Create new active plan
-        await supabase.from("saas_plans").insert({
-          barbershop_id: refBarbershopId,
-          plan_name: detectedPlan,
-          status: "active",
-          started_at: new Date().toISOString(),
-          expires_at: expiresAt,
-          price: amount > 100 ? amount / 100 : amount,
-        });
-
-        console.log(`Plan ${detectedPlan} activated until ${expiresAt}`);
-      } else {
-        console.log("Active plan already exists, idempotent skip");
-      }
-
-      await supabase
-        .from("webhook_logs")
-        .update({ processed: true, barbershop_id: refBarbershopId })
-        .eq("payment_id", paymentId)
-        .eq("processed", false);
-
-      return new Response(
-        JSON.stringify({ ok: true, plan_activated: detectedPlan }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // === ROTA 2: Pagamento de AGENDAMENTO ===
-    const { data: appt } = await supabase
+    // === ROTA DE PAGAMENTO DE AGENDAMENTO (PIVOTAGEM) ===
+    const { data: appt, error } = await supabase
       .from("appointments")
-      .select("id, barbershop_id, payment_status, payment_id")
-      .eq("payment_id", paymentId)
+      .select("id, barbershop_id, status")
+      .eq("id", appointmentId)
       .maybeSingle();
 
-    if (!appt) {
-      console.warn("Appointment not found for payment_id:", paymentId);
-      return new Response(JSON.stringify({ ok: true, not_found: true }), {
-        status: 200,
+    if (error || !appt) {
+      console.error("Agendamento não encontrado para o ID:", appointmentId, error);
+      return new Response(JSON.stringify({ ok: false, error: "Appointment not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 🔒 IDEMPOTÊNCIA
-    if (appt.payment_status === "paid") {
-      console.log("Payment already processed (idempotent skip):", paymentId);
-      await supabase
-        .from("webhook_logs")
-        .update({ processed: true, barbershop_id: appt.barbershop_id })
-        .eq("payment_id", paymentId)
-        .eq("processed", false);
-
+    // IDEMPOTÊNCIA: Não processar se já estiver confirmado
+    if (appt.status === "confirmed") {
+      console.log("Agendamento já confirmado (idemponência):", appointmentId);
       return new Response(JSON.stringify({ ok: true, already_processed: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 🔒 VALIDAÇÃO DE ASSINATURA
-    const signature = req.headers.get("x-webhook-signature") || req.headers.get("x-infinitepay-signature") || "";
-    if (signature && appt.barbershop_id) {
-      const { data: secrets } = await supabase
-        .from("barbershop_secrets")
-        .select("webhook_secret")
-        .eq("barbershop_id", appt.barbershop_id)
-        .maybeSingle();
-
-      if (secrets?.webhook_secret) {
-        const encoder = new TextEncoder();
-        const key = await crypto.subtle.importKey(
-          "raw", encoder.encode(secrets.webhook_secret),
-          { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-        );
-        const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
-        const expectedSig = Array.from(new Uint8Array(sig))
-          .map((b) => b.toString(16).padStart(2, "0")).join("");
-
-        if (signature !== expectedSig) {
-          console.error("Webhook signature mismatch!");
-          return new Response(JSON.stringify({ error: "Invalid signature" }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-    }
-
-    // Atualiza agendamento como pago
-    const nowBRT = new Date(Date.now() - 3 * 60 * 60 * 1000);
-    await supabase
+    // Atualiza o agendamento para "confirmed"
+    const { error: updateError } = await supabase
       .from("appointments")
       .update({
-        payment_status: "paid",
-        payment_confirmed_at: nowBRT.toISOString(),
         status: "confirmed",
+        payment_status: "paid",
+        payment_confirmed_at: new Date().toISOString(),
       })
       .eq("id", appt.id);
 
-    console.log("Payment confirmed for appointment:", appt.id);
+    if (updateError) {
+      console.error("Falha ao atualizar agendamento:", updateError);
+      return new Response(JSON.stringify({ ok: false, error: "Failed to update appointment" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    await supabase
-      .from("webhook_logs")
-      .update({ processed: true, barbershop_id: appt.barbershop_id })
-      .eq("payment_id", paymentId)
-      .eq("processed", false);
+    console.log("Pagamento confirmado e agendamento atualizado com sucesso para:", appt.id);
 
     return new Response(
-      JSON.stringify({ ok: true, payment_confirmed: true }),
+      JSON.stringify({ ok: true, payment_confirmed: true, appointment_id: appt.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("Erro geral no webhook:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

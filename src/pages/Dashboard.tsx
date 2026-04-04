@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
 import ExpirationBanner from "@/components/ExpirationBanner";
+import TrialBanner from "@/components/TrialBanner"; // Ponto 2: Importar o novo banner
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -182,6 +183,7 @@ const Dashboard = () => {
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
       <UpgradeModal open={upgradeModal.open} onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })} requiredPlan={upgradeModal.plan} featureName={upgradeModal.feature} />
 
+      <TrialBanner /> 
       <ExpirationBanner />
 
       {/* HEADER */}
@@ -210,7 +212,7 @@ const Dashboard = () => {
           { icon: TrendingUp, color: "primary", label: "Mês Atual", value: kpis.monthRevTotal },
           { icon: Clock, color: "violet", label: "Ticket Médio", value: kpis.ticketMedio },
         ].map((kpi, i) => (
-          <div key={i} className="rounded-3xl border border-border bg-card p-6 shadow-card hover:border-primary/40 transition-all group">
+          <div key={i} className={`rounded-3xl border border-border bg-card p-6 shadow-card hover:border-${kpi.color === 'primary' ? 'primary' : kpi.color + '-400'}/40 transition-all group`}>
             <div className="flex items-center gap-4 mb-4">
               <div className={`h-12 w-12 bg-${kpi.color === 'primary' ? 'primary' : kpi.color + '-500'}/10 rounded-2xl flex items-center justify-center`}>
                 <kpi.icon className={`h-6 w-6 text-${kpi.color === 'primary' ? 'primary' : kpi.color + '-500'}`} />

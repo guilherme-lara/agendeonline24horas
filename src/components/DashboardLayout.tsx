@@ -14,6 +14,7 @@ import DashboardSkeleton from "@/components/DashboardSkeleton";
 import BottomNav from "@/components/BottomNav";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import ExpirationBanner from "@/components/ExpirationBanner";
+import TrialBanner from "@/components/TrialBanner"; // Ponto 2: Importando o novo banner
 import LicenseOverlay from "@/components/LicenseOverlay";
 
 const DashboardLayout = () => {
@@ -106,6 +107,7 @@ const DashboardLayout = () => {
         </div>
 
         <main className="flex-1 pb-20 md:pb-0">
+          <TrialBanner /> {/* Ponto 2: Renderizando o banner de trial */}
           <div className="px-4 pt-4 md:px-0 md:pt-0">
             <InstallAppBanner />
             <ExpirationBanner />

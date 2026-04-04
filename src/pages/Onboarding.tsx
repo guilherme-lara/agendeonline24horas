@@ -140,7 +140,7 @@ const Onboarding = () => {
         .from("saas_plans")
         .select("id, status")
         .eq("barbershop_id", shop.id)
-        .eq("status", "active")
+        .or("status.eq.active,status.eq.trialing")
         .maybeSingle();
 
       // 3. Operações Paralelas (Performance Industrial)
@@ -157,25 +157,22 @@ const Onboarding = () => {
               price: parseFloat(s.price) || 0,
               duration: parseInt(s.duration) || 30,
               sort_order: i,
+              requires_advance_payment: true, // Ponto 2: Adiantamento é padrão
             })),
         ) as unknown as Promise<any>),
       ];
 
-      // Se NÃO tem plano ativo e trial não foi usado, concede trial Pro de 30 dias
+      // Se NÃO tem plano ativo, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
           (supabase.from("saas_plans").insert({
             barbershop_id: shop.id,
             plan_name: "pro",
-            status: "active",
+            status: "trialing", // Ponto 4: Status de trial
             expires_at: new Date(
               Date.now() + 30 * 24 * 60 * 60 * 1000,
-            ).toISOString(),
+            ).toISOString(), // Ponto 4: Expiração em 30 dias
           }) as unknown as Promise<any>),
-          (supabase
-            .from("barbershops")
-            .update({ trial_used: true })
-            .eq("id", shop.id) as unknown as Promise<any>),
         );
       }
 
@@ -197,8 +194,10 @@ const Onboarding = () => {
       queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
       toast({
         title: "Boas-vindas ao time!",
-        description: "Sua barbearia foi configurada com sucesso.",
+        description: "Sua barbearia foi configurada com sucesso. Aproveite seus 30 dias de Plano PRO gratuito!",
+        variant: "success",
       });
+      // Ponto 3: Redirecionamento Imediato
       navigate("/dashboard", { replace: true });
     },
     onError: (err: any) => {
@@ -214,7 +213,7 @@ const Onboarding = () => {
     val
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
