@@ -468,7 +468,14 @@ const PublicBooking = () => {
                     <div className="pt-4 flex items-center justify-between gap-4">
                       <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
                       <Button 
-                          onClick={() => bookingMutation.mutate()} 
+                          onClick={() => {
+                            const isOnline = paymentOption === 'online_full' || paymentOption === 'online_signal';
+                            if (isOnline && !shop?.settings?.infinitepay_tag) {
+                              toast({ title: "Erro", description: "A barbearia ainda não configurou o método de pagamento.", variant: "destructive" });
+                              return;
+                            }
+                            bookingMutation.mutate();
+                          }} 
                           disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
                           className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                       >

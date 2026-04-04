@@ -118,7 +118,7 @@ const Servicos = () => {
     setRequiresAdvance(s.requires_advance_payment || false); setAdvanceValue(String(s.advance_payment_value || 0));
     setIsDialogOpen(true);
   };
-  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setRequiresAdvance(false); setAdvanceValue(""); };
+  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setRequiresAdvance(true); setAdvanceValue(""); };
 
   const shouldShowLoading = isLoading && queryEnabled && !services.length && !isError;
 

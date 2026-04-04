@@ -275,6 +275,22 @@ const Agenda = () => {
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
+                        {a.client_phone && (
+                          <Button 
+                            variant="ghost" size="icon" 
+                            onClick={() => {
+                              const cleanPhone = a.client_phone.replace(/\D/g, "");
+                              const dateStr = format(parseISO(a.scheduled_at), "dd/MM", { locale: ptBR });
+                              const timeStr = format(parseISO(a.scheduled_at), "HH:mm");
+                              const msg = encodeURIComponent(`Olá, ${a.client_name}! Passando para confirmar seu agendamento na nossa barbearia para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
+                              window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
+                            }}
+                            className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500"
+                            title="Enviar confirmação via WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" size="icon" 
                           onClick={() => handleOpenEdit(a)}
