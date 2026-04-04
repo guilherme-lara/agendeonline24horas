@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Scissors, Loader2, Check, AlertTriangle, CalendarDays,
-  MapPin, ArrowLeft, XCircle, QrCode, Banknote, ShieldCheck, CreditCard, WifiOff
+  MapPin, ArrowLeft, XCircle, QrCode, Banknote, ShieldCheck, CreditCard, WifiOff, UserX
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,15 +48,23 @@ const PublicBooking = () => {
     staleTime: 0,
   });
 
+  // PONTO DE ATUALIZAÇÃO 1: QUERY DE RECURSOS
   const { data: shopResources, isLoading: loadingResources } = useQuery({
-    queryKey: ["shop-resources", shop?.id],
+    queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
-      const [servs, hours, barbers] = await Promise.all([
+      const [servs, hours, barbers, barberServices] = await Promise.all([
         supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
         supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
+        // A nova query para buscar os vínculos
+        supabase.from("barber_services").select("barber_id, service_id, commission_pct").eq("barbershop_id", shop!.id),
       ]);
-      return { services: servs.data || [], hours: hours.data || [], barbers: barbers.data || [] };
+      return { 
+        services: servs.data || [], 
+        hours: hours.data || [], 
+        barbers: barbers.data || [],
+        barberServices: barberServices.data || [] // Inclui os vínculos no retorno
+      };
     },
     enabled: !!shop?.id,
   });
@@ -102,6 +110,21 @@ const PublicBooking = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
+  
+  // PONTO DE ATUALIZAÇÃO 2: FILTRAGEM DOS BARBEIROS
+  const availableBarbers = useMemo(() => {
+    if (!selectedService || !shopResources) return [];
+
+    // 1. Encontra os IDs dos barbeiros vinculados ao serviço selecionado
+    const linkedBarberIds = shopResources.barberServices
+      .filter(bs => bs.service_id === selectedService.id)
+      .map(bs => bs.barber_id);
+
+    // 2. Filtra a lista completa de barbeiros para incluir apenas os vinculados
+    return shopResources.barbers.filter(barber => linkedBarberIds.includes(barber.id));
+
+  }, [selectedService, shopResources]);
+
 
   const bookingMutation = useMutation({
     mutationFn: async () => {
@@ -277,20 +300,33 @@ const PublicBooking = () => {
                 </div>
             )}
 
+            {/* PONTO DE ATUALIZAÇÃO 3: RENDERIZAÇÃO CONDICIONAL DOS BARBEIROS */}
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {loadingResources ? <Loader2 className="animate-spin text-primary mx-auto" /> : shopResources?.barbers.map((b: any) => (
-                          <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
-                              <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
-                                  <AvatarImage src={b.avatar_url} />
-                                  <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
-                          </button>
-                      ))}
-                    </div>
+                    {loadingResources ? (
+                      <Loader2 className="animate-spin text-primary mx-auto" />
+                    ) : availableBarbers.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {availableBarbers.map((b: any) => (
+                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(3); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all">
+                                <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
+                                    <AvatarImage src={b.avatar_url} />
+                                    <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
+                            </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                          <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                              <UserX className="h-12 w-12 text-red-500" />
+                          </div>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Nenhum profissional disponível</h1>
+                          <p className="text-muted-foreground text-sm">No momento, não há profissionais configurados para realizar o serviço de <span className="font-bold text-foreground">{selectedService?.name}</span>.</p>
+                      </div>
+                    )}
                     <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
                 </div>
             )}

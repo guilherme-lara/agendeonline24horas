@@ -8,12 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UpgradeModal from "@/components/UpgradeModal";
 
+// PONTO DE ATUALIZAÇÃO 4: REMOVIDO `commission_pct` DA INTERFACE
 interface Barber {
   id: string;
   name: string;
   phone: string;
   email: string;
-  commission_pct: number;
   active: boolean;
   avatar_url?: string;
   user_id?: string;
@@ -41,7 +41,8 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [commission, setCommission] = useState("50");
+  // PONTO DE ATUALIZAÇÃO 4: REMOVIDO ESTADO DE COMISSÃO
+  // const [commission, setCommission] = useState("50"); 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Access management state
@@ -55,7 +56,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const fetchBarbers = async () => {
     const { data } = await (supabase
       .from("barbers") as any)
-      .select("*")
+      .select("id, name, phone, email, active, avatar_url, user_id") // Removido `commission_pct` da query
       .eq("barbershop_id", barbershopId)
       .order("created_at");
     setBarbers((data as Barber[]) || []);
@@ -72,18 +73,18 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       return;
     }
     setAdding(true);
+    // PONTO DE ATUALIZAÇÃO 4: REMOVIDO `commission_pct` DO INSERT
     const { error } = await (supabase.from("barbers") as any).insert({
       barbershop_id: barbershopId,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      commission_pct: parseFloat(commission) || 0,
     });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Barbeiro adicionado!" });
-      setName(""); setPhone(""); setEmail(""); setCommission("50");
+      toast({ title: "Profissional adicionado!" });
+      setName(""); setPhone(""); setEmail("");
       fetchBarbers();
     }
     setAdding(false);
@@ -96,7 +97,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: currentActive ? "Barbeiro arquivado" : "Barbeiro reativado" });
+      toast({ title: currentActive ? "Profissional arquivado" : "Profissional reativado" });
       fetchBarbers();
     }
   };
@@ -135,7 +136,6 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     }
     setCreatingAccess(barber.id);
     try {
-      // 1. Create auth user via edge function
       const { data, error } = await supabase.functions.invoke("create-barber-account", {
         body: {
           email: accessEmail.trim(),
@@ -181,7 +181,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         requiredPlan={planName === "bronze" ? "Prata" : "Ouro"}
-        featureName={`Mais de ${limit} barbeiros`}
+        featureName={`Mais de ${limit} profissionais`}
       />
 
       <div className="flex items-center justify-between">
@@ -190,18 +190,17 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           <h2 className="font-display text-lg font-bold">Equipe</h2>
         </div>
         <span className="text-xs text-muted-foreground">
-          {activeCount}/{limit === Infinity ? "∞" : limit} barbeiros
+          {activeCount}/{limit === Infinity ? "∞" : limit} profissionais
         </span>
       </div>
 
       {/* Add form */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className="text-sm font-medium">Adicionar Barbeiro</p>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do barbeiro" className="bg-secondary border-border" maxLength={100} />
-        <div className="grid grid-cols-3 gap-3">
+        <p className="text-sm font-medium">Adicionar Profissional</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do profissional" className="bg-secondary border-border md:col-span-1" maxLength={100} />
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-secondary border-border" maxLength={20} />
           <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-secondary border-border" maxLength={100} />
-          <Input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} placeholder="% Comissão" className="bg-secondary border-border" min="0" max="100" />
         </div>
         <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90">
           {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -214,7 +213,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
       ) : barbers.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">Nenhum barbeiro cadastrado.</p>
+        <p className="text-sm text-muted-foreground text-center py-6">Nenhum profissional cadastrado.</p>
       ) : (
         <div className="space-y-4">
           {/* Active barbers */}
@@ -234,8 +233,9 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{b.name}</p>
+                    {/* PONTO DE ATUALIZAÇÃO 4: REMOVIDA MENÇÃO À COMISSÃO */}
                     <p className="text-xs text-muted-foreground truncate">
-                      {b.phone || b.email || "Sem contato"} • {b.commission_pct}% comissão
+                      {b.phone || b.email || "Sem contato"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                     ) : (
                       <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded-full">Sem Acesso</span>
                     )}
-                    <button onClick={() => handleArchive(b.id, true)} className="text-muted-foreground hover:text-yellow-400 shrink-0" title="Arquivar barbeiro">
+                    <button onClick={() => handleArchive(b.id, true)} className="text-muted-foreground hover:text-yellow-400 shrink-0" title="Arquivar profissional">
                       <Archive className="h-4 w-4" />
                     </button>
                   </div>
@@ -262,7 +262,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                         value={creatingAccess === b.id ? accessEmail : ""}
                         onChange={(e) => { setCreatingAccess(b.id); setAccessEmail(e.target.value); }}
                         onFocus={() => setCreatingAccess(b.id)}
-                        placeholder="E-mail do barbeiro"
+                        placeholder="E-mail do profissional"
                         className="bg-secondary border-border text-xs h-9"
                       />
                       <div className="relative">
@@ -332,9 +332,9 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{b.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{b.commission_pct}% comissão • Arquivado</p>
+                      <p className="text-xs text-muted-foreground truncate">Arquivado</p>
                     </div>
-                    <button onClick={() => handleArchive(b.id, false)} className="text-muted-foreground hover:text-green-400 shrink-0" title="Reativar barbeiro">
+                    <button onClick={() => handleArchive(b.id, false)} className="text-muted-foreground hover:text-green-400 shrink-0" title="Reativar profissional">
                       <ArchiveRestore className="h-4 w-4" />
                     </button>
                   </div>
