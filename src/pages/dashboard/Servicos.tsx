@@ -35,7 +35,7 @@ const Servicos = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
-  const [requiresAdvance, setRequiresAdvance] = useState(false);
+  const [requiresAdvance, setRequiresAdvance] = useState(true);
   const [advanceValue, setAdvanceValue] = useState("");
 
   const queryEnabled = !!barbershop?.id;
