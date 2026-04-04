@@ -189,7 +189,6 @@ const Onboarding = () => {
         ) as unknown as Promise<any>),
       ];
 
-<<<<<<< HEAD
       // Se NÃO tem plano ativo, concede trial Pro de 30 dias
       if (!existingPlan) {
         operations.push(
@@ -203,9 +202,7 @@ const Onboarding = () => {
           }) as unknown as Promise<any>),
         );
       }
-
-=======
->>>>>>> origin/main
+          
       await Promise.all(operations);
 
       // 4. Primeiro Profissional
