@@ -48,7 +48,6 @@ const PublicBooking = () => {
     staleTime: 0,
   });
 
-  // PONTO DE ATUALIZAÇÃO 1: QUERY DE RECURSOS
   const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
@@ -56,14 +55,13 @@ const PublicBooking = () => {
         supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
         supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
-        // A nova query para buscar os vínculos
         supabase.from("barber_services").select("barber_id, service_id, commission_pct").eq("barbershop_id", shop!.id),
       ]);
       return { 
         services: servs.data || [], 
         hours: hours.data || [], 
         barbers: barbers.data || [],
-        barberServices: barberServices.data || [] // Inclui os vínculos no retorno
+        barberServices: barberServices.data || []
       };
     },
     enabled: !!shop?.id,
@@ -111,23 +109,36 @@ const PublicBooking = () => {
     return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
   
-  // PONTO DE ATUALIZAÇÃO 2: FILTRAGEM DOS BARBEIROS
   const availableBarbers = useMemo(() => {
     if (!selectedService || !shopResources) return [];
-
-    // 1. Encontra os IDs dos barbeiros vinculados ao serviço selecionado
     const linkedBarberIds = shopResources.barberServices
       .filter(bs => bs.service_id === selectedService.id)
       .map(bs => bs.barber_id);
-
-    // 2. Filtra a lista completa de barbeiros para incluir apenas os vinculados
     return shopResources.barbers.filter(barber => linkedBarberIds.includes(barber.id));
-
   }, [selectedService, shopResources]);
 
-
+  // PONTO DE ATUALIZAÇÃO 1: LÓGICA DE CAPTURA DE CLIENTE
   const bookingMutation = useMutation({
     mutationFn: async () => {
+      const phoneDigits = clientData.phone.replace(/\D/g, "");
+      if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
+
+      // 1. Upsert do Cliente
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .upsert({
+            barbershop_id: shop!.id,
+            phone: phoneDigits,
+            name: clientData.name.trim(),
+            last_seen: new Date().toISOString()
+        }, { onConflict: 'barbershop_id, phone' })
+        .select('id')
+        .single();
+
+      if (customerError) throw new Error(`Erro ao salvar cliente: ${customerError.message}`);
+      const customerId = customerData.id;
+
+      // 2. Criação do Agendamento com `customer_id`
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -137,10 +148,12 @@ const PublicBooking = () => {
         ? selectedService.advance_payment_value
         : selectedService.price;
 
+      // Nota: A RPC `create_public_appointment` pode precisar ser atualizada para aceitar `customer_id`
+      // Por agora, vamos atualizar o agendamento em uma etapa separada.
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
-        _client_phone: clientData.phone.trim(),
+        _client_phone: phoneDigits, // Enviar telefone limpo
         _service_name: selectedService.name,
         _price: selectedService.price,
         _scheduled_at: formattedDateForDB,
@@ -151,13 +164,17 @@ const PublicBooking = () => {
       const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
+      // 3. Vínculo do Agendamento com o Cliente e Barbeiro
       await supabase.from("appointments").update({ 
+        customer_id: customerId,
+        barber_id: selectedBarber.id,
         barber_name: selectedBarber.name,
         status: 'pendente_pagamento',
         has_signal: (selectedService.advance_payment_value || 0) > 0,
         signal_value: selectedService.advance_payment_value || 0
       }).eq("id", apptId);
 
+      // 4. Redirecionamento para Pagamento
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) throw new Error("Esta barbearia não está configurada para receber pagamentos online.");
 
@@ -176,13 +193,14 @@ const PublicBooking = () => {
       return { url: checkoutUrl };
     },
     onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
       if (res.url) {
         window.location.href = res.url;
       }
     },
     onError: (error: any) => {
       toast({ 
-        title: "Falha na cobrança", 
+        title: "Falha no Agendamento", 
         description: error.message || "Erro desconhecido. Tente novamente.", 
         variant: "destructive" 
       });
@@ -300,7 +318,6 @@ const PublicBooking = () => {
                 </div>
             )}
 
-            {/* PONTO DE ATUALIZAÇÃO 3: RENDERIZAÇÃO CONDICIONAL DOS BARBEIROS */}
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-8 text-foreground font-display">Quem vai te atender?</h3>
@@ -369,16 +386,16 @@ const PublicBooking = () => {
                     <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome</label>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome Completo</label>
                                 <Input 
                                   value={clientData.name} 
                                   onChange={(e) => setClientData({...clientData, name: e.target.value})} 
-                                  placeholder="Ex: João Silva" 
+                                  placeholder="Ex: João da Silva" 
                                   className="bg-background border-border h-14 text-foreground font-bold" 
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">WhatsApp</label>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu WhatsApp</label>
                                 <Input 
                                   value={clientData.phone} 
                                   onChange={(e) => {
@@ -396,6 +413,7 @@ const PublicBooking = () => {
 
                         <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
                             <div className="pt-3 border-t border-border flex justify-between items-center">
                               <span className="text-sm font-black uppercase text-muted-foreground">
