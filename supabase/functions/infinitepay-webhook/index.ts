@@ -7,14 +7,14 @@ const corsHeaders = {
 };
 
 /**
- * InfinitePay Webhook — Bulletproof + Strict Financial Validation
+ * InfinitePay Webhook — Bulletproof + Partial Payment State Machine
  *
  * 1. Routes GET/OPTIONS gracefully (no 500)
  * 2. Rejects non-POST with 405
  * 3. Parses payload with try/catch
- * 4. Strict amount validation: only confirms if paid amount matches
- *    total_price OR signal_value within R$ 0.01 tolerance (cents rounding)
- * 5. Records amount_paid for dashboard reconciliation
+ * 4. Partial payment rule: if has_signal=true and amount >= signal_value,
+ *    the appointment is confirmed (partial payment ok). If no signal,
+ *    requires full price match. Records amount_paid for dashboard.
  */
 
 Deno.serve(async (req) => {
@@ -67,13 +67,11 @@ Deno.serve(async (req) => {
   const rawStatus = (payload.status ?? payload.payment_status ?? "") as string;
   const status = String(rawStatus).toLowerCase();
 
-  // InfinitePay sends status_code for successful payments
   const statusCode = payload.status_code as string | undefined;
   const isStatusApproved = [
     "paid", "approved", "completed", "confirmed", "authorized",
   ].includes(status);
 
-  // Some InfinitePay variants use status_code "200", "10000", "authorized"
   const isSuccessByCode = statusCode === "200" || statusCode === "10000";
   const isPayment = isStatusApproved || isSuccessByCode;
 
@@ -139,66 +137,89 @@ Deno.serve(async (req) => {
     );
   }
 
-  // --- 9. STRICT FINANCIAL VALIDATION ---
+  // --- 9. PARTIAL PAYMENT STATE MACHINE ---
   const totalPrice = Number(appt.total_price ?? appt.price ?? 0);
   const signalValue = Number(appt.signal_value ?? 0);
   const hasSignal = Boolean(appt.has_signal);
+  const tolerance = 0.02; // R$ 0.01 tolerance for cent rounding
 
-  // Expected amount: signal if has_signal, otherwise full price
-  const expectedAmount = hasSignal && signalValue > 0 ? signalValue : totalPrice;
+  if (amountReceived !== null && (hasSignal || totalPrice > 0)) {
+    if (hasSignal && signalValue > 0) {
+      // PARTIAL RULE: if amount >= signal_value, confirm the appointment
+      if (amountReceived < signalValue - tolerance) {
+        // Paid LESS than the signal — reject
+        console.warn(
+          `⚠️ Partial validation FAILED: appt=${appointmentId} received=${amountReceived} < signal=${signalValue}`
+        );
 
-  if (amountReceived !== null && expectedAmount > 0) {
-    const tolerance = 0.02; // R$ 0.01 tolerance for cent rounding
-    const matchesTotal = Math.abs(amountReceived - totalPrice) <= tolerance;
-    const matchesSignal = Math.abs(amountReceived - signalValue) <= tolerance;
+        await supabase
+          .from("appointments")
+          .update({
+            payment_status: "partial_insufficient",
+            status: "pending",
+          })
+          .eq("id", appt.id);
 
-    if (!matchesTotal && !matchesSignal) {
-      console.warn(
-        `🚨 STRICT VALIDATION FAILED: appt=${appointmentId} expected=${expectedAmount} received=${amountReceived} totalPrice=${totalPrice} signalValue=${signalValue}`
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            validation_failed: true,
+            reason: `Amount ${amountReceived} < signal ${signalValue}`,
+            required_min: signalValue,
+            received: amountReceived,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // amount >= signal_value → confirm (partial payment valid)
+      console.log(
+        `✅ Partial payment OK: received=${amountReceived} >= signal=${signalValue}. Confirming appointment.`
       );
+    } else {
+      // NO SIGNAL: must match total price exactly
+      const matchesTotal = Math.abs(amountReceived - totalPrice) <= tolerance;
+      if (!matchesTotal) {
+        console.warn(
+          `🚨 Full price mismatch: appt=${appointmentId} expected=${totalPrice} received=${amountReceived}`
+        );
 
-      await supabase
-        .from("appointments")
-        .update({
-          payment_status: "amount_mismatch",
-          status: "flagged",
-        })
-        .eq("id", appt.id);
+        await supabase
+          .from("appointments")
+          .update({
+            payment_status: "amount_mismatch",
+            status: "flagged",
+          })
+          .eq("id", appt.id);
 
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          validation_failed: true,
-          reason: "Amount mismatch",
-          expected: expectedAmount,
-          received: amountReceived,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            validation_failed: true,
+            reason: "Full price mismatch",
+            expected: totalPrice,
+            received: amountReceived,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`✅ Full payment validated: received=${amountReceived} = total=${totalPrice}`);
     }
-
-    console.log(
-      `✅ Amount validated: received=${amountReceived} matches ${
-        matchesSignal ? "signal" : "total"
-      } value for appt=${appointmentId}`
-    );
-  } else {
+  } else if (amountReceived === null) {
     console.warn(
-      `⚠️ Webhook: no amount in payload or zero price for appt=${appointmentId}. ` +
-      `Proceeding with confirmation but amount not validated.`
+      `⚠️ Webhook: no amount in payload for appt=${appointmentId}. Confirming without validation.`
     );
   }
 
   // --- 10. SECURE UPDATE ---
-  const paymentAmount = amountReceived !== null
-    ? Math.min(amountReceived, expectedAmount > 0 ? expectedAmount : amountReceived)
-    : expectedAmount;
+  const paymentAmount = amountReceived !== null ? amountReceived : 0;
 
   const { error: updateError } = await supabase.rpc("update_appointment_payment", {
     _appt_id: appt.id,
     _amount_paid: paymentAmount,
   }).catch(() => {
-    // Fallback: direct update if RPC doesn't exist yet
+    // Fallback: RPC doesn't exist yet, use direct update
     return null;
   });
 
@@ -223,7 +244,9 @@ Deno.serve(async (req) => {
     }
   }
 
-  console.log(`✅ Payment confirmed: appt=${appt.id} amount_paid=${paymentAmount}`);
+  const isPartial = hasSignal && signalValue > 0 && paymentAmount >= signalValue - tolerance && paymentAmount < totalPrice;
+
+  console.log(`✅ Payment confirmed: appt=${appt.id} amount_paid=${paymentAmount} is_partial=${isPartial}`);
 
   return new Response(
     JSON.stringify({
@@ -231,6 +254,7 @@ Deno.serve(async (req) => {
       payment_confirmed: true,
       appointment_id: appt.id,
       amount_paid: paymentAmount,
+      is_partial: isPartial,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );

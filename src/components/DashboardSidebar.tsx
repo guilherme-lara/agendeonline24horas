@@ -55,6 +55,7 @@ const navItems = [
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
+  { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
   { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
   { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
   { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
