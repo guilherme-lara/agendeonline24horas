@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, QrCode, ShieldCheck, Check, Upload, X, Wifi, WifiOff } from "lucide-react";
+import { Loader2, Save, QrCode, ShieldCheck, Check, Upload, X, Wifi, WifiOff, Eye, EyeOff, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [pingStatus, setPingStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [pingMessage, setPingMessage] = useState("");
+  const [showPixKey, setShowPixKey] = useState(false);
+  const [showInfiniteTag, setShowInfiniteTag] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -148,12 +150,22 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Sua Chave Pix</label>
-            <Input 
-              value={pixKey}
-              onChange={(e) => setPixKey(e.target.value)}
-              placeholder="CPF, CNPJ, Email ou Celular"
-              className="bg-secondary border-border h-12"
-            />
+            <div className="relative">
+              <Input
+                type={showPixKey ? "text" : "password"}
+                value={pixKey}
+                onChange={(e) => setPixKey(e.target.value)}
+                placeholder="••••••••••"
+                className="bg-secondary border-border h-12 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPixKey(!showPixKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPixKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tipo da Chave</label>
@@ -215,14 +227,21 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
           <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
             InfiniteTag (Seu @ na InfinitePay)
           </label>
-          <div className="flex gap-2 max-w-2xl">
+          <div className="relative max-w-2xl">
             <Input
-              type="text"
+              type={showInfiniteTag ? "text" : "password"}
               value={infinitePayTag}
               onChange={(e) => setInfinitePayTag(e.target.value)}
-              placeholder="Ex: ribeiro-guilherme-11k"
-              className="bg-secondary border-border h-12 font-mono text-sm w-full"
+              placeholder="••••••••••"
+              className="bg-secondary border-border h-12 font-mono text-sm pr-10"
             />
+            <button
+              type="button"
+              onClick={() => setShowInfiniteTag(!showInfiniteTag)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showInfiniteTag ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
           <p className="text-[10px] text-muted-foreground mt-2">
             Insira o seu handle da InfinitePay. Não é necessário incluir o símbolo @ ou $.
@@ -234,11 +253,11 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
             URL do Webhook (Cole no painel da InfinitePay)
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-[11px] text-primary font-mono break-all select-all">
-              https://whtlqimtclodchfdljcg.supabase.co/functions/v1/infinitepay-webhook
+            <code className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-[11px] text-muted-foreground font-mono tracking-widest">
+              ••••••••••••••••••••••••••••••••••••••••
             </code>
             <Button type="button" variant="outline" onClick={copyWebhook} className="h-9 px-4 shrink-0 rounded-lg border-border hover:bg-secondary">
-              {copiedWebhook ? <Check className="h-4 w-4 text-emerald-500" /> : "Copiar URL"}
+              {copiedWebhook ? <Check className="h-4 w-4 text-emerald-500" /> : <><Copy className="h-3.5 w-3.5 mr-1" />Copiar URL</>}
             </Button>
           </div>
           <div className="flex items-center gap-3 mt-3">

@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  Sparkles, Loader2, Check, AlertTriangle, CalendarDays,
-  MapPin, ArrowLeft, QrCode, ShieldCheck, WifiOff, UserX
+import { 
+  Scissors, Loader2, Check, AlertTriangle, CalendarDays,
+  MapPin, ArrowLeft, XCircle, QrCode, Banknote, ShieldCheck, CreditCard, WifiOff, UserX
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,11 +29,9 @@ const PublicBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
-  const [payOption, setPayOption] = useState<"signal" | "full">("signal");
   
-  const [success, setSuccess] = useState(searchParams.get("success") === "true");
+  const [success, setSuccess] = useState(searchParams.get("success") === "true"); 
   const [cancelled, setCancelled] = useState(false);
-  const [verifiedAppt, setVerifiedAppt] = useState<any | null>(null);
 
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
@@ -76,24 +74,19 @@ const PublicBooking = () => {
       const y = selectedDate!.getFullYear();
       const m = pad(selectedDate!.getMonth() + 1);
       const d = pad(selectedDate!.getDate());
-      // Usa UTC em vez de offset hardcoded -03:00
-      const dayStart = `${y}-${m}-${d}T03:00:00Z`;
-      const dayEnd = `${y}-${m}-${d}T02:59:59Z`;
+      const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
+      const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
 
-      // BLOQUEIO TOTAL: qualquer agendamento não-cancelado ocupa o slot
-      // inclusive pendente_pagamento, pendente_sinal, awaiting etc.
-      // Isso evita double-booking enquanto o pagamento ainda não confirmou.
       let query = supabase
         .from("appointments")
-        .select("scheduled_at, service_name, status, barber_id")
+        .select("scheduled_at, service_name, status, barber_name")
         .eq("barbershop_id", shop!.id)
-        // Apenas cancelled e expired são tratados como "livre"
-        .not("status", "in", "(cancelled,expired)")
+        .neq("status", "cancelled")
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd);
-
-      if (selectedBarber?.id) {
-        query = query.eq("barber_id", selectedBarber.id);
+      
+      if (selectedBarber?.name) {
+        query = query.eq("barber_name", selectedBarber.name);
       }
 
       const { data, error } = await query;
@@ -103,37 +96,12 @@ const PublicBooking = () => {
     enabled: !!shop?.id && !!selectedDate,
   });
   
-  // Verifica o agendamento quando volta do pagamento com success=true
-  const apptIdFromUrl = searchParams.get("appt_id");
-
-  const { data: verifiedApptData } = useQuery({
-    queryKey: ["verify-appointment-success", apptIdFromUrl],
-    queryFn: async () => {
-      if (!apptIdFromUrl) return null;
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("id, status, payment_status")
-        .eq("id", apptIdFromUrl)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!apptIdFromUrl && success,
-    staleTime: 5000,
-  });
-
-  useEffect(() => {
-    if (verifiedApptData && (verifiedApptData.status === "confirmed" || verifiedApptData.status === "completed")) {
-      setVerifiedAppt(verifiedApptData);
-    }
-  }, [verifiedApptData]);
-
   const isPaymentConfigured = !!shop?.settings?.infinitepay_tag;
 
   useEffect(() => {
     if (!shop?.id) return;
     const channel = supabase
-      .channel(`pb-rt-${shop.id}-${Date.now()}`)
+      .channel('public_booking_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `barbershop_id=eq.${shop.id}` },
         () => { queryClient.invalidateQueries({ queryKey: ["slots"] }); }
       )
@@ -149,59 +117,55 @@ const PublicBooking = () => {
     return shopResources.barbers.filter(barber => linkedBarberIds.includes(barber.id));
   }, [selectedService, shopResources]);
 
+  const disabledDates = useMemo(() => {
+    const closedDays = shopResources?.hours?.filter((h: any) => h.is_closed).map((h: any) => h.day_of_week) || [];
+    return (date: Date) => {
+      if (date < startOfDay(new Date())) return true;
+      if (closedDays.includes(date.getDay())) return true;
+      return false;
+    };
+  }, [shopResources]);
+
   // PONTO DE ATUALIZAÇÃO 1: LÓGICA DE CAPTURA DE CLIENTE
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
 
-      let customerId: string | null = null;
+      // 1. Upsert do Cliente
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .upsert({
+            barbershop_id: shop!.id,
+            phone: phoneDigits,
+            name: clientData.name.trim(),
+            last_seen: new Date().toISOString()
+        }, { onConflict: 'barbershop_id, phone' })
+        .select('id')
+        .single();
 
-      // 1. CRM: Upsert de cliente com telefone como chave única por barbearia
-      try {
-        const { data: customerData, error: customerError } = await supabase
-          .from('customers')
-          .upsert({
-              barbershop_id: shop!.id,
-              phone: phoneDigits,
-              name: clientData.name.trim(),
-              last_seen: new Date().toISOString()
-          }, { onConflict: 'barbershop_id, phone' })
-          .select('id')
-          .maybeSingle();
+      if (customerError) throw new Error(`Erro ao salvar cliente: ${customerError.message}`);
+      const customerId = customerData.id;
 
-        if (!customerError && customerData) {
-          customerId = customerData.id;
-        } else if (customerError && !customerError.message.includes("last_seen")) {
-          console.warn("Customer upsert falhou, continuando sem customer_id:", customerError.message);
-        }
-      } catch (e) {
-        console.warn("Exception no customer upsert:", e);
-      }
-
-      // 2. Criação do Agendamento (usa UTC — evita bugs de fuso horário)
+      // 2. Criação do Agendamento com `customer_id`
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
-      scheduledAt.setHours(h, m, 0, 0);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
-      // Valor a cobrar: Sinal ou Valor Total (escolha do cliente)
-      const signalValue = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
+      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
         ? selectedService.advance_payment_value
-        : null;
-
-      const amountToCharge = (payOption === "signal" && signalValue)
-        ? signalValue
         : selectedService.price;
 
-      const isFullPayment = (payOption === "full" || !signalValue);
-
+      // Nota: A RPC `create_public_appointment` pode precisar ser atualizada para aceitar `customer_id`
+      // Por agora, vamos atualizar o agendamento em uma etapa separada.
       const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
-        _client_phone: phoneDigits,
+        _client_phone: phoneDigits, // Enviar telefone limpo
         _service_name: selectedService.name,
         _price: selectedService.price,
-        _scheduled_at: scheduledAt.toISOString(),
+        _scheduled_at: formattedDateForDB,
         _payment_method: "pix"
       });
 
@@ -209,31 +173,22 @@ const PublicBooking = () => {
       const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 3. Vínculo do Agendamento com Cliente e Barbeiro
-      const updatePayload: any = {
-        client_id: customerId,
+      // 3. Vínculo do Agendamento com o Cliente e Barbeiro
+      await supabase.from("appointments").update({ 
+        customer_id: customerId,
         barber_id: selectedBarber.id,
         barber_name: selectedBarber.name,
         status: 'pendente_pagamento',
-        has_signal: isFullPayment ? false : (signalValue || 0) > 0,
-        signal_value: isFullPayment ? 0 : (signalValue || 0)
-      };
+        has_signal: (selectedService.advance_payment_value || 0) > 0,
+        signal_value: selectedService.advance_payment_value || 0
+      }).eq("id", apptId);
 
-      const { error: updateErr } = await supabase
-        .from("appointments")
-        .update(updatePayload)
-        .eq("id", apptId);
-
-      if (updateErr) {
-        console.error("Falha ao atualizar agendamento:", updateErr);
-      }
-
-      // 4. Redirecionamento para Pagamento InfinitePay
+      // 4. Redirecionamento para Pagamento
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) throw new Error("Esta barbearia não está configurada para receber pagamentos online.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
-      const itemName = isFullPayment ? selectedService.name : `Sinal: ${selectedService.name}`;
+      const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
       const priceInCents = Math.round(amountToCharge * 100);
 
       if (priceInCents < 100) {
@@ -241,10 +196,10 @@ const PublicBooking = () => {
       }
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
-      const redirectUrl = `${window.location.origin}/agendamentos/${slug}?success=true&appt_id=${apptId}`;
+      const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
-      return { url: checkoutUrl, apptId };
+      return { url: checkoutUrl };
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
@@ -253,10 +208,10 @@ const PublicBooking = () => {
       }
     },
     onError: (error: any) => {
-      toast({
-        title: "Falha no Agendamento",
-        description: error.message || "Erro desconhecido. Tente novamente.",
-        variant: "destructive"
+      toast({ 
+        title: "Falha no Agendamento", 
+        description: error.message || "Erro desconhecido. Tente novamente.", 
+        variant: "destructive" 
       });
       setStep(3);
       setSelectedTime(null);
@@ -270,12 +225,6 @@ const PublicBooking = () => {
     const bh = shopResources.hours.find((h: any) => h.day_of_week === dayOfWeek);
     if (!bh || bh.is_closed) return [];
 
-    // Map service names to durations for accurate conflict detection
-    const serviceDurationMap = new Map<string, number>();
-    shopResources.services.forEach((s: any) => {
-      serviceDurationMap.set(s.name, s.duration);
-    });
-
     const slots: string[] = [];
     const [openH, openM] = bh.open_time.split(":").map(Number);
     const [closeH, closeM] = bh.close_time.split(":").map(Number);
@@ -288,19 +237,17 @@ const PublicBooking = () => {
         slotStart.setHours(h, m, 0, 0);
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
-
+        
         const hasConflict = existingAppts.some((appt: any) => {
-          if (appt.status === 'cancelled' || appt.status === 'expired') return false;
+          if (appt.status === 'cancelled') return false;
           const timeString = appt.scheduled_at.includes('T') ? appt.scheduled_at.split('T')[1].substring(0, 5) : appt.scheduled_at.split(' ')[1].substring(0, 5);
           const [dbH, dbM] = timeString.split(':').map(Number);
           const aStart = new Date(selectedDate);
           aStart.setHours(dbH, dbM, 0, 0);
-          // FIX: usa a duração real do serviço existente, não a do selecionado
-          const existingDuration = serviceDurationMap.get(appt.service_name) || 40;
-          const aEnd = addMinutes(aStart, existingDuration + BUFFER_MINUTES);
+          const aEnd = addMinutes(aStart, selectedService?.duration || 40);
           return slotStart < aEnd && slotEnd > aStart;
         });
-
+        
         if (!hasConflict) {
           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
@@ -323,7 +270,7 @@ const PublicBooking = () => {
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
              <div className="h-12 w-12 rounded-2xl bg-secondary border border-border flex items-center justify-center overflow-hidden">
-                {shop.logo_url ? <img src={shop.logo_url} className="h-full w-full object-cover" alt="Logo" /> : <Sparkles className="text-primary h-6 w-6" />}
+                {shop.logo_url ? <img src={shop.logo_url} className="h-full w-full object-cover" alt="Logo" /> : <Scissors className="text-primary h-6 w-6" />}
              </div>
              <div>
                 <h2 className="font-black text-lg truncate leading-none mb-1 font-display">{shop.name}</h2>
@@ -418,7 +365,7 @@ const PublicBooking = () => {
                           mode="single" 
                           selected={selectedDate || undefined} 
                           onSelect={(d) => d && setSelectedDate(d)} 
-                          disabled={(d) => d < startOfDay(new Date())} 
+                          disabled={disabledDates || ((d) => d < startOfDay(new Date()))} 
                           locale={ptBR} 
                           className="mx-auto" 
                         />
@@ -477,36 +424,14 @@ const PublicBooking = () => {
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
-
-                            {/* Seletor de opção de pagamento */}
-                            {(selectedService.advance_payment_value && selectedService.advance_payment_value > 0 && selectedService.advance_payment_value < selectedService.price) ? (
-                              <div className="pt-3 border-t border-border space-y-3">
-                                <span className="text-xs text-muted-foreground uppercase font-black">Como deseja pagar?</span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button
-                                    onClick={() => setPayOption("signal")}
-                                    className={`rounded-2xl p-3 border text-left transition-all ${payOption === "signal" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border bg-background"}`}
-                                  >
-                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Sinal</span>
-                                    <p className="text-lg font-black text-primary mt-0.5">R$ {Number(selectedService.advance_payment_value).toFixed(2).replace(".", ",")}</p>
-                                  </button>
-                                  <button
-                                    onClick={() => setPayOption("full")}
-                                    className={`rounded-2xl p-3 border text-left transition-all ${payOption === "full" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border bg-background"}`}
-                                  >
-                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Valor Total</span>
-                                    <p className="text-lg font-black text-emerald-500 mt-0.5">R$ {Number(selectedService.price).toFixed(2).replace(".", ",")}</p>
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="pt-3 border-t border-border flex justify-between items-center">
-                                <span className="text-sm font-black uppercase text-muted-foreground">Valor a Pagar Agora</span>
-                                <span className="text-2xl font-black text-primary">
-                                  R$ {Number((selectedService.advance_payment_value || 0) > 0 ? selectedService.advance_payment_value : selectedService.price).toFixed(2).replace(".", ",")}
-                                </span>
-                              </div>
-                            )}
+                            <div className="pt-3 border-t border-border flex justify-between items-center">
+                              <span className="text-sm font-black uppercase text-muted-foreground">
+                                Valor a Pagar Agora
+                              </span>
+                              <span className="text-2xl font-black text-primary">
+                                R$ {Number((selectedService.advance_payment_value || 0) > 0 ? selectedService.advance_payment_value : selectedService.price).toFixed(2).replace(".", ",")}
+                              </span>
+                            </div>
                         </div>
 
                         <div className="pt-4 flex items-center justify-between gap-4">
@@ -533,11 +458,7 @@ const PublicBooking = () => {
                     <Check className="h-12 w-12 text-emerald-500" />
                 </div>
                 <h1 className="text-3xl font-black text-foreground mb-4 tracking-tight font-display">Agendamento Confirmado!</h1>
-                <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-                  {verifiedAppt
-                    ? "Seu pagamento foi aprovado. A sua vaga está garantida e te esperamos no horário marcado."
-                    : "Seu agendamento foi registrado. Após a confirmação do pagamento, sua vaga estará garantida."}
-                </p>
+                <p className="text-muted-foreground mb-8 max-w-xs mx-auto">Seu pagamento foi aprovado. A sua vaga está garantida e te esperamos no horário marcado.</p>
 
                  <div className="flex flex-col gap-3 mb-6">
                     <Button 

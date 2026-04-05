@@ -5,7 +5,15 @@
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
       "Bash(grep -l \"customers\\\\|client_id\\\\|customer_id\" *.sql)",
-      "Bash(grep -l \"barber_services\" *.sql)"
+      "Bash(grep -l \"barber_services\" *.sql)",
+      "Bash(find C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -name *.sql)",
+      "Bash(xargs grep:*)",
+      "Bash(npx supabase:*)",
+      "Bash(ls -1 C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase/migrations/*.sql)",
+      "Bash(ls:*)",
+      "Bash(npm run:*)",
+      "Bash(mkdir -p C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase/migrations_backup)",
+      "Bash(mv C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase/migrations/* C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase/migrations_backup/)"
     ]
   }
 }

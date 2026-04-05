@@ -49,6 +49,7 @@ const Clientes = lazy(() => import("./pages/dashboard/Clientes"));
 const Servicos = lazy(() => import("./pages/dashboard/Servicos"));
 const Profissionais = lazy(() => import("./pages/dashboard/Profissionais"));
 const Configuracoes = lazy(() => import("./pages/dashboard/Configuracoes"));
+const Horarios = lazy(() => import("./pages/dashboard/Horarios"));
 const AgendamentoOnline = lazy(() => import("./pages/dashboard/AgendamentoOnline"));
 const Caixa = lazy(() => import("./pages/dashboard/Caixa"));
 const Relatorios = lazy(() => import("./pages/dashboard/Relatorios"));
@@ -219,6 +220,14 @@ const AppContent = () => {
             element={
               <Suspense fallback={<LazyFallback />}>
                 <Configuracoes />
+              </Suspense>
+            }
+          />
+          <Route
+            path="horarios"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Horarios />
               </Suspense>
             }
           />

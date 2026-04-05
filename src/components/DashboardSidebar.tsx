@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Crown,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -54,6 +55,7 @@ const navItems = [
   { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
   { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
   { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
+  { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
   { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
   { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
   { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
