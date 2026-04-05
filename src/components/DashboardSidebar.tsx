@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   MessageCircle,
+  MessageSquare,
   CalendarDays,
   Globe,
   TrendingDown,
