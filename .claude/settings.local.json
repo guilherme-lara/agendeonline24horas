@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(grep -l \"customers\\\\|client_id\\\\|customer_id\" *.sql)",
+      "Bash(grep -l \"barber_services\" *.sql)"
+    ]
+  }
+}

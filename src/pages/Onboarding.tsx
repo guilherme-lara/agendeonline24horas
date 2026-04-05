@@ -97,13 +97,14 @@ const Onboarding = () => {
 
       } else if (currentStep === 4) {
         if (!barbershopId) throw new Error("ID da barbearia não encontrado.");
-        
+
         // Inserir horários, serviços e o primeiro barbeiro
         await Promise.all([
-            supabase.from("business_hours").delete().eq('barbershop_id', barbershopId), // Limpa horários antigos
-            supabase.from("services").delete().eq('barbershop_id', barbershopId) // Limpa serviços antigos
+            supabase.from("business_hours").delete().eq('barbershop_id', barbershopId),
+            supabase.from("services").delete().eq('barbershop_id', barbershopId)
         ]);
 
+        // Inserir horários e serviços
         await Promise.all([
             supabase.from("business_hours").insert(hours.map((h) => ({ ...h, barbershop_id: barbershopId }))),
             supabase.from("services").insert(services.filter(s => s.name.trim()).map((s, i) => ({
@@ -113,12 +114,25 @@ const Onboarding = () => {
                 duration: parseInt(s.duration) || 30,
                 sort_order: i,
                 requires_advance_payment: true
-            }))),
-            firstBarberName.trim() && supabase.from("barbers").insert({
-                barbershop_id: barbershopId,
-                name: firstBarberName.trim(),
-            })
+            })))
         ]);
+
+        // Inserir barbeiro só se já não existir com o mesmo nome (evita duplicação)
+        if (firstBarberName.trim()) {
+          const { data: existingBarber } = await supabase
+            .from("barbers")
+            .select("id")
+            .eq("barbershop_id", barbershopId)
+            .ilike("name", firstBarberName.trim())
+            .maybeSingle();
+
+          if (!existingBarber) {
+            await supabase.from("barbers").insert({
+              barbershop_id: barbershopId,
+              name: firstBarberName.trim(),
+            });
+          }
+        }
 
         // Marcar setup como completo
         const { data: finalShop } = await supabase.from("barbershops").update({ setup_completed: true }).eq("id", barbershopId).select().single();

@@ -17,14 +17,37 @@ Deno.serve(async (req) => {
 
   try {
     const payload = await req.json();
-
     const appointmentId = payload.order_nsu;
+
     if (!appointmentId) {
       console.warn("Webhook recebido sem o campo 'order_nsu'. Ignorando.");
       return new Response(JSON.stringify({ ok: true, skipped: "Missing order_nsu" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Log every webhook event for audit trail
+    try {
+      const { data: apptLookup } = await supabase
+        .from("appointments")
+        .select("barbershop_id")
+        .eq("id", appointmentId)
+        .maybeSingle();
+
+      await supabase
+        .from("payment_logs")
+        .insert({
+          barbershop_id: apptLookup?.barbershop_id || null,
+          source: "webhook_infinitepay",
+          event_type: payload.event_type || "payment_notification",
+          status_code: payload.status_code || null,
+          request_body: payload,
+          response_body: {},
+          payment_id: payload.payment_id || payload.order_nsu || "",
+        });
+    } catch (logErr) {
+      console.error("Falha ao logar payment_logs (ignora e continua):", logErr);
     }
 
     const status = payload.status || payload.payment_status || "";

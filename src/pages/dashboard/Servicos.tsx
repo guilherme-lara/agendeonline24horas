@@ -81,11 +81,16 @@ const Servicos = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+
+      if (!barbershop?.id) throw new Error("Barbearia não encontrada.");
+
       const numericPrice = Number(price) || 0;
       const numericAdvanceValue = Number(advanceValue) || 0;
 
       if (numericAdvanceValue > numericPrice) {
-        throw new Error("O valor do adiantamento não pode ser maior que o preço final.");
+        throw new Error(
+          "O valor do adiantamento não pode ser maior que o preço final.",
+        );
       }
       if (numericAdvanceValue <= 0) {
         throw new Error("O valor do adiantamento deve ser maior que R$ 0,00.");
@@ -102,31 +107,56 @@ const Servicos = () => {
       let serviceId = editing?.id;
 
       if (editing) {
-        const { data, error } = await supabase.from("services").update(servicePayload).eq("id", editing.id).select('id').single();
+        const { data, error } = await supabase
+          .from("services")
+          .update(servicePayload)
+          .eq("id", editing.id)
+          .select("id")
+          .single();
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from("services").insert({ ...servicePayload, barbershop_id: barbershop?.id, sort_order: services.length }).select('id').single();
+        const { data, error } = await supabase
+          .from("services")
+          .insert({
+            ...servicePayload,
+            barbershop_id: barbershop?.id,
+            sort_order: services.length,
+          })
+          .select("id")
+          .single();
         if (error) throw error;
         serviceId = data.id;
       }
 
-      if (!serviceId) throw new Error("ID do serviço não encontrado após salvar.");
+      if (!serviceId)
+        throw new Error("ID do serviço não encontrado após salvar.");
 
       // REGRA DE NEGÓCIO: Atualizar `barber_services`
       // 1. Deletar vínculos antigos para este serviço
-      const { error: deleteError } = await supabase.from('barber_services').delete().eq('service_id', serviceId);
-      if (deleteError) throw new Error(`Falha ao remover vínculos antigos: ${deleteError.message}`);
+      const { error: deleteError } = await supabase
+        .from("barber_services")
+        .delete()
+        .eq("service_id", serviceId);
+      if (deleteError)
+        throw new Error(
+          `Falha ao remover vínculos antigos: ${deleteError.message}`,
+        );
+
+      if (!barbershop) throw new Error("Sessão expirada. Faça login novamente.");
+      const tenantId = barbershop.id;
 
       // 2. Inserir novos vínculos (apenas os que têm comissão definida)
       const validCommissions = barberCommissions
-        .filter(bc => bc.commission_pct !== '' && Number(bc.commission_pct) >= 0)
-        .map(bc => ({
+        .filter(
+          (bc) => bc.commission_pct !== "" && Number(bc.commission_pct) >= 0,
+          )
+        .map((bc) => ({
+          barbershop_id: tenantId,
           service_id: serviceId,
           barber_id: bc.barber_id,
           commission_pct: Number(bc.commission_pct),
-          barbershop_id: barbershop?.id
         }));
-      
+
       if(validCommissions.length > 0) {
           const { error: insertError } = await supabase.from('barber_services').insert(validCommissions);
           if (insertError) throw new Error(`Falha ao salvar comissões: ${insertError.message}`);

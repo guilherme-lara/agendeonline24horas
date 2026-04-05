@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { toBRT } from "@/lib/timezone";
-import { useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useHapticFeedback } from "@/hooks/useHapticFeedback";
 import {
   Dialog,
@@ -71,6 +71,7 @@ const Caixa = () => {
     mode: string;
   }>({ open: false, loading: false, brcode: "", qrBase64: "", paymentId: "", pixKey: "", pixBeneficiary: "", mode: "" });
   const [copiedBrcode, setCopiedBrcode] = useState(false);
+  const [pixPollConfirmed, setPixPollConfirmed] = useState(false);
   const [successModal, setSuccessModal] = useState<{
     open: boolean;
     total: number;
@@ -375,6 +376,56 @@ const Caixa = () => {
       });
     },
   });
+
+  // POLLING para confirmação de pagamento PIX na Caixa
+  useEffect(() => {
+    if (!pixOnlineModal.open || pixOnlineModal.loading || pixPollConfirmed) return;
+    const apptId = selectedAppt?.id;
+    if (!apptId) return;
+
+    const poll = async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("status, payment_status")
+        .eq("id", apptId)
+        .maybeSingle();
+
+      if (!error && data && (data.status === "completed" || data.status === "confirmed" || data.payment_status === "paid")) {
+        setPixPollConfirmed(true);
+        setPixOnlineModal(prev => ({ ...prev, open: false }));
+        const finalTotal = Math.max(0, cartTotal);
+        queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["inventory-pdv"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        setSuccessModal({
+          open: true,
+          total: finalTotal,
+          clientName: selectedAppt?.client_name || "",
+          clientPhone: selectedAppt?.client_phone || "",
+          serviceName: selectedAppt?.service_name || "",
+        });
+        fireConfetti();
+        setSelectedAppt(null);
+        setCart([]);
+      }
+    };
+
+    // Poll immediately then every 5s
+    poll();
+    const interval = setInterval(poll, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [pixOnlineModal.open, pixOnlineModal.loading, pixPollConfirmed, selectedAppt]);
+
+  // Reset polling state when PIX modal closes
+  const closePixModal = () => {
+    setPixPollConfirmed(false);
+    setPixOnlineModal(prev => ({ ...prev, open: false }));
+  };
 
   const addProductToCart = (p: any) => {
     setCart((prev) => {
@@ -863,7 +914,7 @@ const Caixa = () => {
         </Dialog>
 
         {/* MODAL PIX ONLINE - QR CODE */}
-        <Dialog open={pixOnlineModal.open} onOpenChange={(v) => { if (!v) setPixOnlineModal(prev => ({ ...prev, open: false })); }}>
+        <Dialog open={pixOnlineModal.open} onOpenChange={(v) => { if (!v) closePixModal(); }}>
           <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl">
             <DialogHeader>
               <DialogTitle className="text-xl font-black flex items-center gap-2 font-display">

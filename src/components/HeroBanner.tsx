@@ -10,7 +10,7 @@ const HeroBanner = () => {
     <section className="relative h-[70vh] min-h-[500px] overflow-hidden">
       <img
         src={heroImage}
-        alt="Interior premium da barbearia Barba & Estilo"
+        alt="Interior premium de um salão de beleza"
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
@@ -18,7 +18,7 @@ const HeroBanner = () => {
       <div className="relative z-10 container flex h-full flex-col justify-end pb-16">
         <div className="max-w-lg animate-slide-up">
           <p className="mb-2 text-sm font-medium uppercase tracking-[0.2em] text-primary">
-            Barbearia Premium
+            Beleza & Bem-Estar
           </p>
           <h1 className="mb-4 font-display text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
             Estilo que{" "}
@@ -26,7 +26,7 @@ const HeroBanner = () => {
             você
           </h1>
           <p className="mb-8 text-base text-muted-foreground sm:text-lg">
-            Experiência premium em cortes, barba e cuidados masculinos. Agende agora com os melhores profissionais.
+            Experiência premium em serviços de beleza, estética e cuidados pessoais. Agende agora com os melhores profissionais.
           </p>
           <Button
             size="lg"

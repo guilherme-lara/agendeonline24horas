@@ -19,9 +19,14 @@ const Clientes = () => {
   const { barbershop } = useBarbershop();
   const queryEnabled = !!barbershop?.id;
 
-  const { data: customers = [], isLoading, isError, refetch } = useQuery<Customer[]>(
-    ["customers", barbershop?.id],
-    async () => {
+  const {
+    data: customers = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Customer[]>({
+    queryKey: ["customers", barbershop?.id],
+    queryFn: async () => {
       if (!barbershop?.id) return [];
 
       // Usamos uma RPC para buscar clientes e agregar contagem de agendamentos e última visita
@@ -35,8 +40,8 @@ const Clientes = () => {
       }
       return data || [];
     },
-    { enabled: queryEnabled }
-  );
+    enabled: queryEnabled,
+  });
 
   const formatPhoneNumber = (phone: string) => {
     const digits = phone.replace(/\D/g, "");
