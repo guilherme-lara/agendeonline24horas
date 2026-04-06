@@ -3,7 +3,7 @@
  * Simulates the full user journey from landing to payment confirmation
  */
 
-import { describe, it, expect, fail } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // ============================================================
 // 1. COMPLETE BOOKING JOURNEY
@@ -188,7 +188,7 @@ describe("Onboarding Duplicate Prevention", () => {
 
     if (!existing) {
       // Would insert — but we found an existing one
-      fail("Should not reach here");
+      throw new Error("Should not reach here");
     }
 
     expect(existing.name).toBe("Carlos Silva");
