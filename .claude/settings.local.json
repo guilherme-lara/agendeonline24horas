@@ -20,7 +20,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase -name customers* -o -name clients* -o -name unique*customer*)",
       "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase -name *.sql)",
-      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -path */migrations/*.sql -o -path */migrations -type d)"
+      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -path */migrations/*.sql -o -path */migrations -type d)",
+      "Bash(grep:*)"
     ]
   }
 }

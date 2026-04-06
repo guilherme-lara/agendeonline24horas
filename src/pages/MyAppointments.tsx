@@ -241,6 +241,7 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
 
   // Countdown for pending_payment with expires_at
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  
   useEffect(() => {
     if (a.status !== "pendente_pagamento" || !a.expires_at) {
       setTimeLeft(null);
@@ -264,6 +265,8 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
   return (
     <div className={`group rounded-3xl border border-slate-800 bg-slate-900/40 p-5 hover:border-slate-700 transition-all shadow-lg backdrop-blur-sm ${a.status === "pendente_pagamento" ? "border-amber-500/30" : ""}`}>
       <div className="flex items-start justify-between mb-4">
+        
+        {/* Esquerda: Info do Agendamento */}
         <div>
           <h4 className="font-bold text-white text-lg leading-tight">{a.service_name}</h4>
           <div className="flex items-center gap-2 mt-1">
@@ -275,17 +278,22 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
             )}
           </div>
         </div>
-        {a.status === "pendente_pagamento" && timeLeft && (
-          <div className={`text-xs font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-500" : "text-amber-400"}`}>
-            {timeLeft === "Expirado" ? "⚠️ Expirado" : `Expira em ${timeLeft}`}
-          </div>
+
+        {/* Direita: Timer e Ícone */}
+        <div className="flex flex-col items-end gap-2">
+          {a.status === "pendente_pagamento" && timeLeft && (
+            <div className={`text-xs font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-500" : "text-amber-400"}`}>
+              {timeLeft === "Expirado" ? "⚠️ Expirado" : `Expira em ${timeLeft}`}
+            </div>
+          )}
+          <div className="h-10 w-10 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400">
+            <Calendar className="h-5 w-5" />
           </div>
         </div>
-        <div className="h-10 w-10 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400">
-          <Calendar className="h-5 w-5" />
-        </div>
+
       </div>
 
+      {/* Rodapé do Card: Data, Hora e Barbeiro */}
       <div className="grid grid-cols-2 gap-4 bg-slate-950/50 rounded-2xl p-3 border border-slate-800/50">
         <div className="flex items-center gap-2">
           <Clock className="h-3.5 w-3.5 text-slate-500" />
