@@ -16,6 +16,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Service {
   id: string;
@@ -61,6 +62,11 @@ const Servicos = () => {
   const [priceIsStartingAt, setPriceIsStartingAt] = useState(false);
   const [barberCommissions, setBarberCommissions] = useState<BarberCommission[]>([]);
 
+  // Categories management
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+
   const queryEnabled = !!barbershop?.id;
 
   const { data: services = [], isLoading, isError, refetch } = useQuery<Service[]>({
@@ -99,6 +105,18 @@ const Servicos = () => {
         .from("categories")
         .select("id, name, active")
         .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: allCategories = [] } = useQuery<Category[]>({
+    queryKey: ["categories-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name, active")
         .order("name");
       if (error) throw error;
       return data;
@@ -264,11 +282,55 @@ const Servicos = () => {
 
   const handleCommissionChange = (barberId: string, value: string) => {
     setBarberCommissions(
-      barberCommissions.map(bc => 
+      barberCommissions.map(bc =>
         bc.barber_id === barberId ? { ...bc, commission_pct: value } : bc
       )
     );
   };
+
+  // Category management mutations
+  const saveCategoryMutation = useMutation({
+    mutationFn: async () => {
+      if (!categoryName.trim()) throw new Error("Nome da categoria é obrigatório.");
+      if (editingCategory) {
+        const { error } = await supabase
+          .from("categories")
+          .update({ name: categoryName.trim() })
+          .eq("id", editingCategory.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("categories")
+          .insert({ name: categoryName.trim() });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-admin"] });
+      toast({ title: editingCategory ? "Categoria atualizada!" : "Categoria criada!" });
+      setCategoryDialogOpen(false);
+      setEditingCategory(null);
+      setCategoryName("");
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-admin"] });
+      toast({ title: "Categoria removida." });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const openNewCategory = () => { setEditingCategory(null); setCategoryName(""); setCategoryDialogOpen(true); };
+  const openEditCategory = (cat: Category) => { setEditingCategory(cat); setCategoryName(cat.name); setCategoryDialogOpen(true); };
 
   if (isLoading && queryEnabled && !services.length && !isError) {
     return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs text-muted-foreground animate-pulse uppercase tracking-widest font-bold">Afiando as tesouras...</p></div>;
@@ -296,6 +358,14 @@ const Servicos = () => {
         </div>
         <Button onClick={openNew} className="gold-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-gold transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
       </div>
+
+      <Tabs defaultValue="services" className="w-full">
+        <TabsList className="mb-6 bg-card border border-border">
+          <TabsTrigger value="services" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Serviços</TabsTrigger>
+          <TabsTrigger value="categories" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Categorias</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="services">
 
       {services.length === 0 ? (
         <div className="bg-card border border-border rounded-3xl p-16 text-center shadow-card">
@@ -432,6 +502,67 @@ const Servicos = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* TABA: Categorias */}
+        <TabsContent value="categories">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-black text-foreground flex items-center gap-2 font-display">Gerencie suas Categorias</h2>
+              <p className="text-sm text-muted-foreground mt-1">Organize seus serviços em grupos para facilitar a navegação do cliente.</p>
+            </div>
+            <Button onClick={openNewCategory} className="gold-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-gold transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Nova Categoria</Button>
+          </div>
+
+          {allCategories.length === 0 ? (
+            <div className="bg-card border border-border rounded-3xl p-16 text-center shadow-card">
+                <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border"><Tag className="h-10 w-10 text-muted-foreground/30" /></div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Nenhuma Categoria</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Crie categorias como "Cabelo", "Barba", "Combo" para organizar seus serviços.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {allCategories.map((cat) => (
+                <div key={cat.id} className={`group flex items-center gap-4 rounded-2xl border transition-all p-5 bg-card border-border hover:border-primary/30`}>
+                    <Tag className="h-5 w-5 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="font-bold text-foreground text-lg tracking-tight truncate">{cat.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {cat.active ? <span className="text-emerald-500 font-bold">Ativa</span> : <span className="text-muted-foreground/60">Inativa</span>}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl" onClick={() => openEditCategory(cat)}><Settings className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-xl" onClick={() => { if(confirm("Deletar esta categoria?")) deleteCategoryMutation.mutate(cat.id); }} disabled={deleteCategoryMutation.isPending}>{deleteCategoryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
+                    </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+            <DialogContent className="bg-card border-border text-foreground max-w-md shadow-2xl">
+              <DialogHeader className="border-b border-border/50 pb-4">
+                <DialogTitle className="flex items-center gap-2 text-lg font-black font-display"><Tag className="text-primary h-5 w-5" /> {editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+              </DialogHeader>
+              <div className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nome da Categoria</label>
+                      <Input placeholder="Ex: Cabelo, Barba, Combo..." value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
+                  </div>
+                  <Button
+                    className="w-full gold-gradient text-primary-foreground font-black h-12 rounded-xl shadow-gold transition-all active:scale-95"
+                    onClick={() => saveCategoryMutation.mutate()}
+                    disabled={saveCategoryMutation.isPending || !categoryName.trim()}
+                  >
+                    {saveCategoryMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Check className="h-5 w-5 mr-2" />}
+                    {editingCategory ? "Salvar" : "Criar Categoria"}
+                  </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
