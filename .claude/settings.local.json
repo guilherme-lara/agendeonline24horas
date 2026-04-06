@@ -23,7 +23,14 @@
       "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -path */migrations/*.sql -o -path */migrations -type d)",
       "Bash(grep:*)",
       "Bash(find C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -type f -name *.sql -path */supabase/*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/src -type f -name Dialog*.tsx -o -name Alert*.tsx -o -name *Dialog*)",
+      "Bash(find C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/src/components/ui -type f -name *.tsx)",
+      "Bash(find C:/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -type f -name *.sql)",
+      "Bash(while read:*)",
+      "Bash(do grep:*)",
+      "Bash(done)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''definitions'''',{}\\).get\\(''''customers'''',{}\\), indent=2\\)\\)\")"
     ]
   }
 }
