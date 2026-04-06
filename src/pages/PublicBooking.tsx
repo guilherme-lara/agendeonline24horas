@@ -132,20 +132,33 @@ const PublicBooking = () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
 
-      // 1. Upsert do Cliente
-      const { data: customerData, error: customerError } = await supabase
+      // 1. Find or create customer (avoid upsert with composite key)
+      const { data: existingCustomer, error: findError } = await supabase
         .from('customers')
-        .upsert({
-            barbershop_id: shop!.id,
-            phone: phoneDigits,
-            name: clientData.name.trim(),
-            last_seen: new Date().toISOString()
-        }, { onConflict: 'barbershop_id, phone' })
         .select('id')
-        .single();
+        .eq('barbershop_id', shop!.id)
+        .eq('phone', phoneDigits)
+        .maybeSingle();
 
-      if (customerError) throw new Error(`Erro ao salvar cliente: ${customerError.message}`);
-      const customerId = customerData.id;
+      if (findError) throw new Error(`Erro ao buscar cliente: ${findError.message}`);
+
+      let customerId: string;
+      if (existingCustomer) {
+        // Update last_seen / name
+        await supabase
+          .from('customers')
+          .update({ name: clientData.name.trim(), last_seen: new Date().toISOString() })
+          .eq('id', existingCustomer.id);
+        customerId = existingCustomer.id;
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('customers')
+          .insert({ barbershop_id: shop!.id, phone: phoneDigits, name: clientData.name.trim(), last_seen: new Date().toISOString() })
+          .select('id')
+          .single();
+        if (insertError) throw new Error(`Erro ao criar cliente: ${insertError.message}`);
+        customerId = inserted.id;
+      }
 
       // 2. Criação do Agendamento com `customer_id`
       const scheduledAt = new Date(selectedDate!);

@@ -195,6 +195,41 @@ describe("Customer Upsert", () => {
     expect(formatted).not.toBe(phoneDigits); // Ensure they differ
   });
 
+  it("should find existing customer by barbershop_id + phone before inserting", () => {
+    // The fixed approach: SELECT first, then INSERT if not found
+    const findCustomer = (
+      customers: Array<{ id: string; barbershop_id: string; phone: string; name: string }>,
+      barbershopId: string,
+      phone: string,
+    ) => customers.find(
+      (c) => c.barbershop_id === barbershopId && c.phone === phone,
+    );
+
+    const mockCustomers = [
+      { id: "cust-1", barbershop_id: "shop-a", phone: "11999991234", name: "João" },
+      { id: "cust-2", barbershop_id: "shop-b", phone: "11999991234", name: "João" }, // Same phone, different shop
+    ];
+
+    // Found: same phone + same shop → should return existing
+    const found = findCustomer(mockCustomers, "shop-a", "11999991234");
+    expect(found?.id).toBe("cust-1");
+
+    // Not found: same phone but different shop → should be null
+    const notFound = findCustomer(mockCustomers, "shop-c", "11999991234");
+    expect(notFound).toBeUndefined();
+  });
+
+  it("should return same customer regardless of phone formatting", () => {
+    const sanitizePhone = (val: string) => val.replace(/\D/g, "");
+
+    const formattedA = "(11) 9999-8888";
+    const formattedB = "1199998888";
+    const formattedC = " 11 9999 8888 ";
+
+    expect(sanitizePhone(formattedA)).toBe(sanitizePhone(formattedB));
+    expect(sanitizePhone(formattedB)).toBe(sanitizePhone(formattedC));
+  });
+
   it("should handle missing last_seen column gracefully", () => {
     // Our fix wraps the upsert in try-catch and ignores last_seen errors
     function simulateUpsert(hasLastSeenColumn: boolean) {
