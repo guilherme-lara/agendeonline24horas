@@ -99,10 +99,13 @@ describe("Timer Color States", () => {
 describe("Slot Filtering with Expired Reservations", () => {
   const shouldBlockSlot = (appt: { status: string; expires_at: string | null }, now: Date): boolean => {
     if (appt.status === "cancelled") return false;
-    if (appt.status !== "pending_payment") return true;
-    // pending_payment: only block if expires_at is still in future
-    if (!appt.expires_at) return true; // no expiry set — block defensively
-    return new Date(appt.expires_at) > now;
+    // pending_payment: only block if expires_at is still in future (supports both locales)
+    if (appt.status === "pending_payment" || appt.status === "pendente_pagamento") {
+      if (!appt.expires_at) return true; // no expiry — block defensively
+      return new Date(appt.expires_at) > now;
+    }
+    // Everything else confirmed, completed, pending, paid → blocks
+    return true;
   };
 
   it("confirmed appointments always block the slot", () => {
@@ -125,6 +128,18 @@ describe("Slot Filtering with Expired Reservations", () => {
   it("cancelled appointments never block", () => {
     const now = new Date();
     expect(shouldBlockSlot({ status: "cancelled", expires_at: null }, now)).toBe(false);
+  });
+
+  it("pendente_pagamento (PT) with future expires_at blocks", () => {
+    const futureExpiry = new Date(Date.now() + 180000).toISOString();
+    const now = new Date();
+    expect(shouldBlockSlot({ status: "pendente_pagamento", expires_at: futureExpiry }, now)).toBe(true);
+  });
+
+  it("pendente_pagamento (PT) with expired expires_at does NOT block", () => {
+    const pastExpiry = new Date(Date.now() - 60000).toISOString();
+    const now = new Date();
+    expect(shouldBlockSlot({ status: "pendente_pagamento", expires_at: pastExpiry }, now)).toBe(false);
   });
 });
 

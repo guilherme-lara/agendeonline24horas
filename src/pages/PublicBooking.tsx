@@ -192,11 +192,11 @@ const PublicBooking = () => {
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString(), selectedBarber?.id],
     queryFn: async () => {
-      // Clean up expired pending_payment appointments
+      // Clean up expired pending_payment appointments (best effort)
       try {
         await supabase.rpc("cleanup_expired_appointments");
       } catch {
-        // RPC may not exist yet — harmless skip
+        // RPC may not exist yet — harmless skip, client-side filter handles it.
       }
 
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -205,25 +205,59 @@ const PublicBooking = () => {
       const d = pad(selectedDate!.getDate());
       const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
       const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
-      const nowISO = new Date().toISOString();
+      const now = new Date();
 
+      // Fetch ALL appointments for the day across the barbershop.
+      // If a specific barber is selected, also fetch their appointments;
+      // otherwise we fetch ALL and the conflict checker runs per-barber below.
       let query = supabase
         .from("appointments")
-        .select("scheduled_at, service_name, status, barber_name, expires_at")
+        .select("scheduled_at, service_name, status, barber_name, barber_id, expires_at")
         .eq("barbershop_id", shop!.id)
-        .neq("status", "cancelled")
-        // Exclude expired pending_payment: must be non-expired if it has expires_at
-        .or(`status.neq.pendente_pagamento,expires_at.gt.${nowISO}`)
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd);
 
-      if (selectedBarber?.name) {
-        query = query.eq("barber_name", selectedBarber.name);
+      if (selectedBarber) {
+        // Query for BOTH selected barber AND unassigned appointments
+        // (some appointments may be pending with no barber_name yet).
+        // PostgREST can't do OR on two different columns easily, so we
+        // fetch unfiltered and filter client-side.
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+
+      // ───────────────────────────────────────────────────────────
+      // ABSOLUTE INVENTORY LOCK — Definitive blocking rules:
+      //
+      // A slot is BLOCKED if ANY record matches ALL of:
+      //   (a) Same barber (or unassigned when no barber selected)
+      //   (b) Time overlaps (start < aEnd && end > aStart)
+      //   (c) Occupying status:
+      //       - 'pending_payment' AND expires_at > NOW  → active 3-min reserve
+      //       - 'confirmed', 'completed'                → permanent
+      //       - any other status except 'cancelled'
+      //
+      // A slot is FREE ONLY IF:
+      //   - no records exist for that barber at that time, OR
+      //   - ALL records are 'cancelled', OR
+      //   - ALL records are 'pending_payment' with expired expires_at
+      // ───────────────────────────────────────────────────────────
+      return (data || []).filter((appt: any) => {
+        // Cancelled is a terminal free state — never blocks.
+        if (appt.status === "cancelled") return false;
+
+        // pending_payment / pendente_pagamento: only blocks if reserve is active
+        if (appt.status === "pendente_pagamento" || appt.status === "pending_payment") {
+          if (appt.expires_at) {
+            return new Date(appt.expires_at) > now;
+          }
+          return true; // No expiry — block defensively
+        }
+
+        // Everything else (confirmed, completed, pending, paid) → blocks
+        return true;
+      });
     },
     enabled: !!shop?.id && !!selectedDate,
   });
