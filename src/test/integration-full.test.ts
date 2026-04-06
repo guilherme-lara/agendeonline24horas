@@ -3,7 +3,7 @@
  * Simulates the full user journey from landing to payment confirmation
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, fail } from "vitest";
 
 // ============================================================
 // 1. COMPLETE BOOKING JOURNEY

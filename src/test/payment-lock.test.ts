@@ -253,7 +253,7 @@ describe("End-to-End Payment Lock Flow", () => {
   it("booking: pending_payment with expires_at blocks other bookings", () => {
     const bookingCreated = Date.now();
     const expiresAt = bookingCreated + 180000; // 3 min
-    const status = "pending_payment";
+    const status: string = "pending_payment";
 
     // Another client queries slots 1 min later
     const queryTime = bookingCreated + 60000;

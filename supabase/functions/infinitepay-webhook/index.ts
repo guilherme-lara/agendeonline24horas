@@ -215,13 +215,17 @@ Deno.serve(async (req) => {
   // --- 10. SECURE UPDATE ---
   const paymentAmount = amountReceived !== null ? amountReceived : 0;
 
-  const { error: updateError } = await supabase.rpc("update_appointment_payment", {
-    _appt_id: appt.id,
-    _amount_paid: paymentAmount,
-  }).catch(() => {
-    // Fallback: RPC doesn't exist yet, use direct update
-    return null;
-  });
+  let updateError: unknown = null;
+
+  try {
+    const rpcResult = await supabase.rpc("update_appointment_payment", {
+      _appt_id: appt.id,
+      _amount_paid: paymentAmount,
+    });
+    updateError = rpcResult.error;
+  } catch (error) {
+    updateError = error;
+  }
 
   if (updateError) {
     // Fallback to direct update
@@ -231,7 +235,6 @@ Deno.serve(async (req) => {
         status: "confirmed",
         payment_status: "paid",
         payment_confirmed_at: new Date().toISOString(),
-        amount_paid: paymentAmount,
       })
       .eq("id", appt.id);
 

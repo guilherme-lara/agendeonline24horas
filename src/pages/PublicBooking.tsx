@@ -289,7 +289,7 @@ const PublicBooking = () => {
     const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
     const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
 
-    let result = await supabase
+    let result: any = await supabase
       .from("appointments")
       .select(selectWithExpiry)
       .eq("barbershop_id", shop.id)
