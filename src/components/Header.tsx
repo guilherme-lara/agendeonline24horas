@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 
 // 1. IMPORTAÇÃO OBRIGATÓRIA DA IMAGEM
-import logoAgenda from "@/assets/logo-agenda.png"; 
+import logoAgenda from "@/assets/nova-logo.jpeg";
 
 const Header = () => {
   const [open, setOpen] = useState(false);

@@ -27,7 +27,7 @@ import { useBarbershop } from "@/hooks/useBarbershop";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
-import logoAgenda from "@/assets/logo-agenda.png";
+import logoAgenda from "@/assets/nova-logo.jpeg";
 import { useMemo } from "react";
 
 interface SidebarProps {

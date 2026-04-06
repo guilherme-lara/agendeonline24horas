@@ -21,31 +21,34 @@ export default defineConfig(({ mode }) => ({
       // e quebre o fluxo de pagamento do cliente.
       registerType: "prompt", 
       manifest: {
-        name: "AgendeOnline24horas",
+        name: "AgendeOnline 24 Horas",
         short_name: "AgendeOnline",
-        description: "Sistema de agendamento para barbearias",
+        description: "Agendamento online para barbearias com confirmação automática",
         theme_color: "#0a0f1a",
         background_color: "#0a0f1a",
         display: "standalone",
         start_url: "/",
         icons: [
           {
-            src: "/logo-agenda-CPNscrQt.png",
+            src: "/icon-144.png",
+            sizes: "144x144",
+            type: "image/png",
+          },
+          {
+            src: "/icon-192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any maskable",
           },
+        ],
+        ios: {
+          splashPage: "index.html",
+        },
+        apple: [
           {
-            src: "/logo-agenda-CPNscrQt.png",
-            sizes: "512x512",
+            src: "/icon-192.png",
+            sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
-          },
-          {
-            src: "/logo-agenda-CPNscrQt.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
           },
         ],
       },

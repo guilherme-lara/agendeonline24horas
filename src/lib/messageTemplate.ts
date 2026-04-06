@@ -57,9 +57,7 @@ export function fillMessageTemplate(
     .replace(/{{telefone}}/g, ctx.telefone || "");
 }
 
-export function buildWhatsAppLink(template: string, ctx: MessageContext): string {
-  const message = fillMessageTemplate(template, ctx);
-  return template
-    .replace(/{{telefone}}/g, ctx.telefone || "")
-    .replace(/{{mensagem}}/g, encodeURIComponent(message));
+export function buildWhatsAppLink(urlTemplate: string, ctx: MessageContext): string {
+  const message = fillMessageTemplate(urlTemplate, ctx);
+  return `https://wa.me/${ctx.telefone || ""}?text=${encodeURIComponent(message)}`;
 }
