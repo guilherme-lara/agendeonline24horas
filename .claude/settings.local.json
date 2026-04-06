@@ -30,7 +30,17 @@
       "Bash(while read:*)",
       "Bash(do grep:*)",
       "Bash(done)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''definitions'''',{}\\).get\\(''''customers'''',{}\\), indent=2\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''definitions'''',{}\\).get\\(''''customers'''',{}\\), indent=2\\)\\)\")",
+      "Bash(find /home/user/agendeonline24horas/src -path */lib/* -name *.ts)",
+      "Bash(find /home/user/agendeonline24horas/src -path */pages/* -o -path */routes/*)",
+      "Bash(npm list:*)",
+      "Bash(set -a)",
+      "Bash(source .env)",
+      "Bash(set +a)",
+      "Bash(node -e \":*)",
+      "Bash(npx -y supabase --version)",
+      "Bash(SUPABASE_ACCESS_TOKEN=\"\" npx -y supabase link --project-ref whtlqimtclodchfdljcg)",
+      "Bash(npx supabase@latest db push)"
     ]
   }
 }
