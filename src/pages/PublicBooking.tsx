@@ -316,9 +316,9 @@ const PublicBooking = () => {
 
         if (error) return true; // On DB error, defer to RPC
 
-        const [h, m] = selectedTime!.split(":").map(Number);
+        const [selH, selM] = selectedTime!.split(":").map(Number);
         const slotStart = new Date(selectedDate!);
-        slotStart.setHours(h, m, 0, 0);
+        slotStart.setHours(selH, selM, 0, 0);
         const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
 
         // Is ANY record occupying this slot?
