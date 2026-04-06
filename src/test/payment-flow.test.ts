@@ -39,7 +39,7 @@ describe("Webhook Status Parsing", () => {
   });
 
   it("should handle missing order_nsu gracefully", () => {
-    const payload = { status: "paid" };
+    const payload: { status: string; order_nsu?: string } = { status: "paid" };
     const hasNsu = !!payload.order_nsu;
     expect(hasNsu).toBe(false);
   });

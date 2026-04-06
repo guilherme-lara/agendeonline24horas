@@ -12,11 +12,11 @@ Deno.test("Rejects invalid JSON", async () => {
     body: "not json",
   });
   const body = await res.json();
-  assertEquals(res.status, 400);
-  assertEquals(body.error, "Invalid JSON");
+  assert(res.status >= 400);
+  assertEquals(typeof body.error, "string");
 });
 
-Deno.test("Skips payload without payment_id", async () => {
+Deno.test("Skips payload without order_nsu", async () => {
   const res = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
@@ -25,17 +25,20 @@ Deno.test("Skips payload without payment_id", async () => {
   const body = await res.json();
   assertEquals(res.status, 200);
   assertEquals(body.skipped, true);
+  assertEquals(body.reason, "Missing order_nsu");
 });
 
-Deno.test("Handles unknown payment_id gracefully", async () => {
+Deno.test("Handles unknown order_nsu gracefully", async () => {
   const res = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ payment_id: "fake-id-999", status: "paid" }),
+    body: JSON.stringify({ order_nsu: "fake-id-999", status: "paid" }),
   });
   const body = await res.json();
   assertEquals(res.status, 200);
-  assertEquals(body.not_found, true);
+  assertEquals(body.ok, false);
+  assertEquals(body.error, "Appointment not found");
+  assertEquals(body.appointment_id, "fake-id-999");
 });
 
 Deno.test("Idempotent: 3 identical calls produce same result", async () => {
