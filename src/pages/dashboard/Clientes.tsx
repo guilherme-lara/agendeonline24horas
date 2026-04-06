@@ -11,7 +11,7 @@ interface Customer {
   id: string;
   name: string;
   phone: string;
-  last_seen: string;
+  last_seen: string | null;
   appointment_count: number;
 }
 
@@ -117,12 +117,18 @@ const Clientes = () => {
                                         </Badge>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-foreground text-xs font-medium capitalize">
-                                            {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
-                                        </div>
-                                        <div className="text-muted-foreground text-[10px] uppercase tracking-tighter">
-                                            {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
-                                        </div>
+                                        {customer.last_seen ? (
+                                            <>
+                                                <div className="text-foreground text-xs font-medium capitalize">
+                                                    {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
+                                                </div>
+                                                <div className="text-muted-foreground text-[10px] uppercase tracking-tighter">
+                                                    {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-muted-foreground text-xs">Sem agendamentos</div>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                         <Button 
