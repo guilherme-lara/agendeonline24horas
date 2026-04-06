@@ -40,6 +40,7 @@ export type Database = {
       }
       appointments: {
         Row: {
+          barber_id: string | null
           barber_name: string | null
           barbershop_id: string
           client_id: string | null
@@ -63,6 +64,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          barber_id?: string | null
           barber_name?: string | null
           barbershop_id: string
           client_id?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          barber_id?: string | null
           barber_name?: string | null
           barbershop_id?: string
           client_id?: string | null
@@ -110,6 +113,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "appointments_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
@@ -121,6 +138,66 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barber_services: {
+        Row: {
+          barber_id: string | null
+          barbershop_id: string | null
+          commission_pct: number
+          id: string
+          service_id: string | null
+        }
+        Insert: {
+          barber_id?: string | null
+          barbershop_id?: string | null
+          commission_pct?: number
+          id?: string
+          service_id?: string | null
+        }
+        Update: {
+          barber_id?: string | null
+          barbershop_id?: string | null
+          commission_pct?: number
+          id?: string
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_services_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_services_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_services_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_services_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barber_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -231,6 +308,8 @@ export type Database = {
           name: string
           owner_id: string
           phone: string | null
+          plan_name: string | null
+          plan_status: string | null
           settings: Json | null
           setup_completed: boolean
           slug: string
@@ -247,6 +326,8 @@ export type Database = {
           name: string
           owner_id: string
           phone?: string | null
+          plan_name?: string | null
+          plan_status?: string | null
           settings?: Json | null
           setup_completed?: boolean
           slug: string
@@ -263,6 +344,8 @@ export type Database = {
           name?: string
           owner_id?: string
           phone?: string | null
+          plan_name?: string | null
+          plan_status?: string | null
           settings?: Json | null
           setup_completed?: boolean
           slug?: string
@@ -314,12 +397,52 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          barbershop_id: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           barbershop_id: string
           birth_date: string | null
           created_at: string
           id: string
+          last_seen: string | null
           name: string
           notes: string | null
           phone: string
@@ -330,6 +453,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           id?: string
+          last_seen?: string | null
           name: string
           notes?: string | null
           phone?: string
@@ -340,6 +464,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           id?: string
+          last_seen?: string | null
           name?: string
           notes?: string | null
           phone?: string
@@ -1120,6 +1245,16 @@ export type Database = {
           _service_name: string
         }
         Returns: string
+      }
+      get_customers_with_stats: {
+        Args: { _barbershop_id: string }
+        Returns: {
+          id: string
+          last_appointment_at: string
+          name: string
+          phone: string
+          total_appointments: number
+        }[]
       }
       has_role: {
         Args: {

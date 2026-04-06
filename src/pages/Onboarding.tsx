@@ -117,7 +117,6 @@ const Onboarding = () => {
         toast({
           title: "Boas-vindas ao time!",
           description: "Sua barbearia foi configurada. Aproveite seus 30 dias de Plano PRO!",
-          variant: "success",
         });
         queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
         navigate("/dashboard", { replace: true });

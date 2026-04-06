@@ -41,16 +41,6 @@ export default defineConfig(({ mode }) => ({
             purpose: "any maskable",
           },
         ],
-        ios: {
-          splashPage: "index.html",
-        },
-        apple: [
-          {
-            src: "/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],

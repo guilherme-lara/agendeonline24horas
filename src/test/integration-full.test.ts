@@ -188,7 +188,7 @@ describe("Onboarding Duplicate Prevention", () => {
 
     if (!existing) {
       // Would insert — but we found an existing one
-      fail("Should not reach here");
+      throw new Error("Should not reach here");
     }
 
     expect(existing.name).toBe("Carlos Silva");
