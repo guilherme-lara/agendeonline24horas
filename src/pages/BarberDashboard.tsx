@@ -20,13 +20,17 @@ const statusColors: Record<string, string> = {
   paid: "border-emerald-500/30 bg-emerald-500/5",
   confirmed: "border-blue-500/30 bg-blue-500/5",
   pending: "border-yellow-500/30 bg-yellow-500/5",
+  pending_payment: "border-amber-500/30 bg-amber-500/5",
+  pendente_pagamento: "border-amber-500/30 bg-amber-500/5",
 };
 
 const statusLabel: Record<string, { text: string; color: string }> = {
-  completed: { text: "✓ Concluído", color: "text-emerald-500" },
-  paid: { text: "✓ Pago", color: "text-emerald-500" },
+  completed: { text: "Concluído", color: "text-emerald-500" },
+  paid: { text: "Pago", color: "text-emerald-500" },
   confirmed: { text: "Agendado", color: "text-blue-500" },
   pending: { text: "Pendente", color: "text-yellow-500" },
+  pending_payment: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
+  pendente_pagamento: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
 };
 
 const DAILY_GOAL_KEY = "barber_daily_goal";

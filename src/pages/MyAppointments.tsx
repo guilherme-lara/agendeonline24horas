@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Phone, Search, Loader2, Calendar, Clock, User,
   CalendarX2, Gift, AlertTriangle, RefreshCw, CheckCircle2, Scissors
@@ -26,6 +26,7 @@ interface AppointmentResult {
   signal_value: number | null;
   payment_status: string | null;
   payment_url: string | null;
+  expires_at: string | null;
 }
 
 const STORAGE_KEY = "techbarber_client_phone";
@@ -40,7 +41,7 @@ const statusConfig: Record<string, { label: string; cls: string }> = {
   completed: { label: "Concluído", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   cancelled: { label: "Cancelado", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
   pending_payment: { label: "Aguardando Pagamento", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  pendente_pagamento: { label: "Aguardando Pagamento", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  pendente_pagamento: { label: "⏳ Aguardando Pagamento - Expira em breve", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse" },
   flagged: { label: "Verificação de Valor", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
   amount_mismatch: { label: "Valor Divergente", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
 };
@@ -238,8 +239,30 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
     ? Math.max(0, a.total_price - a.amount_paid)
     : null;
 
+  // Countdown for pending_payment with expires_at
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  useEffect(() => {
+    if (a.status !== "pendente_pagamento" || !a.expires_at) {
+      setTimeLeft(null);
+      return;
+    }
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(a.expires_at!).getTime() - Date.now()) / 1000));
+      if (diff <= 0) {
+        setTimeLeft("Expirado");
+        return;
+      }
+      const mm = Math.floor(diff / 60);
+      const ss = String(diff % 60).padStart(2, "0");
+      setTimeLeft(`${mm}:${ss}`);
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [a.status, a.expires_at]);
+
   return (
-    <div className="group rounded-3xl border border-slate-800 bg-slate-900/40 p-5 hover:border-slate-700 transition-all shadow-lg backdrop-blur-sm">
+    <div className={`group rounded-3xl border border-slate-800 bg-slate-900/40 p-5 hover:border-slate-700 transition-all shadow-lg backdrop-blur-sm ${a.status === "pendente_pagamento" ? "border-amber-500/30" : ""}`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <h4 className="font-bold text-white text-lg leading-tight">{a.service_name}</h4>
@@ -250,6 +273,12 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
                 Falta R$ {remaining.toFixed(2).replace(".", ",")} no local
               </span>
             )}
+          </div>
+        </div>
+        {a.status === "pendente_pagamento" && timeLeft && (
+          <div className={`text-xs font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-500" : "text-amber-400"}`}>
+            {timeLeft === "Expirado" ? "⚠️ Expirado" : `Expira em ${timeLeft}`}
+          </div>
           </div>
         </div>
         <div className="h-10 w-10 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400">

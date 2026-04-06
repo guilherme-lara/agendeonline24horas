@@ -18,7 +18,9 @@
       "Read(//c/Users/guilh/AppData/Local/claude/C--Users-guilh-OneDrive-Documentos-Projetos-agendeonline24horas/6c1dd0eb-7078-42e0-bc3b-b9dbd177379c/tasks/**)",
       "Bash(cat:*)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase -name customers* -o -name clients* -o -name unique*customer*)"
+      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase -name customers* -o -name clients* -o -name unique*customer*)",
+      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas/supabase -name *.sql)",
+      "Bash(find /c/Users/guilh/OneDrive/Documentos/Projetos/agendeonline24horas -path */migrations/*.sql -o -path */migrations -type d)"
     ]
   }
 }

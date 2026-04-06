@@ -29,9 +29,131 @@ const PublicBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
-  
-  const [success, setSuccess] = useState(searchParams.get("success") === "true"); 
+
+  const [success, setSuccess] = useState(searchParams.get("success") === "true");
   const [cancelled, setCancelled] = useState(false);
+
+  // Polling: check appointment status when back from checkout
+  const [apptStatus, setApptStatus] = useState<string | null>(null);
+  const [statusChecked, setStatusChecked] = useState(false);
+
+  useEffect(() => {
+    if (!success || statusChecked) return;
+    setStatusChecked(true);
+
+    const checkStatus = async () => {
+      const apptId = sessionStorage.getItem("pending_appt_id");
+      if (!apptId) { setApptStatus("confirmed"); return; }
+
+      try {
+        const { data, error } = await supabase
+          .from("appointments")
+          .select("status, expires_at")
+          .eq("id", apptId)
+          .maybeSingle();
+
+        if (error) return;
+
+        if (data?.status === "confirmed" || data?.status === "completed") {
+          // Payment confirmed by webhook
+          setApptStatus("confirmed");
+        } else if (data?.status === "cancelled" || data?.status === "expired") {
+          setApptStatus("expired");
+          sessionStorage.removeItem("payment_expires_at");
+          sessionStorage.removeItem("pending_appt_id");
+        } else {
+          // Still pending — keep polling
+          setApptStatus("pending");
+        }
+      } catch {
+        // Network error — assume still pending
+        setApptStatus("pending");
+      }
+    };
+
+    // Poll every 3 seconds for up to 60 seconds
+    checkStatus();
+    const polling = setInterval(checkStatus, 3000);
+    const timeout = setTimeout(() => {
+      clearInterval(polling);
+      if (apptStatus === "pending") setApptStatus("pending"); // force final check
+    }, 60000);
+
+    return () => { clearInterval(polling); clearTimeout(timeout); };
+  }, [success]);
+
+  // 3-minute payment lock state
+  const [paymentExpiresAt, setPaymentExpiresAt] = useState<number | null>(() => {
+    try {
+      const stored = sessionStorage.getItem("payment_expires_at");
+      if (stored) return Number(stored);
+    } catch { /* */ }
+    return null;
+  });
+  const [pendingApptId, setPendingApptId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem("pending_appt_id");
+    } catch { /* */ }
+    return null;
+  });
+
+  // Check for expired appointment on remount/redirect return
+  useEffect(() => {
+    if (success || !paymentExpiresAt || !pendingApptId) return;
+
+    const checkBooking = async () => {
+      if (Date.now() > paymentExpiresAt) {
+        // Check if appointment was cancelled (expired payment)
+        const { data } = await supabase
+          .from("appointments")
+          .select("status")
+          .eq("id", pendingApptId)
+          .maybeSingle();
+        if (data?.status === "cancelled") {
+          // Payment expired — appointment was cancelled
+          await supabase
+            .from("appointments")
+            .update({ expires_at: null })
+            .eq("id", pendingApptId);
+          toast({
+            title: "Reserva Expirada",
+            description: "O tempo para pagamento acabou. Escolha outro horário.",
+            variant: "destructive",
+          });
+          sessionStorage.removeItem("payment_expires_at");
+          sessionStorage.removeItem("pending_appt_id");
+          setPaymentExpiresAt(null);
+          setPendingApptId(null);
+        }
+      }
+    };
+
+    checkBooking();
+  }, [success]);
+
+  // Countdown timer
+  const [timeLeft, setTimeLeft] = useState(() => {
+    if (!paymentExpiresAt) return 0;
+    const diff = Math.max(0, Math.floor((paymentExpiresAt - Date.now()) / 1000));
+    return diff;
+  });
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeLeft > 0]);
+
+  const timerText = `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`;
+  const timerColor = timeLeft <= 60 ? "text-red-400 animate-pulse" : timeLeft <= 120 ? "text-amber-400" : "text-emerald-400";
 
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
@@ -70,21 +192,31 @@ const PublicBooking = () => {
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString(), selectedBarber?.id],
     queryFn: async () => {
+      // Clean up expired pending_payment appointments
+      try {
+        await supabase.rpc("cleanup_expired_appointments");
+      } catch {
+        // RPC may not exist yet — harmless skip
+      }
+
       const pad = (n: number) => String(n).padStart(2, '0');
       const y = selectedDate!.getFullYear();
       const m = pad(selectedDate!.getMonth() + 1);
       const d = pad(selectedDate!.getDate());
       const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
       const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
+      const nowISO = new Date().toISOString();
 
       let query = supabase
         .from("appointments")
-        .select("scheduled_at, service_name, status, barber_name")
+        .select("scheduled_at, service_name, status, barber_name, expires_at")
         .eq("barbershop_id", shop!.id)
         .neq("status", "cancelled")
+        // Exclude expired pending_payment: must be non-expired if it has expires_at
+        .or(`status.neq.pendente_pagamento,expires_at.gt.${nowISO}`)
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd);
-      
+
       if (selectedBarber?.name) {
         query = query.eq("barber_name", selectedBarber.name);
       }
@@ -186,14 +318,16 @@ const PublicBooking = () => {
       const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 3. Vínculo do Agendamento com o Cliente e Barbeiro
-      await supabase.from("appointments").update({ 
+      // 3. Vínculo do Agendamento com o Cliente, Barbeiro e LOCK DE 3 MIN.
+      const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 min
+      await supabase.from("appointments").update({
         customer_id: customerId,
         barber_id: selectedBarber.id,
         barber_name: selectedBarber.name,
         status: 'pendente_pagamento',
         has_signal: (selectedService.advance_payment_value || 0) > 0,
-        signal_value: selectedService.advance_payment_value || 0
+        signal_value: selectedService.advance_payment_value || 0,
+        expires_at: expiresAt.toISOString(),
       }).eq("id", apptId);
 
       // 4. Redirecionamento para Pagamento
@@ -212,9 +346,17 @@ const PublicBooking = () => {
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 
-      return { url: checkoutUrl };
+      return { url: checkoutUrl, apptId };
     },
     onSuccess: (res) => {
+      // Store payment lock state before redirect
+      const expires = Date.now() + 3 * 60 * 1000;
+      try {
+        sessionStorage.setItem("payment_expires_at", String(expires));
+        sessionStorage.setItem("pending_appt_id", res.apptId);
+      } catch { /* */ }
+      setPaymentExpiresAt(expires);
+      setPendingApptId(res.apptId);
       queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
       if (res.url) {
         window.location.href = res.url;
@@ -465,7 +607,102 @@ const PublicBooking = () => {
           <div />
         )}
 
-        {success && !cancelled && (
+        {/* Payment in progress — countdown + urgency */}
+        {success && (apptStatus === "pending" || (timeLeft > 0 && !statusChecked)) && (
+          <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
+            <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
+              <span className={`text-5xl font-black tabular-nums ${timerColor}`}>{timerText}</span>
+            </div>
+            <h1 className="text-2xl font-black text-foreground mb-4 tracking-tight font-display">
+              Aguardando Pagamento
+            </h1>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-8">
+              <div className="flex items-center gap-2 mb-3 justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-500 animate-pulse" />
+                <p className="text-sm font-bold text-amber-500">
+                  Seu horário está reservado por tempo limitado
+                </p>
+              </div>
+              <p className="text-muted-foreground text-sm mb-2">
+                Realize o pagamento do sinal para confirmar. Após a expiração, o horário será liberado para outros clientes.
+              </p>
+              <p className={`text-3xl font-black tabular-nums ${timerColor}`}>
+                {timerText}
+              </p>
+            </div>
+
+            {timeLeft <= 60 && timeLeft > 0 && (
+              <p className="text-red-400 text-xs font-bold animate-pulse mb-4">
+                ⚠️ Último minuto para pagar! O horário será perdido se o pagamento não for confirmado.
+              </p>
+            )}
+
+            {timeLeft === 0 && apptStatus !== "confirmed" && (
+              <div className="space-y-4">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
+                  <XCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
+                  <h2 className="text-xl font-black text-foreground mb-2">Reserva Expirada</h2>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    O tempo para pagamento acabou. Escolha outro horário e tente novamente.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    sessionStorage.removeItem("payment_expires_at");
+                    sessionStorage.removeItem("pending_appt_id");
+                    setSuccess(false);
+                    setApptStatus(null);
+                    setStatusChecked(false);
+                    setStep(3);
+                    setSelectedTime(null);
+                    queryClient.invalidateQueries({ queryKey: ["slots"] });
+                  }}
+                  className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full"
+                >
+                  Escolher Outro Horário
+                </Button>
+              </div>
+            )}
+
+            {apptStatus === "confirmed" && (
+              <div className="h-12 w-12 mx-auto mb-4">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Expired reservation */}
+        {apptStatus === "expired" && (
+          <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
+            <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+              <XCircle className="h-12 w-12 text-red-500" />
+            </div>
+            <h1 className="text-2xl font-black text-foreground mb-4 tracking-tight font-display">
+              Reserva Expirada
+            </h1>
+            <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
+              O tempo para pagamento acabou. Escolha outro horário e tente novamente.
+            </p>
+            <Button
+              onClick={() => {
+                sessionStorage.removeItem("payment_expires_at");
+                sessionStorage.removeItem("pending_appt_id");
+                setSuccess(false);
+                setApptStatus(null);
+                setStatusChecked(false);
+                setStep(3);
+                setSelectedTime(null);
+                queryClient.invalidateQueries({ queryKey: ["slots"] });
+              }}
+              className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full"
+            >
+              Escolher Outro Horário
+            </Button>
+          </div>
+        )}
+
+        {success && !cancelled && apptStatus === "confirmed" && (
             <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
                 <div className="h-24 w-24 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-emerald-500/20">
                     <Check className="h-12 w-12 text-emerald-500" />

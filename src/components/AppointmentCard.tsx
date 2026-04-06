@@ -13,12 +13,16 @@ const statusStyles: Record<string, string> = {
   confirmed: "bg-primary/15 text-primary border-primary/30",
   completed: "bg-green-500/15 text-green-400 border-green-500/30",
   cancelled: "bg-destructive/15 text-destructive border-destructive/30",
+  pending_payment: "bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse",
+  pendente_pagamento: "bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse",
 };
 
 const statusLabels: Record<string, string> = {
   confirmed: "Confirmado",
   completed: "Concluído",
   cancelled: "Cancelado",
+  pending_payment: "⏳ Aguardando Pagamento",
+  pendente_pagamento: "⏳ Aguardando Pagamento",
 };
 
 const AppointmentCard = ({ appointment, onCancel }: AppointmentCardProps) => {

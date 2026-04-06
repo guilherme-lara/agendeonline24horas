@@ -34,6 +34,8 @@ const statusConfig: Record<string, { bg: string; border: string; text: string }>
   pending: { bg: "bg-muted", border: "border-muted-foreground/30", text: "text-muted-foreground" },
   completed: { bg: "bg-green-500/15", border: "border-green-500/40", text: "text-green-400" },
   cancelled: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
+  pending_payment: { bg: "bg-amber-500/15", border: "border-amber-500/40", text: "text-amber-400" },
+  pendente_pagamento: { bg: "bg-amber-500/15", border: "border-amber-500/40", text: "text-amber-400" },
 };
 
 const LONG_PRESS_DELAY = 400; // ms

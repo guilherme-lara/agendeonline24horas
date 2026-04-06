@@ -19,10 +19,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 const statusBadgeConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  pendente_pagamento: { label: "Aguard. Pagamento", className: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  pendente_pagamento: { label: "⏳ Aguard. Pagamento - Expira em breve", className: "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse" },
   confirmed: { label: "Confirmado", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
   completed: { label: "Concluído", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
+  const config = statusBadgeConfig[appt.status] || statusBadgeConfig.pending;
+  // Countdown for pending_payment
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (appt.status !== "pendente_pagamento" || !appt.expires_at) {
+      setTimeLeft(null);
+      return;
+    }
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(appt.expires_at).getTime() - Date.now()) / 1000));
+      if (diff <= 0) {
+        setTimeLeft("Expirado");
+        return;
+      }
+      const mm = Math.floor(diff / 60);
+      const ss = String(diff % 60).padStart(2, "0");
+      setTimeLeft(`${mm}:${ss}`);
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [appt.status, appt.expires_at]);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge className={`${config.className} border font-black text-[9px] uppercase px-3 py-1`}>
+        {config.label}
+      </Badge>
+      {timeLeft && (
+        <span className={`text-[9px] font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-400" : "text-amber-500/80"}`}>
+          {timeLeft === "Expirado" ? "⚠️ Reserva Expirada" : `Expira em ${timeLeft}`}
+        </span>
+      )}
+    </div>
+  );
 };
 
 const Agenda = () => {
@@ -186,9 +225,7 @@ const Agenda = () => {
                     </td>
                     <td className="px-8 py-5 font-bold text-emerald-500 text-sm">R$ {Number(a.price).toFixed(2)}</td>
                     <td className="px-8 py-5">
-                      <Badge className={`${statusBadgeConfig[a.status]?.className || statusBadgeConfig.pending.className} border font-black text-[9px] uppercase px-3 py-1`}>
-                        {statusBadgeConfig[a.status]?.label || a.status}
-                      </Badge>
+                      <AppointmentStatusBadge appt={a} />
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
