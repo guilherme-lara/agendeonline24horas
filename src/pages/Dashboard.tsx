@@ -24,7 +24,6 @@ import { Badge } from "@/components/ui/badge";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
 import ExpirationBanner from "@/components/ExpirationBanner";
-import TrialBanner from "@/components/TrialBanner"; // Ponto 2: Importar o novo banner
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -196,7 +195,6 @@ const Dashboard = () => {
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
       <UpgradeModal open={upgradeModal.open} onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })} requiredPlan={upgradeModal.plan} featureName={upgradeModal.feature} />
 
-      <TrialBanner /> 
       <ExpirationBanner />
 
       {/* HEADER */}
