@@ -207,9 +207,18 @@ const PublicBooking = () => {
       const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
       const now = new Date();
 
-      // Fetch ALL appointments for the day across the barbershop.
-      // If a specific barber is selected, also fetch their appointments;
-      // otherwise we fetch ALL and the conflict checker runs per-barber below.
+      // ───────────────────────────────────────────────────────────
+      // PESSIMISTIC SLOT LOCKING — Fetch and filter appointments
+      //
+      // Occupying status (blocks the slot):
+      // 1. confirmed, completed — permanent, always blocks
+      // 2. pending/pendente_pagamento/pending_payment with active expires_at → blocks
+      //
+      // Free conditions:
+      // 1. cancelled → never blocks
+      // 2. pending/pendente_pagamento with expires_at < NOW → expired, free again
+      // ───────────────────────────────────────────────────────────
+
       let query = supabase
         .from("appointments")
         .select("scheduled_at, service_name, status, barber_name, barber_id, expires_at")
@@ -217,45 +226,28 @@ const PublicBooking = () => {
         .gte("scheduled_at", dayStart)
         .lte("scheduled_at", dayEnd);
 
+      // If barber is selected, fetch their appointments + unassigned ones
       if (selectedBarber) {
-        // Query for BOTH selected barber AND unassigned appointments
-        // (some appointments may be pending with no barber_name yet).
-        // PostgREST can't do OR on two different columns easily, so we
-        // fetch unfiltered and filter client-side.
+        query = query.or(`barber_id.eq.${selectedBarber.id},barber_id.is.null`);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      // ───────────────────────────────────────────────────────────
-      // ABSOLUTE INVENTORY LOCK — Definitive blocking rules:
-      //
-      // A slot is BLOCKED if ANY record matches ALL of:
-      //   (a) Same barber (or unassigned when no barber selected)
-      //   (b) Time overlaps (start < aEnd && end > aStart)
-      //   (c) Occupying status:
-      //       - 'pending_payment' AND expires_at > NOW  → active 3-min reserve
-      //       - 'confirmed', 'completed'                → permanent
-      //       - any other status except 'cancelled'
-      //
-      // A slot is FREE ONLY IF:
-      //   - no records exist for that barber at that time, OR
-      //   - ALL records are 'cancelled', OR
-      //   - ALL records are 'pending_payment' with expired expires_at
-      // ───────────────────────────────────────────────────────────
       return (data || []).filter((appt: any) => {
-        // Cancelled is a terminal free state — never blocks.
+        // cancelled → terminal, never blocks
         if (appt.status === "cancelled") return false;
 
-        // pending_payment / pendente_pagamento: only blocks if reserve is active
-        if (appt.status === "pendente_pagamento" || appt.status === "pending_payment") {
+        // Reserve lock: blocks only if expires_at is still in the future
+        const reserveStatuses = ["pending", "pendente_pagamento", "pending_payment"];
+        if (reserveStatuses.includes(appt.status)) {
           if (appt.expires_at) {
             return new Date(appt.expires_at) > now;
           }
-          return true; // No expiry — block defensively
+          return true; // no expiry set → block defensively
         }
 
-        // Everything else (confirmed, completed, pending, paid) → blocks
+        // confirmed, completed, completed, paid, etc. → always blocks
         return true;
       });
     },
@@ -297,6 +289,65 @@ const PublicBooking = () => {
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
+
+      // ───────────────────────────────────────────────────────────
+      // PESSIMISTIC PRE-FLIGHT CHECK: Re-verify slot availability
+      // at the exact moment of creation to prevent double-booking
+      // from race conditions.
+      // ───────────────────────────────────────────────────────────
+      const preFlightCheck = async (): Promise<boolean> => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const y = selectedDate!.getFullYear();
+        const m = pad(selectedDate!.getMonth() + 1);
+        const d = pad(selectedDate!.getDate());
+        const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
+        const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
+        const now = new Date();
+
+        // Fetch ALL appointments for this barber/day — filter client-side
+        const { data, error } = await supabase
+          .from("appointments")
+          .select("id, scheduled_at, status, expires_at")
+          .eq("barbershop_id", shop!.id)
+          .eq("barber_id", selectedBarber.id)
+          .gte("scheduled_at", dayStart)
+          .lte("scheduled_at", dayEnd)
+          .neq("status", "cancelled");
+
+        if (error) return true; // On DB error, defer to RPC
+
+        const [h, m] = selectedTime!.split(":").map(Number);
+        const slotStart = new Date(selectedDate!);
+        slotStart.setHours(h, m, 0, 0);
+        const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+
+        // Is ANY record occupying this slot?
+        for (const appt of (data || [])) {
+          // Reserve lock: expired → does NOT occupy
+          if (appt.status === "pendente_pagamento" || appt.status === "pending_payment") {
+            if (appt.expires_at && new Date(appt.expires_at) <= now) continue;
+          }
+
+          // Time overlap check
+          const timePart = appt.scheduled_at.split('T')[1]?.substring(0, 5) || appt.scheduled_at.split(' ')[1]?.substring(0, 5);
+          if (!timePart) continue;
+          const [dbH, dbM] = timePart.split(':').map(Number);
+          const aStart = new Date(selectedDate!);
+          aStart.setHours(dbH, dbM, 0, 0);
+          const aEnd = addMinutes(aStart, selectedService.duration + 10);
+
+          if (slotStart < aEnd && slotEnd > aStart) {
+            return false; // SLOT OCCUPIED
+          }
+        }
+
+        return true; // SLOT FREE
+      };
+
+      const isSlotFree = await preFlightCheck();
+      if (!isSlotFree) {
+        throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
+      }
 
       // 1. Find or create customer (avoid upsert with composite key)
       const { data: existingCustomer, error: findError } = await supabase
