@@ -37,16 +37,22 @@ const TrialBanner = () => {
   // Hide if trial ended today or in the past and it's been over 7 days
   if (daysRemaining < -7) return null;
 
-  // Only show for 0-7 day window (before and including expiry)
-  if (daysRemaining > 7 && planStatus !== "trialing") return null;
+  // Only show for 0-30 day window (entire trial period)
+  if (daysRemaining > 30 && planStatus !== "trialing") return null;
 
   let message;
   let urgency;
-  if (daysRemaining > 3) {
-    message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias.`;
+  if (daysRemaining > 14) {
+    message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias. Explore todos os recursos disponíveis.`;
     urgency = "normal";
-  } else if (daysRemaining > 1) {
+  } else if (daysRemaining > 7) {
     message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias. Configure seu negócio e aproveite todos os recursos.`;
+    urgency = "normal";
+  } else if (daysRemaining > 3) {
+    message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias.`;
+    urgency = "warning";
+  } else if (daysRemaining > 1) {
+    message = `Seu teste grátis do Plano PRO termina em ${daysRemaining} dias. Configurar seu negócio e aproveite.`;
     urgency = "warning";
   } else if (daysRemaining === 1) {
     message = "Seu teste grátis termina amanhã! Não perca os recursos PRO.";
@@ -78,7 +84,7 @@ const TrialBanner = () => {
         <div>
           <h3 className="font-black text-lg text-white">Bem-vindo ao seu teste do Plano PRO!</h3>
           <p className={`text-sm ${textColor}`}>{message}</p>
-          {hasFutureTrial && daysRemaining <= 7 && daysRemaining >= 0 && (
+          {hasFutureTrial && daysRemaining <= 30 && daysRemaining > 7 && (
             <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-yellow-100/60">
               Expira em {daysRemaining} dia{daysRemaining !== 1 ? "s" : ""}
             </p>
