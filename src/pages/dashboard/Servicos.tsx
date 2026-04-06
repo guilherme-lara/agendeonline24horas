@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck, Users, Info
+import {
+  Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck, Users, Info, Tag
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -13,6 +13,9 @@ import { useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface Service {
   id: string;
@@ -23,6 +26,8 @@ interface Service {
   sort_order: number;
   requires_advance_payment: boolean;
   advance_payment_value: number;
+  category_id: string | null;
+  price_is_starting_at: boolean;
 }
 
 interface Barber {
@@ -33,6 +38,12 @@ interface Barber {
 interface BarberCommission {
     barber_id: string;
     commission_pct: number | string;
+}
+
+interface Category {
+    id: string;
+    name: string;
+    active: boolean;
 }
 
 const Servicos = () => {
@@ -46,6 +57,8 @@ const Servicos = () => {
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
   const [advanceValue, setAdvanceValue] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [priceIsStartingAt, setPriceIsStartingAt] = useState(false);
   const [barberCommissions, setBarberCommissions] = useState<BarberCommission[]>([]);
 
   const queryEnabled = !!barbershop?.id;
@@ -79,6 +92,19 @@ const Servicos = () => {
     enabled: queryEnabled,
   });
 
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name, active")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
 
@@ -102,6 +128,8 @@ const Servicos = () => {
         duration: Number(duration) || 30,
         requires_advance_payment: true,
         advance_payment_value: numericAdvanceValue,
+        category_id: categoryId || null,
+        price_is_starting_at: priceIsStartingAt,
       };
 
       let serviceId = editing?.id;
@@ -204,12 +232,14 @@ const Servicos = () => {
   const openNew = () => { setEditing(null); resetForm(); setIsDialogOpen(true); };
   
   const openEdit = async (s: Service) => {
-    setEditing(s); 
-    setName(s.name); 
-    setPrice(String(s.price)); 
+    setEditing(s);
+    setName(s.name);
+    setPrice(String(s.price));
     setDuration(String(s.duration));
     setAdvanceValue(String(s.advance_payment_value || 0));
-    
+    setCategoryId(s.category_id || "");
+    setPriceIsStartingAt(s.price_is_starting_at || false);
+
     // Fetch e preenche as comissões existentes
     const { data, error } = await supabase.from('barber_services').select('barber_id, commission_pct').eq('service_id', s.id);
     if (error) {
@@ -222,7 +252,7 @@ const Servicos = () => {
     setIsDialogOpen(true);
   };
 
-  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setAdvanceValue(""); setBarberCommissions([]); };
+  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setAdvanceValue(""); setCategoryId(""); setPriceIsStartingAt(false); setBarberCommissions([]); };
 
   const handleCommissionToggle = (barberId: string, checked: boolean) => {
     if (checked) {
@@ -282,6 +312,9 @@ const Servicos = () => {
               <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground text-lg tracking-tight truncate">{s.name}</p>
                   <div className="flex items-center gap-3 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                      {s.category_id && categories.find(c => c.id === s.category_id) && (
+                        <Badge variant="secondary" className="text-[10px] font-bold">{categories.find(c => c.id === s.category_id)?.name}</Badge>
+                      )}
                       <span className="text-primary">R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
                       <span>&bull;</span>
                       <span>{s.duration} Minutos</span>
@@ -320,6 +353,30 @@ const Servicos = () => {
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tempo (Min)</label>
                       <Input type="number" placeholder="30" value={duration} onChange={(e) => setDuration(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
                   </div>
+              </div>
+              <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Tag className="h-3 w-3" /> Categoria</label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                      <SelectTrigger className="bg-background border-border h-12 text-foreground">
+                          <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {categories.map(cat => (
+                              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="space-y-2 flex items-end pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                          type="checkbox"
+                          checked={priceIsStartingAt}
+                          onChange={(e) => setPriceIsStartingAt(e.target.checked)}
+                          className="rounded border-border"
+                      />
+                      <span className="text-sm font-bold text-foreground">Preço "A partir de"</span>
+                  </label>
               </div>
               <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-2xl p-4 space-y-2 md:col-span-2">
                   <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" /><p className="text-xs font-bold text-emerald-300 uppercase tracking-tight">Sinal Obrigatório (Pagamento Online)</p></div>
