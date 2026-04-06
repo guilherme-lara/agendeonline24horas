@@ -111,6 +111,7 @@ const PublicBooking = () => {
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
@@ -261,17 +262,19 @@ const PublicBooking = () => {
   const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
-      const [servs, hours, barbers, barberServices] = await Promise.all([
-        supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order, category, price_is_starting_at").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
+      const [servs, hours, barbers, barberServices, cats] = await Promise.all([
+        supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order, category, category_id, price_is_starting_at").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
         supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
         supabase.from("barber_services").select("barber_id, service_id, commission_pct").eq("barbershop_id", shop!.id),
+        supabase.from("categories").select("id, name").eq("active", true),
       ]);
-      return { 
-        services: servs.data || [], 
-        hours: hours.data || [], 
+      return {
+        services: servs.data || [],
+        hours: hours.data || [],
         barbers: barbers.data || [],
-        barberServices: barberServices.data || []
+        barberServices: barberServices.data || [],
+        categories: cats.data || [],
       };
     },
     enabled: !!shop?.id,
@@ -341,32 +344,15 @@ const PublicBooking = () => {
     return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
   
-  const barbersWithServices = useMemo(() => {
+  // Categories available for this barbershop's services
+  const shopCategories = useMemo(() => {
     if (!shopResources) return [];
-    return shopResources.barbers;
-  }, [shopResources]);
-
-  const servicesForBarber = useMemo(() => {
-    if (!selectedBarber || !shopResources) return [];
-    const linkedServiceIds = shopResources.barberServices
-      .filter(bs => bs.barber_id === selectedBarber.id)
-      .map(bs => bs.service_id);
-    return shopResources.services.filter((s: any) => linkedServiceIds.includes(s.id));
-  }, [selectedBarber, shopResources]);
-
-  const servicesByCategory = useMemo(() => {
-    const grouped: { category: string; services: any[] }[] = [];
-    for (const svc of servicesForBarber) {
-      const cat = svc.category || "Geral";
-      let group = grouped.find(g => g.category === cat);
-      if (!group) {
-        group = { category: cat, services: [] };
-        grouped.push(group);
-      }
-      group.services.push(svc);
+    const ids = new Set<string>();
+    for (const s of shopResources.services) {
+      if (s.category_id) ids.add(s.category_id);
     }
-    return grouped;
-  }, [servicesForBarber]);
+    return shopResources.categories.filter((c: any) => ids.has(c.id));
+  }, [shopResources]);
 
   const disabledDates = useMemo(() => {
     const closedDays = shopResources?.hours?.filter((h: any) => h.is_closed).map((h: any) => h.day_of_week) || [];
@@ -635,19 +621,16 @@ const PublicBooking = () => {
 
             {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                    <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">Escolha seu profissional</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione quem vai te atender</p>
+                    <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">Escolha a categoria</h3>
+                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o tipo de serviço</p>
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
-                    ) : barbersWithServices.length > 0 ? (
+                    ) : shopCategories.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {barbersWithServices.map((b: any) => (
-                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(2); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
-                                <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
-                                    <AvatarImage src={b.avatar_url} />
-                                    <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
+                        {shopCategories.map((cat: any) => (
+                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-3xl border border-border bg-card p-8 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
+                                <Tag className="h-8 w-8 mx-auto mb-4 text-primary" />
+                                <p className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{cat.name}</p>
                             </button>
                         ))}
                       </div>
@@ -656,8 +639,8 @@ const PublicBooking = () => {
                           <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Nenhum profissional disponível</h1>
-                          <p className="text-muted-foreground text-sm">Esta barbearia ainda não cadastrou profissionais.</p>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem categorias</h1>
+                          <p className="text-muted-foreground text-sm">Nenhuma categoria de serviço disponível no momento.</p>
                       </div>
                     )}
                 </div>
@@ -666,36 +649,33 @@ const PublicBooking = () => {
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha o serviço</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">Serviços de <span className="font-bold text-foreground">{selectedBarber?.name}</span></p>
+                    <p className="text-sm text-muted-foreground mb-8 font-medium">
+                      {(() => {
+                        const catObj = shopResources?.categories.find((c: any) => c.id === selectedCategory);
+                        return catObj?.name || "";
+                      })()}
+                    </p>
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
-                    ) : servicesByCategory.length > 0 ? (
-                      <div className="space-y-8">
-                        {servicesByCategory.map((group) => (
-                          <div key={group.category}>
-                            <div className="flex items-center gap-2 mb-3">
-                              <Tag className="h-4 w-4 text-primary" />
-                              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">{group.category}</p>
-                            </div>
-                            <div className="grid gap-3">
-                              {group.services.map((s: any) => (
-                                  <button key={s.id} onClick={() => { setSelectedService(s); setStep(3); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
-                                      <div className="flex justify-between items-start">
-                                          <div>
-                                              <p className="font-bold text-lg text-foreground">{s.name}</p>
-                                              <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                          </div>
-                                          <p className="text-xl font-black text-primary text-right">
-                                            {s.price_is_starting_at
-                                              ? <span className="text-[10px] block text-muted-foreground font-bold">A partir de</span>
-                                              : null}
-                                            R$ {Number(s.price).toFixed(2)}
-                                          </p>
-                                      </div>
-                                  </button>
-                              ))}
-                            </div>
-                          </div>
+                    ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length || 0 > 0 ? (
+                      <div className="grid gap-3">
+                        {shopResources?.services
+                          .filter((s: any) => s.category_id === selectedCategory)
+                          .map((s: any) => (
+                            <button key={s.id} onClick={() => { setSelectedService(s); setStep(3); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold text-lg text-foreground">{s.name}</p>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
+                                    </div>
+                                    <p className="text-xl font-black text-primary text-right">
+                                      {s.price_is_starting_at
+                                        ? <span className="text-[10px] block text-muted-foreground font-bold">A partir de</span>
+                                        : null}
+                                      R$ {Number(s.price).toFixed(2)}
+                                    </p>
+                                </div>
+                            </button>
                         ))}
                       </div>
                     ) : (
@@ -703,41 +683,44 @@ const PublicBooking = () => {
                           <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços disponíveis</h1>
-                          <p className="text-muted-foreground text-sm">Este profissional ainda não tem serviços configurados.</p>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
+                          <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
                       </div>
                     )}
-                    <Button variant="ghost" onClick={() => setStep(1)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
+                    <Button variant="ghost" onClick={() => { setSelectedCategory(null); setStep(1); }} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
                 </div>
             )}
 
             {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
-                    <h3 className="text-2xl font-black mb-8 text-foreground font-display">Data e Horário</h3>
-                    <div className="bg-card border border-border rounded-3xl p-4 mb-8 flex justify-center shadow-card">
-                        <Calendar 
-                          mode="single" 
-                          selected={selectedDate || undefined} 
-                          onSelect={(d) => d && setSelectedDate(d)} 
-                          disabled={disabledDates || ((d) => d < startOfDay(new Date()))} 
-                          locale={ptBR} 
-                          className="mx-auto" 
-                        />
-                    </div>
-                    {selectedDate && (
-                        <div className="grid grid-cols-4 gap-2">
-                            {loadingSlots ? (
-                              <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
-                            ) : timeSlots.length === 0 ? (
-                              <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horários para este dia.</p>
-                            ) : (
-                              timeSlots.map(t => (
-                                  <button key={t} onClick={() => { setSelectedTime(t); setStep(4); }} className="h-12 rounded-xl border border-border bg-secondary/50 text-xs font-black text-foreground hover:border-primary/50 hover:text-primary transition-all">
-                                      {t}
-                                  </button>
-                              ))
-                            )}
-                        </div>
+                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
+                    <p className="text-sm text-muted-foreground mb-8 font-medium">
+                      Profissionais que realizam <span className="font-bold text-foreground">{selectedService?.name}</span>
+                    </p>
+                    {loadingResources ? (
+                      <Loader2 className="animate-spin text-primary mx-auto" />
+                    ) : (shopResources?.barberServices.filter((bs: any) => bs.service_id === selectedService?.id) || []).length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {shopResources?.barbers
+                          .filter((b: any) => shopResources.barberServices.some((bs: any) => bs.service_id === selectedService.id && bs.barber_id === b.id))
+                          .map((b: any) => (
+                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
+                                <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
+                                    <AvatarImage src={b.avatar_url} />
+                                    <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <p className="font-bold text-foreground group-hover:text-primary transition-colors">{b.name}</p>
+                            </button>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                          <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                              <UserX className="h-12 w-12 text-red-500" />
+                          </div>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Nenhum profissional disponível</h1>
+                          <p className="text-muted-foreground text-sm">Nenhum profissional realiza este serviço no momento.</p>
+                      </div>
                     )}
                     <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
                 </div>
@@ -747,38 +730,67 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
                     <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
-                        <div className="space-y-4">
+                        <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Categoria</span><span className="font-bold text-foreground text-right">{shopResources?.categories.find((c: any) => c.id === selectedCategory)?.name || ""}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
+                        </div>
+
+                        <div className="bg-card border border-border rounded-3xl p-4 mb-2 flex justify-center shadow-card">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate || undefined}
+                              onSelect={(d) => d && setSelectedDate(d)}
+                              disabled={disabledDates || ((d) => d < startOfDay(new Date()))}
+                              locale={ptBR}
+                              className="mx-auto"
+                            />
+                        </div>
+                        {selectedDate && (
+                            <div className="grid grid-cols-4 gap-2">
+                                {loadingSlots ? (
+                                  <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
+                                ) : timeSlots.length === 0 ? (
+                                  <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horários para este dia.</p>
+                                ) : (
+                                  timeSlots.map(t => (
+                                      <button key={t} onClick={() => setSelectedTime(t)} className={`h-12 rounded-xl border text-xs font-black transition-all ${selectedTime === t ? "border-primary text-primary bg-primary/10" : "border-border bg-secondary/50 text-foreground hover:border-primary/50 hover:text-primary"}`}>
+                                          {t}
+                                      </button>
+                                  ))
+                                )}
+                            </div>
+                        )}
+
+                        <div className="space-y-4 mt-2">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu Nome Completo</label>
-                                <Input 
-                                  value={clientData.name} 
-                                  onChange={(e) => setClientData({...clientData, name: e.target.value})} 
-                                  placeholder="Ex: João da Silva" 
-                                  className="bg-background border-border h-14 text-foreground font-bold" 
+                                <Input
+                                  value={clientData.name}
+                                  onChange={(e) => setClientData({...clientData, name: e.target.value})}
+                                  placeholder="Ex: João da Silva"
+                                  className="bg-background border-border h-14 text-foreground font-bold"
                                 />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Seu WhatsApp</label>
-                                <Input 
-                                  value={clientData.phone} 
+                                <Input
+                                  value={clientData.phone}
                                   onChange={(e) => {
                                     const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
                                     let formatted = digits;
                                     if (digits.length > 2) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
                                     if (digits.length > 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
                                     setClientData({...clientData, phone: formatted});
-                                  }} 
-                                  placeholder="(00) 00000-0000" 
-                                  className="bg-background border-border h-14 text-foreground font-mono" 
+                                  }}
+                                  placeholder="(00) 00000-0000"
+                                  className="bg-background border-border h-14 text-foreground font-mono"
                                 />
                             </div>
                         </div>
 
                         <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Horário</span><span className="font-bold text-primary">{selectedDate && format(selectedDate, "dd/MM")} às {selectedTime}</span></div>
-                            <div className="pt-3 border-t border-border flex justify-between items-center">
+                            <div className="flex justify-between items-center">
                               <span className="text-sm font-black uppercase text-muted-foreground">
                                 Valor a Pagar Agora
                               </span>
@@ -790,9 +802,9 @@ const PublicBooking = () => {
 
                         <div className="pt-4 flex items-center justify-between gap-4">
                           <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
-                          <Button 
-                              onClick={() => bookingMutation.mutate()} 
-                              disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10} 
+                          <Button
+                              onClick={() => bookingMutation.mutate()}
+                              disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime}
                               className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                           >
                               {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</>}
