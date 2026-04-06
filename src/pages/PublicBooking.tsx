@@ -15,6 +15,91 @@ import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const BUFFER_MINUTES = 10;
+const PAYMENT_LOCK_MS = 3 * 60 * 1000;
+
+const ALWAYS_BLOCKING_STATUSES = new Set(["confirmed", "completed"]);
+const TEMPORARY_LOCK_STATUSES = new Set(["pending_payment", "pendente_pagamento"]);
+const LEGACY_PENDING_STATUSES = new Set(["pending", "pendente_sinal"]);
+const NON_BLOCKING_STATUSES = new Set(["cancelled", "expired"]);
+
+const getMinutesFromTimeString = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const getDayBoundsBRT = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+
+  return {
+    dayStart: `${year}-${month}-${day}T00:00:00-03:00`,
+    dayEnd: `${year}-${month}-${day}T23:59:59-03:00`,
+  };
+};
+
+const getFallbackExpiry = (appointment: any) => {
+  if (appointment?.expires_at) {
+    const explicitExpiry = new Date(appointment.expires_at);
+    if (!Number.isNaN(explicitExpiry.getTime())) {
+      return explicitExpiry;
+    }
+  }
+
+  if (appointment?.created_at) {
+    const createdAt = new Date(appointment.created_at);
+    if (!Number.isNaN(createdAt.getTime())) {
+      return new Date(createdAt.getTime() + PAYMENT_LOCK_MS);
+    }
+  }
+
+  return null;
+};
+
+const doesAppointmentBlockSlot = (appointment: any, now: Date) => {
+  const status = String(appointment?.status ?? "").toLowerCase();
+
+  if (NON_BLOCKING_STATUSES.has(status)) {
+    return false;
+  }
+
+  if (ALWAYS_BLOCKING_STATUSES.has(status)) {
+    return true;
+  }
+
+  if (TEMPORARY_LOCK_STATUSES.has(status)) {
+    const expiry = getFallbackExpiry(appointment);
+    return expiry ? expiry.getTime() > now.getTime() : true;
+  }
+
+  if (LEGACY_PENDING_STATUSES.has(status)) {
+    const expiry = getFallbackExpiry(appointment);
+    return expiry ? expiry.getTime() > now.getTime() : true;
+  }
+
+  return true;
+};
+
+const matchesSelectedBarber = (appointment: any, barber: any) => {
+  if (!barber) return true;
+  if (appointment?.barber_id) return appointment.barber_id === barber.id;
+  if (appointment?.barber_name) return appointment.barber_name === barber.name;
+  return false;
+};
+
+const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
+  const date = new Date(scheduledAt);
+  const totalUtcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+  return (((totalUtcMinutes - 180) % 1440) + 1440) % 1440;
+};
+
+const hasTimeOverlap = (
+  slotStartMinutes: number,
+  slotEndMinutes: number,
+  appointmentStartMinutes: number,
+  appointmentEndMinutes: number,
+) => slotStartMinutes < appointmentEndMinutes && slotEndMinutes > appointmentStartMinutes;
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -48,7 +133,7 @@ const PublicBooking = () => {
       try {
         const { data, error } = await supabase
           .from("appointments")
-          .select("status, expires_at")
+          .select("status")
           .eq("id", apptId)
           .maybeSingle();
 
@@ -103,18 +188,22 @@ const PublicBooking = () => {
 
     const checkBooking = async () => {
       if (Date.now() > paymentExpiresAt) {
-        // Check if appointment was cancelled (expired payment)
         const { data } = await supabase
           .from("appointments")
           .select("status")
           .eq("id", pendingApptId)
           .maybeSingle();
-        if (data?.status === "cancelled") {
-          // Payment expired — appointment was cancelled
-          await supabase
-            .from("appointments")
-            .update({ expires_at: null })
-            .eq("id", pendingApptId);
+
+        if (data?.status === "confirmed" || data?.status === "completed") {
+          return;
+        }
+
+        await supabase
+          .from("appointments")
+          .update({ status: "cancelled", payment_status: "expired" })
+          .eq("id", pendingApptId)
+          .in("status", ["pending_payment", "pendente_pagamento", "pending", "pendente_sinal"]);
+
           toast({
             title: "Reserva Expirada",
             description: "O tempo para pagamento acabou. Escolha outro horário.",
@@ -124,7 +213,6 @@ const PublicBooking = () => {
           sessionStorage.removeItem("pending_appt_id");
           setPaymentExpiresAt(null);
           setPendingApptId(null);
-        }
       }
     };
 
@@ -189,67 +277,53 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
+  const serviceDurationByName = useMemo(
+    () => new Map((shopResources?.services || []).map((service: any) => [service.name, Number(service.duration) || 30])),
+    [shopResources],
+  );
+
+  const fetchAppointmentsForSelectedDay = async () => {
+    if (!shop?.id || !selectedDate) return [];
+
+    const { dayStart, dayEnd } = getDayBoundsBRT(selectedDate);
+    const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
+    const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
+
+    let result = await supabase
+      .from("appointments")
+      .select(selectWithExpiry)
+      .eq("barbershop_id", shop.id)
+      .gte("scheduled_at", dayStart)
+      .lte("scheduled_at", dayEnd);
+
+    if (result.error && result.error.message?.toLowerCase().includes("expires_at")) {
+      result = await supabase
+        .from("appointments")
+        .select(selectFallback)
+        .eq("barbershop_id", shop.id)
+        .gte("scheduled_at", dayStart)
+        .lte("scheduled_at", dayEnd);
+    }
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    return (result.data || []) as any[];
+  };
+
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
     queryKey: ["slots", shop?.id, selectedDate?.toISOString(), selectedBarber?.id],
     queryFn: async () => {
-      // Clean up expired pending_payment appointments (best effort)
-      try {
-        await supabase.rpc("cleanup_expired_appointments");
-      } catch {
-        // RPC may not exist yet — harmless skip, client-side filter handles it.
-      }
-
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const y = selectedDate!.getFullYear();
-      const m = pad(selectedDate!.getMonth() + 1);
-      const d = pad(selectedDate!.getDate());
-      const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
-      const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
       const now = new Date();
 
-      // ───────────────────────────────────────────────────────────
-      // PESSIMISTIC SLOT LOCKING — Fetch and filter appointments
-      //
-      // Occupying status (blocks the slot):
-      // 1. confirmed, completed — permanent, always blocks
-      // 2. pending/pendente_pagamento/pending_payment with active expires_at → blocks
-      //
-      // Free conditions:
-      // 1. cancelled → never blocks
-      // 2. pending/pendente_pagamento with expires_at < NOW → expired, free again
-      // ───────────────────────────────────────────────────────────
+      const appointments = await fetchAppointmentsForSelectedDay();
 
-      let query = supabase
-        .from("appointments")
-        .select("scheduled_at, service_name, status, barber_name, barber_id, expires_at")
-        .eq("barbershop_id", shop!.id)
-        .gte("scheduled_at", dayStart)
-        .lte("scheduled_at", dayEnd);
-
-      // If barber is selected, fetch their appointments + unassigned ones
-      if (selectedBarber) {
-        query = query.or(`barber_id.eq.${selectedBarber.id},barber_id.is.null`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return (data || []).filter((appt: any) => {
-        // cancelled → terminal, never blocks
-        if (appt.status === "cancelled") return false;
-
-        // Reserve lock: blocks only if expires_at is still in the future
-        const reserveStatuses = ["pending", "pendente_pagamento", "pending_payment"];
-        if (reserveStatuses.includes(appt.status)) {
-          if (appt.expires_at) {
-            return new Date(appt.expires_at) > now;
-          }
-          return true; // no expiry set → block defensively
-        }
-
-        // confirmed, completed, completed, paid, etc. → always blocks
-        return true;
-      });
+      return appointments.filter(
+        (appointment: any) =>
+          matchesSelectedBarber(appointment, selectedBarber) &&
+          doesAppointmentBlockSlot(appointment, now),
+      );
     },
     enabled: !!shop?.id && !!selectedDate,
   });
@@ -289,6 +363,9 @@ const PublicBooking = () => {
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
+      if (!shop?.settings?.infinitepay_tag) {
+        throw new Error("Erro: A barbearia ainda não configurou o método de pagamento.");
+      }
 
       // ───────────────────────────────────────────────────────────
       // PESSIMISTIC PRE-FLIGHT CHECK: Re-verify slot availability
@@ -296,47 +373,21 @@ const PublicBooking = () => {
       // from race conditions.
       // ───────────────────────────────────────────────────────────
       const preFlightCheck = async (): Promise<boolean> => {
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const y = selectedDate!.getFullYear();
-        const m = pad(selectedDate!.getMonth() + 1);
-        const d = pad(selectedDate!.getDate());
-        const dayStart = `${y}-${m}-${d}T00:00:00-03:00`;
-        const dayEnd = `${y}-${m}-${d}T23:59:59-03:00`;
         const now = new Date();
 
-        // Fetch ALL appointments for this barber/day — filter client-side
-        const { data, error } = await supabase
-          .from("appointments")
-          .select("id, scheduled_at, status, expires_at")
-          .eq("barbershop_id", shop!.id)
-          .eq("barber_id", selectedBarber.id)
-          .gte("scheduled_at", dayStart)
-          .lte("scheduled_at", dayEnd)
-          .neq("status", "cancelled");
+        const slotStartMinutes = getMinutesFromTimeString(selectedTime!);
+        const slotEndMinutes = slotStartMinutes + Number(selectedService.duration || 30) + BUFFER_MINUTES;
+        const appointments = await fetchAppointmentsForSelectedDay();
 
-        if (error) return true; // On DB error, defer to RPC
+        for (const appointment of appointments) {
+          if (!matchesSelectedBarber(appointment, selectedBarber)) continue;
+          if (!doesAppointmentBlockSlot(appointment, now)) continue;
 
-        const [selH, selM] = selectedTime!.split(":").map(Number);
-        const slotStart = new Date(selectedDate!);
-        slotStart.setHours(selH, selM, 0, 0);
-        const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+          const appointmentStartMinutes = getBrtMinutesFromScheduledAt(appointment.scheduled_at);
+          const appointmentDuration = serviceDurationByName.get(appointment.service_name) || 30;
+          const appointmentEndMinutes = appointmentStartMinutes + appointmentDuration + BUFFER_MINUTES;
 
-        // Is ANY record occupying this slot?
-        for (const appt of (data || [])) {
-          // Reserve lock: expired → does NOT occupy
-          if (appt.status === "pendente_pagamento" || appt.status === "pending_payment") {
-            if (appt.expires_at && new Date(appt.expires_at) <= now) continue;
-          }
-
-          // Time overlap check
-          const timePart = appt.scheduled_at.split('T')[1]?.substring(0, 5) || appt.scheduled_at.split(' ')[1]?.substring(0, 5);
-          if (!timePart) continue;
-          const [dbH, dbM] = timePart.split(':').map(Number);
-          const aStart = new Date(selectedDate!);
-          aStart.setHours(dbH, dbM, 0, 0);
-          const aEnd = addMinutes(aStart, selectedService.duration + 10);
-
-          if (slotStart < aEnd && slotEnd > aStart) {
+          if (hasTimeOverlap(slotStartMinutes, slotEndMinutes, appointmentStartMinutes, appointmentEndMinutes)) {
             return false; // SLOT OCCUPIED
           }
         }
@@ -387,33 +438,51 @@ const PublicBooking = () => {
         ? selectedService.advance_payment_value
         : selectedService.price;
 
-      // Nota: A RPC `create_public_appointment` pode precisar ser atualizada para aceitar `customer_id`
-      // Por agora, vamos atualizar o agendamento em uma etapa separada.
-      const { data: apptResponse, error: rpcError } = await supabase.rpc("create_public_appointment", {
-        _barbershop_id: shop!.id,
-        _client_name: clientData.name.trim(),
-        _client_phone: phoneDigits, // Enviar telefone limpo
-        _service_name: selectedService.name,
-        _price: selectedService.price,
-        _scheduled_at: formattedDateForDB,
-        _payment_method: "pix"
-      });
-
-      if (rpcError) throw rpcError;
-      const apptId = typeof apptResponse === 'object' ? apptResponse?.id : apptResponse;
-      if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
-
-      // 3. Vínculo do Agendamento com o Cliente, Barbeiro e LOCK DE 3 MIN.
-      const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 min
-      await supabase.from("appointments").update({
+      // 3. Cria o agendamento já com o barbeiro e lock temporário, para apagar o slot instantaneamente.
+      const expiresAt = new Date(Date.now() + PAYMENT_LOCK_MS);
+      const appointmentPayload = {
+        barbershop_id: shop!.id,
+        client_name: clientData.name.trim(),
+        client_phone: phoneDigits,
         customer_id: customerId,
+        service_name: selectedService.name,
+        price: Number(selectedService.price),
+        total_price: Number(selectedService.price),
+        scheduled_at: formattedDateForDB,
+        payment_method: "pix_online",
+        payment_status: "pending",
         barber_id: selectedBarber.id,
         barber_name: selectedBarber.name,
-        status: 'pendente_pagamento',
+        status: "pending_payment",
         has_signal: (selectedService.advance_payment_value || 0) > 0,
         signal_value: selectedService.advance_payment_value || 0,
         expires_at: expiresAt.toISOString(),
-      }).eq("id", apptId);
+      };
+
+      let insertResult = await supabase
+        .from("appointments")
+        .insert(appointmentPayload)
+        .select("id")
+        .single();
+
+      if (insertResult.error && insertResult.error.message?.toLowerCase().includes("expires_at")) {
+        const { expires_at: _ignoredExpiry, ...payloadWithoutExpiry } = appointmentPayload;
+        insertResult = await supabase
+          .from("appointments")
+          .insert(payloadWithoutExpiry)
+          .select("id")
+          .single();
+      }
+
+      if (insertResult.error) {
+        if (/horário|reservad|indisponível|conflict/i.test(insertResult.error.message || "")) {
+          throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
+        }
+        throw insertResult.error;
+      }
+
+      const apptId = insertResult.data?.id;
+      if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
       // 4. Redirecionamento para Pagamento
       const infiniteTag = shop?.settings?.infinitepay_tag;
@@ -435,7 +504,7 @@ const PublicBooking = () => {
     },
     onSuccess: (res) => {
       // Store payment lock state before redirect
-      const expires = Date.now() + 3 * 60 * 1000;
+      const expires = Date.now() + PAYMENT_LOCK_MS;
       try {
         sessionStorage.setItem("payment_expires_at", String(expires));
         sessionStorage.setItem("pending_appt_id", res.apptId);
@@ -476,16 +545,20 @@ const PublicBooking = () => {
         const slotStart = new Date(selectedDate);
         slotStart.setHours(h, m, 0, 0);
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
-        const slotEnd = addMinutes(slotStart, selectedService.duration + BUFFER_MINUTES);
+        const slotStartMinutes = h * 60 + m;
+        const slotEndMinutes = slotStartMinutes + Number(selectedService.duration || 30) + BUFFER_MINUTES;
         
         const hasConflict = existingAppts.some((appt: any) => {
-          if (appt.status === 'cancelled') return false;
-          const timeString = appt.scheduled_at.includes('T') ? appt.scheduled_at.split('T')[1].substring(0, 5) : appt.scheduled_at.split(' ')[1].substring(0, 5);
-          const [dbH, dbM] = timeString.split(':').map(Number);
-          const aStart = new Date(selectedDate);
-          aStart.setHours(dbH, dbM, 0, 0);
-          const aEnd = addMinutes(aStart, selectedService?.duration || 40);
-          return slotStart < aEnd && slotEnd > aStart;
+          const appointmentStartMinutes = getBrtMinutesFromScheduledAt(appt.scheduled_at);
+          const appointmentDuration = serviceDurationByName.get(appt.service_name) || 30;
+          const appointmentEndMinutes = appointmentStartMinutes + appointmentDuration + BUFFER_MINUTES;
+
+          return hasTimeOverlap(
+            slotStartMinutes,
+            slotEndMinutes,
+            appointmentStartMinutes,
+            appointmentEndMinutes,
+          );
         });
         
         if (!hasConflict) {
