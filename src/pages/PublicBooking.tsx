@@ -382,6 +382,20 @@ const PublicBooking = () => {
     return shopResources.categories.filter((c: any) => ids.has(c.id));
   }, [shopResources]);
 
+  // Auto-select first category when entering Step 2
+  useEffect(() => {
+    if (step === 2 && shopCategories.length > 0 && shopResources?.services.length > 0) {
+      // Preserve existing category if valid, otherwise pick first available
+      const hasValidCategory = selectedCategory && shopCategories.some((c: any) => c.id === selectedCategory);
+      if (!hasValidCategory) {
+        const firstValid = shopCategories.find((c: any) =>
+          shopResources.services.some((s: any) => s.category_id === c.id)
+        );
+        if (firstValid) setSelectedCategory(firstValid.id);
+      }
+    }
+  }, [step, shopCategories, shopResources, selectedCategory]);
+
   const disabledDates = useMemo(() => {
     const closedDays = shopResources?.hours?.filter((h: any) => h.is_closed).map((h: any) => h.day_of_week) || [];
     return (date: Date) => {
@@ -887,18 +901,12 @@ const PublicBooking = () => {
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        if (cartItems.length > 0) {
-                          // Go back to category switcher
-                          const lastService = cartItems[cartItems.length - 1];
-                          if (lastService?.category_id) setSelectedCategory(lastService.category_id);
-                        } else {
-                          setSelectedCategory(null);
-                          setStep(1);
-                        }
+                        setSelectedCategory(null);
+                        setStep(1);
                       }}
                       className="mt-6 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
                     >
-                      <ArrowLeft className="mr-2 h-3 w-3" /> {cartItems.length > 0 ? "Todos os Serviços" : "Voltar"}
+                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar
                     </Button>
                 </div>
             )}
