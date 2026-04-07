@@ -467,6 +467,9 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
       const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
+      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
+        ? selectedService.advance_payment_value
+        : selectedService.price;
       const priceInCents = Math.round(amountToCharge * 100);
 
       if (priceInCents < 100) {
