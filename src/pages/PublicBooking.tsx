@@ -108,7 +108,7 @@ const PublicBooking = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
+  const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, updateQuantity: updateItemQuantity, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
 
   const [step, setStep] = useState(1);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
@@ -117,6 +117,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [showCart, setShowCart] = useState(false);
+  const [productTab, setProductTab] = useState(false);
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
 
   const [success, setSuccess] = useState(searchParams.get("success") === "true");
@@ -289,12 +290,13 @@ const PublicBooking = () => {
   const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
-      const [servs, hours, barbers, barberServices, cats] = await Promise.all([
+      const [servs, hours, barbers, barberServices, cats, inventory] = await Promise.all([
         supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order, category, category_id, price_is_starting_at").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
         supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
         supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
         supabase.from("barber_services").select("barber_id, service_id, commission_pct").eq("barbershop_id", shop!.id),
         supabase.from("categories").select("id, name").eq("active", true),
+        supabase.from("inventory").select("id, name, price, stock, available_for_sale").eq("available_for_sale", true),
       ]);
       return {
         services: servs.data || [],
@@ -302,6 +304,7 @@ const PublicBooking = () => {
         barbers: barbers.data || [],
         barberServices: barberServices.data || [],
         categories: cats.data || [],
+        products: (inventory.data || []).filter((p: any) => (p.stock ?? 0) > 0),
       };
     },
     enabled: !!shop?.id,
@@ -405,28 +408,26 @@ const PublicBooking = () => {
     };
   }, [shopResources]);
 
-  // Get barbers that can perform ALL services currently in cart (or the selected one)
-  const effectiveServiceIds = useMemo(
-    () => cartItems.length > 0
-      ? cartItems.filter((i) => i.type === "service").map((i) => i.id)
-      : [],
+  // Get barbers that can perform ALL services currently in cart
+  const serviceIdsInCart = useMemo(
+    () => cartItems.filter((i) => i.type === "service").map((i) => i.id),
     [cartItems]
   );
 
   const availableBarbers = useMemo(() => {
     if (!shopResources) return [];
-    if (effectiveServiceIds.length === 0) return shopResources.barbers;
+    if (serviceIdsInCart.length === 0) return shopResources.barbers;
     return shopResources.barbers.filter((b: any) =>
-      effectiveServiceIds.every((sid: string) =>
+      serviceIdsInCart.every((sid: string) =>
         shopResources.barberServices.some((bs: any) => bs.service_id === sid && bs.barber_id === b.id)
       )
     );
-  }, [shopResources, effectiveServiceIds]);
+  }, [shopResources, serviceIdsInCart]);
 
-  // Compute total duration for slot calculation
+  // Compute total duration for slot calculation (products don't count)
   const totalCartDuration = useMemo(() => {
     return cartItems.reduce((sum, item) => {
-      if (item.product_type) return sum;
+      if (item.type === "product") return sum;
       return sum + (item.duration || 0);
     }, 0);
   }, [cartItems]);
@@ -717,14 +718,15 @@ const PublicBooking = () => {
             </div>
 
             {cartItems.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-8">Nenhum serviço adicionado.</p>
+              <p className="text-center text-sm text-muted-foreground py-8">Nenhum item adicionado.</p>
             ) : (
               <div className="space-y-3 max-h-72 overflow-y-auto mb-6">
-                {cartItems.map((item) => (
+                {/* Services */}
+                {cartItems.filter((i) => i.type === "service").map((item) => (
                   <div key={item.id} className="flex items-center justify-between bg-secondary/50 rounded-2xl p-4 border border-border">
                     <div className="flex-1">
                       <p className="font-bold text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.type === "product" ? "Produto" : `${item.duration} min`}</p>
+                      <p className="text-xs text-muted-foreground">{item.duration} min</p>
                     </div>
                     <p className="text-sm font-black text-primary mr-3">R$ {Number(item.price).toFixed(2)}</p>
                     <button
@@ -735,15 +737,48 @@ const PublicBooking = () => {
                     </button>
                   </div>
                 ))}
+                {/* Products */}
+                {cartItems.filter((i) => i.type === "product").map((item) => (
+                  <div key={item.id} className="flex items-center justify-between bg-secondary/50 rounded-2xl p-4 border border-border">
+                    <div className="flex-1">
+                      <p className="font-bold text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">Produto</p>
+                    </div>
+                    <div className="flex items-center gap-2 mr-2">
+                      <button
+                        onClick={() => { if (item.quantity! <= 1) removeFromCart(item.id); else updateItemQuantity(item.id, item.quantity! - 1); }}
+                        className="h-7 w-7 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80"
+                      >
+                        <Minus className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                      <span className="w-5 text-center text-sm font-black">{item.quantity ?? 1}</span>
+                      <button
+                        onClick={() => updateItemQuantity(item.id, (item.quantity ?? 1) + 1)}
+                        className="h-7 w-7 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80"
+                      >
+                        <Plus className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                    <p className="text-sm font-black text-primary w-20 text-right">R$ {(Number(item.price) * (item.quantity ?? 1)).toFixed(2)}</p>
+                  </div>
+                ))}
               </div>
             )}
 
             {cartItems.length > 0 && (
               <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-xs text-muted-foreground uppercase font-black">Total Serviços</span>
-                  <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} itens</span>
-                </div>
+                {cartItems.filter((i) => i.type === "service").length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-black">Serviços</span>
+                    <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} {cartItems.filter((i) => i.type === "service").length === 1 ? 'item' : 'itens'}</span>
+                  </div>
+                )}
+                {cartItems.filter((i) => i.type === "product").length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground uppercase font-black">Produtos</span>
+                    <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "product").length} {cartItems.filter((i) => i.type === "product").length === 1 ? 'item' : 'itens'}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-xs text-muted-foreground uppercase font-black">Tempo Estimado</span>
                   <span className="text-sm font-black text-foreground">{totalCartDuration} min</span>
@@ -818,90 +853,191 @@ const PublicBooking = () => {
                       Adicione quantos quiser de diferentes categorias
                     </p>
 
-                    {/* Category switcher — always visible when there are items in cart */}
-                    {shopCategories.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-                        {shopCategories.map((cat: any) => (
-                          <button
-                            key={cat.id}
-                            onClick={() => setSelectedCategory(cat.id)}
-                            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
-                              selectedCategory === cat.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {cat.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {/* Tab switcher: Serviços / Produtos */}
+                    <div className="flex gap-2 mb-6">
+                      <button
+                        onClick={() => setProductTab(false)}
+                        className={`shrink-0 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                          !productTab
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Serviços
+                      </button>
+                      {(shopResources?.products || []).length > 0 && (
+                        <button
+                          onClick={() => setProductTab(true)}
+                          className={`shrink-0 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                            productTab
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          Produtos ({shopResources.products.length})
+                        </button>
+                      )}
+                    </div>
 
-                    {loadingResources ? (
-                      <Loader2 className="animate-spin text-primary mx-auto" />
-                    ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length || 0 > 0 ? (
-                      <div className="grid gap-3">
-                        {shopResources?.services
-                          .filter((s: any) => s.category_id === selectedCategory)
-                          .map((s: any) => {
-                            const isInCart = cartItems.some((ci) => ci.id === s.id);
-                            return (
-                            <div key={s.id}
-                              className={`rounded-3xl border bg-card p-5 text-left transition-all ${
-                                isInCart
-                                  ? "border-emerald-500/30 bg-emerald-500/5"
-                                  : "border-border hover:border-primary/40"
-                              } active:scale-[0.98]`}
-                            >
-                                <div className="flex justify-between items-start gap-2 min-w-0">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
-                                        <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                    </div>
-                                    <p className="text-base sm:text-xl font-black text-primary text-right whitespace-nowrap shrink-0">
-                                      {s.price_is_starting_at
-                                        ? <span className="text-[10px] sm:text-xs block text-muted-foreground font-extrabold uppercase tracking-wide leading-none mb-0.5">A partir de</span>
-                                        : null}
-                                      R$ {Number(s.price).toFixed(2)}
-                                    </p>
-                                </div>
-                                {isInCart ? (
-                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                                    <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
-                                      <Check className="h-3 w-3" /> No carrinho
-                                    </span>
-                                    <button
-                                      onClick={() => removeFromCart(s.id)}
-                                      className="text-xs font-bold text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors"
-                                    >
-                                      Remover
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => addServiceToCart(s, selectedBarber)}
-                                    className="mt-3 w-full h-10 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1"
-                                  >
-                                    <Plus className="h-3 w-3" /> Adicionar
-                                  </button>
-                                )}
-                            </div>
-                          )})}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
-                          <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
-                              <UserX className="h-12 w-12 text-red-500" />
+                    {!productTab ? (
+                      <>
+                        {/* Category sub-switcher for services */}
+                        {shopCategories.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+                            {shopCategories.map((cat: any) => (
+                              <button
+                                key={cat.id}
+                                onClick={() => setSelectedCategory(cat.id)}
+                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                                  selectedCategory === cat.id
+                                    ? "bg-primary/80 text-primary-foreground"
+                                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {cat.name}
+                              </button>
+                            ))}
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
-                          <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
-                      </div>
+                        )}
+
+                        {loadingResources ? (
+                          <Loader2 className="animate-spin text-primary mx-auto" />
+                        ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length ? (
+                          <div className="grid gap-3">
+                            {shopResources.services
+                              .filter((s: any) => s.category_id === selectedCategory)
+                              .map((s: any) => {
+                                const isInCart = cartItems.some((ci) => ci.id === s.id);
+                                return (
+                                <div key={s.id}
+                                  className={`rounded-3xl border bg-card p-5 text-left transition-all ${
+                                    isInCart
+                                      ? "border-emerald-500/30 bg-emerald-500/5"
+                                      : "border-border hover:border-primary/40"
+                                  } active:scale-[0.98]`}
+                                >
+                                    <div className="flex justify-between items-start gap-2 min-w-0">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
+                                            <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
+                                        </div>
+                                        <p className="text-base sm:text-xl font-black text-primary text-right whitespace-nowrap shrink-0">
+                                          {s.price_is_starting_at
+                                            ? <span className="text-[10px] sm:text-xs block text-muted-foreground font-extrabold uppercase tracking-wide leading-none mb-0.5">A partir de</span>
+                                            : null}
+                                          R$ {Number(s.price).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    {isInCart ? (
+                                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                                        <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+                                          <Check className="h-3 w-3" /> No carrinho
+                                        </span>
+                                        <button
+                                          onClick={() => { removeFromCart(s.id); setCartUpdateTick((t) => t + 1); }}
+                                          className="text-xs font-bold text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors"
+                                        >
+                                          Remover
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => addServiceToCart(s, selectedBarber)}
+                                        className="mt-3 w-full h-10 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1"
+                                      >
+                                        <Plus className="h-3 w-3" /> Adicionar
+                                      </button>
+                                    )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                              <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                                  <UserX className="h-12 w-12 text-red-500" />
+                              </div>
+                              <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
+                              <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Products tab */
+                      <>
+                        {shopResources?.products?.length ? (
+                          <div className="grid gap-4">
+                            {shopResources.products.map((product: any) => {
+                              const cartItem = cartItems.find((ci) => ci.id === product.id);
+                              const qty = cartItem?.quantity ?? 1;
+                              return (
+                                <div key={product.id}
+                                  className="rounded-3xl border bg-card p-5 text-left transition-all flex items-center gap-4"
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-base text-foreground truncate">{product.name}</p>
+                                        <p className="text-xs text-muted-foreground">Em estoque: {product.stock}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                      {cartItem ? (
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => updateItemQuantity(product.id, qty - 1)}
+                                            className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                                          >
+                                            <Minus className="h-4 w-4 text-muted-foreground" />
+                                          </button>
+                                          <span className="w-6 text-center font-black text-foreground">{qty}</span>
+                                          <button
+                                            onClick={() => updateItemQuantity(product.id, qty + 1)}
+                                            className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                                          >
+                                            <Plus className="h-4 w-4 text-muted-foreground" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => {
+                                            addToCart({
+                                              id: product.id,
+                                              name: product.name,
+                                              price: Number(product.price),
+                                              duration: 0,
+                                              type: "product",
+                                              quantity: 1,
+                                            });
+                                            setCartUpdateTick((t) => t + 1);
+                                          }}
+                                          className="h-10 px-4 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all"
+                                        >
+                                          <Plus className="h-3 w-3 inline mr-1" /> Adicionar
+                                        </button>
+                                      )}
+                                      <p className="text-base font-black text-primary w-20 text-right">
+                                        R$ {(Number(product.price) * (cartItem?.quantity ?? 1)).toFixed(2)}
+                                      </p>
+                                    </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                            <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                              <UserX className="h-12 w-12 text-red-500" />
+                            </div>
+                            <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem produtos</h1>
+                            <p className="text-muted-foreground text-sm">Nenhum produto disponível para venda.</p>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <Button
                       variant="ghost"
                       onClick={() => {
                         setSelectedCategory(null);
+                        setProductTab(false);
                         setStep(1);
                       }}
                       className="mt-6 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
@@ -915,10 +1051,10 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
                     <p className="text-sm text-muted-foreground mb-6 font-medium">
-                      {cartItems.filter((i) => i.type === "service").length > 1
-                        ? `Profissionais que realizam os ${cartItems.filter((i) => i.type === "service").length} serviços selecionados`
-                        : cartItems.length === 1
-                          ? `Profissionais que realizam ${cartItems[0]?.name}`
+                      {serviceIdsInCart.length > 1
+                        ? `Profissionais que realizam os ${serviceIdsInCart.length} serviços selecionados`
+                        : cartItems.filter((i) => i.type === "service").length === 1
+                          ? `Profissionais que realizam ${cartItems.find((i) => i.type === "service")?.name}`
                           : "Selecione um profissional"
                       }
                     </p>
@@ -939,11 +1075,19 @@ const PublicBooking = () => {
                       </div>
                     ) : (
                       <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
-                          <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
-                              <UserX className="h-12 w-12 text-red-500" />
+                          <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
+                              <AlertTriangle className="h-12 w-12 text-amber-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Nenhum profissional disponível</h1>
-                          <p className="text-muted-foreground text-sm">Nenhum profissional realiza os serviços selecionados no momento.</p>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Combinação Incompatível</h1>
+                          <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
+                            Não encontramos um profissional que realize <span className="text-foreground font-bold">todos esses serviços juntos</span>. Tente remover um item ou agendar em horários separados.
+                          </p>
+                          <Button
+                            onClick={() => setStep(2)}
+                            className="mx-auto h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold"
+                          >
+                            <ShoppingBag className="h-4 w-4 mr-2" /> Ajustar Carrinho
+                          </Button>
                       </div>
                     )}
                     <Button
@@ -967,14 +1111,47 @@ const PublicBooking = () => {
                         {cartItems.length > 0 ? (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
-                            <div className="border-t border-border pt-3">
-                              <p className="text-xs text-muted-foreground uppercase font-black mb-2">Itens do Carrinho ({cartItems.length})</p>
-                              {cartItems.map((item: CartItem) => (
-                                <div key={item.id} className="flex justify-between items-center py-1.5">
-                                  <span className="text-sm text-foreground">{item.name}</span>
-                                  <span className="text-sm font-bold text-muted-foreground">{item.type === "product" ? "Produto" : `${item.duration} min`}</span>
+
+                            {/* Services section */}
+                            {cartItems.filter((i) => i.type === "service").length > 0 && (
+                              <div className="border-t border-border pt-3">
+                                <p className="text-xs text-muted-foreground uppercase font-black mb-2 flex items-center gap-1">
+                                  <Scissors className="h-3 w-3" /> Serviços ({cartItems.filter((i) => i.type === "service").length})
+                                </p>
+                                {cartItems.filter((i) => i.type === "service").map((item: CartItem) => (
+                                  <div key={item.id} className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-foreground">{item.name}</span>
+                                    <span className="text-xs font-bold text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-md">{item.duration} min</span>
+                                  </div>
+                                ))}
+                                <div className="flex justify-between py-1 mt-1">
+                                  <span className="text-xs text-muted-foreground font-bold uppercase">Tempo total</span>
+                                  <span className="text-xs font-black text-foreground">{totalCartDuration} min</span>
                                 </div>
-                              ))}
+                              </div>
+                            )}
+
+                            {/* Products section */}
+                            {cartItems.filter((i) => i.type === "product").length > 0 && (
+                              <div className="border-t border-border pt-3">
+                                <p className="text-xs text-muted-foreground uppercase font-black mb-2 flex items-center gap-1">
+                                  <ShoppingBag className="h-3 w-3" /> Produtos ({cartItems.filter((i) => i.type === "product").length})
+                                </p>
+                                {cartItems.filter((i) => i.type === "product").map((item: CartItem) => (
+                                  <div key={item.id} className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-foreground">{item.name}</span>
+                                    <span className="text-xs font-bold text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-md">Qtd: {item.quantity ?? 1}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Total */}
+                            <div className="border-t border-border pt-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-black text-foreground uppercase">Total</span>
+                                <span className="text-lg font-black text-primary">R$ {cartTotalPrice.toFixed(2).replace('.', ',')}</span>
+                              </div>
                             </div>
                           </div>
                         ) : (

@@ -12,12 +12,15 @@ export interface CartItem {
   barber_id?: string;
   barber_name?: string;
   category_id?: string;
+  // For products
+  quantity?: number;
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
+  updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   totalPrice: number;
   totalDuration: number;
@@ -46,9 +49,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((item: CartItem) => {
     setItems((prev) => {
-      // Prevent duplicates
+      // Services: check duplicate by id, don't add again
       if (prev.some((i) => i.id === item.id)) return prev;
-      return [...prev, item];
+      return [...prev, { ...item, quantity: item.type === "product" ? (item.quantity ?? 1) : undefined }];
     });
   }, []);
 
@@ -56,11 +59,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
+  const updateQuantity = useCallback((id: string, quantity: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? { ...i, quantity: Math.max(1, quantity) }
+          : i
+      )
+    );
+  }, []);
+
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
 
-  const totalPrice = items.reduce((sum, i) => sum + (i.price ?? 0), 0);
+  const totalPrice = items.reduce((sum, i) => {
+    const qty = i.type === "product" ? (i.quantity ?? 1) : 1;
+    return sum + (i.price ?? 0) * qty;
+  }, 0);
+
   const totalDuration = items.reduce((sum, i) => sum + (i.duration ?? 0), 0);
   const totalAdvancePayment = items.reduce(
     (sum, i) =>
@@ -73,7 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, clearCart, totalPrice, totalDuration, totalAdvancePayment }}
+      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalPrice, totalDuration, totalAdvancePayment }}
     >
       {children}
     </CartContext.Provider>
