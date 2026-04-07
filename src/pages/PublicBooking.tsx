@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Scissors, Loader2, Check, AlertTriangle, CalendarDays,
-  MapPin, ArrowLeft, XCircle, QrCode, WifiOff, UserX, Tag, ShoppingBag, Minus, Plus, Trash2
+  MapPin, ArrowLeft, XCircle, QrCode, WifiOff, UserX, Tag, ShoppingBag, Minus, Plus, Trash2, ChevronRight
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -658,7 +658,7 @@ const PublicBooking = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className={`min-h-screen bg-background text-foreground pb-20 ${cartItems.length > 0 && step >= 2 && step < 4 && !success ? 'pb-28' : ''}`}>
       <div className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -799,13 +799,30 @@ const PublicBooking = () => {
 
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
-                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha o serviço</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">
-                      {(() => {
-                        const catObj = shopResources?.categories.find((c: any) => c.id === selectedCategory);
-                        return catObj?.name || "";
-                      })()}
+                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha os serviços</h3>
+                    <p className="text-sm text-muted-foreground mb-4 font-medium">
+                      Adicione quantos quiser de diferentes categorias
                     </p>
+
+                    {/* Category switcher — always visible when there are items in cart */}
+                    {shopCategories.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+                        {shopCategories.map((cat: any) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat.id)}
+                            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                              selectedCategory === cat.id
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
                     ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length || 0 > 0 ? (
@@ -815,21 +832,15 @@ const PublicBooking = () => {
                           .map((s: any) => {
                             const isInCart = cartItems.some((ci) => ci.id === s.id);
                             return (
-                            <button key={s.id}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                // Add to cart instead of replacing
-                                addServiceToCart(s, selectedBarber);
-                              }}
-                              onDoubleClick={(e) => {
-                                e.preventDefault();
-                                addServiceToCart(s, selectedBarber);
-                                setStep(3);
-                              }}
-                              className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]"
+                            <div key={s.id}
+                              className={`rounded-3xl border bg-card p-5 text-left transition-all ${
+                                isInCart
+                                  ? "border-emerald-500/30 bg-emerald-500/5"
+                                  : "border-border hover:border-primary/40"
+                              } active:scale-[0.98]`}
                             >
                                 <div className="flex justify-between items-start gap-2 min-w-0">
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
                                         <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
                                     </div>
@@ -840,12 +851,27 @@ const PublicBooking = () => {
                                       R$ {Number(s.price).toFixed(2)}
                                     </p>
                                 </div>
-                                {isInCart && (
-                                  <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1">
-                                    <Check className="h-3 w-3" /> Adicionado ao carrinho
-                                  </p>
+                                {isInCart ? (
+                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                                    <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+                                      <Check className="h-3 w-3" /> No carrinho
+                                    </span>
+                                    <button
+                                      onClick={() => removeFromCart(s.id)}
+                                      className="text-xs font-bold text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors"
+                                    >
+                                      Remover
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => addServiceToCart(s, selectedBarber)}
+                                    className="mt-3 w-full h-10 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1"
+                                  >
+                                    <Plus className="h-3 w-3" /> Adicionar
+                                  </button>
                                 )}
-                            </button>
+                            </div>
                           )})}
                       </div>
                     ) : (
@@ -857,29 +883,30 @@ const PublicBooking = () => {
                           <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
                       </div>
                     )}
-                    {cartItems.length > 0 && (
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-foreground font-bold mb-3">
-                          <ShoppingBag className="h-4 w-4 inline mr-1 text-primary" />
-                          {cartItems.length} {cartItems.length === 1 ? 'serviço' : 'serviços'} no carrinho · {totalCartDuration} min · R$ {cartTotalPrice.toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                    <Button variant="ghost" onClick={() => { setSelectedCategory(null); if (cartItems.length === 0) setStep(1); else setStep(4); }} className="mt-4 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" />
-                      {cartItems.length > 0 ? "Carrinho" : "Voltar"}
+
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (cartItems.length > 0) {
+                          // Go back to category switcher
+                          const lastService = cartItems[cartItems.length - 1];
+                          if (lastService?.category_id) setSelectedCategory(lastService.category_id);
+                        } else {
+                          setSelectedCategory(null);
+                          setStep(1);
+                        }
+                      }}
+                      className="mt-6 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
+                    >
+                      <ArrowLeft className="mr-2 h-3 w-3" /> {cartItems.length > 0 ? "Todos os Serviços" : "Voltar"}
                     </Button>
-                    {cartItems.length > 0 && (
-                      <Button onClick={() => setStep(3)} className="mt-4 mx-auto flex h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold">
-                        <ShoppingBag className="mr-2 h-4 w-4" /> Escolher Profissional
-                      </Button>
-                    )}
                 </div>
             )}
 
             {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">
+                    <p className="text-sm text-muted-foreground mb-6 font-medium">
                       {cartItems.filter((i) => i.type === "service").length > 1
                         ? `Profissionais que realizam os ${cartItems.filter((i) => i.type === "service").length} serviços selecionados`
                         : cartItems.length === 1
@@ -911,13 +938,22 @@ const PublicBooking = () => {
                           <p className="text-muted-foreground text-sm">Nenhum profissional realiza os serviços selecionados no momento.</p>
                       </div>
                     )}
-                    <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setStep(2)}
+                      className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
+                    >
+                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar aos Serviços
+                    </Button>
                 </div>
             )}
 
             {step === 4 && (
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
+                    <p className="text-sm text-muted-foreground text-center mb-6 -mt-4">
+                      Confira seus serviços, escolha a data e o horário
+                    </p>
                     <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
                         {/* Show cart summary if there are items, otherwise single service summary */}
                         {cartItems.length > 0 ? (
@@ -1014,7 +1050,7 @@ const PublicBooking = () => {
                         </div>
 
                         <div className="pt-4 flex items-center justify-between gap-4">
-                          <Button variant="ghost" onClick={() => { setStep(3); }} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
+                          <Button variant="ghost" onClick={() => { setStep(2); }} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
                           <Button
                               onClick={() => bookingMutation.mutate()}
                               disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
@@ -1029,6 +1065,43 @@ const PublicBooking = () => {
           </div>
         ) : (
           <div />
+        )}
+
+        {/* Sticky Cart Footer — only during booking flow (steps 2-4) */}
+        {!success && !cancelled && cartItems.length > 0 && step >= 2 && step < 4 && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+            <div className="container max-w-2xl mx-auto px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  onClick={() => { setShowCart(true); }}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <div className="relative">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <ShoppingBag className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-black flex items-center justify-center leading-none">
+                      {cartItems.length}
+                    </span>
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-xs font-black text-foreground truncate">
+                      {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} · {totalCartDuration} min
+                    </p>
+                    <p className="text-sm font-black text-primary">
+                      R$ {cartTotalPrice.toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
+                </button>
+                <Button
+                  onClick={() => setStep(step === 2 ? 3 : 4)}
+                  className="h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold whitespace-nowrap shrink-0"
+                >
+                  {step === 2 ? 'Escolher Profissional' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Payment in progress — countdown + urgency */}
