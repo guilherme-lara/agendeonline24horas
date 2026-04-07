@@ -289,6 +289,7 @@ const PublicBooking = () => {
     if (!shop?.id || !selectedDate) return [];
 
     const { dayStart, dayEnd } = getDayBoundsBRT(selectedDate);
+    // Only select fields needed for availability checking — no client PII
     const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
     const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
 
