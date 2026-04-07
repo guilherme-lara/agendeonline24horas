@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Scissors, Loader2, Check, AlertTriangle, CalendarDays,
-  MapPin, ArrowLeft, XCircle, QrCode, WifiOff, UserX, Tag
+  MapPin, ArrowLeft, XCircle, QrCode, WifiOff, UserX, Tag, ShoppingBag, Minus, Plus, Trash2
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useCart, type CartItem } from "@/contexts/CartContext";
 
 const BUFFER_MINUTES = 10;
 const PAYMENT_LOCK_MS = 3 * 60 * 1000;
@@ -107,14 +108,16 @@ const PublicBooking = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
 
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedBarber, setSelectedBarber] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
+  const [showCart, setShowCart] = useState(false);
+  const [_cartUpdateTick, setCartUpdateTick] = useState(0);
 
   const [success, setSuccess] = useState(searchParams.get("success") === "true");
   const [cancelled, setCancelled] = useState(false);
@@ -134,21 +137,29 @@ const PublicBooking = () => {
       try {
         const { data, error } = await supabase
           .from("appointments")
-          .select("status")
+          .select("status, expires_at")
           .eq("id", apptId)
           .maybeSingle();
 
         if (error) return;
 
         if (data?.status === "confirmed" || data?.status === "completed") {
-          // Payment confirmed by webhook
+          // Payment confirmed by webhook — update timer state too
           setApptStatus("confirmed");
+          setCartUpdateTick((t) => t + 1);
         } else if (data?.status === "cancelled" || data?.status === "expired") {
           setApptStatus("expired");
           sessionStorage.removeItem("payment_expires_at");
           sessionStorage.removeItem("pending_appt_id");
         } else {
-          // Still pending — keep polling
+          // Still pending — keep polling but also check if expiry passed
+          const expiresAt = data?.expires_at ? new Date(data.expires_at).getTime() : null;
+          if (expiresAt && Date.now() > expiresAt) {
+            setApptStatus("expired");
+            sessionStorage.removeItem("payment_expires_at");
+            sessionStorage.removeItem("pending_appt_id");
+            return;
+          }
           setApptStatus("pending");
         }
       } catch {
@@ -162,8 +173,8 @@ const PublicBooking = () => {
     const polling = setInterval(checkStatus, 3000);
     const timeout = setTimeout(() => {
       clearInterval(polling);
-      if (apptStatus === "pending") setApptStatus("pending"); // force final check
-    }, 60000);
+      checkStatus(); // final check
+    }, 62000);
 
     return () => { clearInterval(polling); clearTimeout(timeout); };
   }, [success]);
@@ -182,6 +193,17 @@ const PublicBooking = () => {
     } catch { /* */ }
     return null;
   });
+
+  // FIX: Watch for changes in success/paymentExpiresAt to recompute timeLeft
+  // This solves the timer not starting after redirect back from checkout
+  useEffect(() => {
+    if (!success) return;
+    // Re-read from sessionStorage when success state changes
+    try {
+      const stored = sessionStorage.getItem("payment_expires_at");
+      if (stored) setPaymentExpiresAt(Number(stored));
+    } catch { /* */ }
+  }, [success]);
 
   // Check for expired appointment on remount/redirect return
   useEffect(() => {
@@ -220,12 +242,17 @@ const PublicBooking = () => {
     checkBooking();
   }, [success]);
 
-  // Countdown timer
-  const [timeLeft, setTimeLeft] = useState(() => {
-    if (!paymentExpiresAt) return 0;
-    const diff = Math.max(0, Math.floor((paymentExpiresAt - Date.now()) / 1000));
-    return diff;
-  });
+  // Countdown timer — reset when paymentExpiresAt changes (e.g. after redirect)
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (!paymentExpiresAt) {
+      setTimeLeft(0);
+      return;
+    }
+    const initial = Math.max(0, Math.floor((paymentExpiresAt - Date.now()) / 1000));
+    setTimeLeft(initial);
+  }, [paymentExpiresAt]);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -331,7 +358,7 @@ const PublicBooking = () => {
     },
     enabled: !!shop?.id && !!selectedDate,
   });
-  
+
   const isPaymentConfigured = !!shop?.settings?.infinitepay_tag;
 
   useEffect(() => {
@@ -344,7 +371,7 @@ const PublicBooking = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
-  
+
   // Categories available for this barbershop's services
   const shopCategories = useMemo(() => {
     if (!shopResources) return [];
@@ -364,7 +391,52 @@ const PublicBooking = () => {
     };
   }, [shopResources]);
 
-  // PONTO DE ATUALIZAÇÃO 1: LÓGICA DE CAPTURA DE CLIENTE
+  // Get barbers that can perform ALL services currently in cart (or the selected one)
+  const effectiveServiceIds = useMemo(
+    () => cartItems.length > 0
+      ? cartItems.filter((i) => i.type === "service").map((i) => i.id)
+      : [],
+    [cartItems]
+  );
+
+  const availableBarbers = useMemo(() => {
+    if (!shopResources) return [];
+    if (effectiveServiceIds.length === 0) return shopResources.barbers;
+    return shopResources.barbers.filter((b: any) =>
+      effectiveServiceIds.every((sid: string) =>
+        shopResources.barberServices.some((bs: any) => bs.service_id === sid && bs.barber_id === b.id)
+      )
+    );
+  }, [shopResources, effectiveServiceIds]);
+
+  // Compute total duration for slot calculation
+  const totalCartDuration = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      if (item.product_type) return sum;
+      return sum + (item.duration || 0);
+    }, 0);
+  }, [cartItems]);
+
+  const addServiceToCart = useCallback((service: any, barber: any) => {
+    const item: CartItem = {
+      id: service.id,
+      name: service.name,
+      price: Number(service.price),
+      duration: Number(service.duration),
+      type: "service",
+      advance_payment_value: service.advance_payment_value ? Number(service.advance_payment_value) : undefined,
+      price_is_starting_at: service.price_is_starting_at,
+      barber_id: barber?.id,
+      barber_name: barber?.name,
+      category_id: service.category_id,
+    };
+    addToCart(item);
+    setCartUpdateTick((t) => t + 1);
+  }, [addToCart]);
+
+  // ───────────────────────────────────────────────────────────
+  // BOOKING MUTATION — now supports cart with multiple services
+  // ───────────────────────────────────────────────────────────
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
@@ -372,17 +444,21 @@ const PublicBooking = () => {
       if (!shop?.settings?.infinitepay_tag) {
         throw new Error("Erro: A barbearia ainda não configurou o método de pagamento.");
       }
+      if (cartItems.length === 0) throw new Error("Adicione pelo menos um serviço ao agendamento.");
 
       // ───────────────────────────────────────────────────────────
-      // PESSIMISTIC PRE-FLIGHT CHECK: Re-verify slot availability
-      // at the exact moment of creation to prevent double-booking
-      // from race conditions.
+      // PESSIMISTIC PRE-FLIGHT CHECK
       // ───────────────────────────────────────────────────────────
       const preFlightCheck = async (): Promise<boolean> => {
         const now = new Date();
 
+        const servicesInCart = cartItems.filter((i) => i.type === "service");
+        if (servicesInCart.length === 0) return true;
+
+        // Use max duration slot for conflict checking
+        const maxDuration = Math.max(...servicesInCart.map((s) => s.duration || 30));
         const slotStartMinutes = getMinutesFromTimeString(selectedTime!);
-        const slotEndMinutes = slotStartMinutes + Number(selectedService.duration || 30) + BUFFER_MINUTES;
+        const slotEndMinutes = slotStartMinutes + maxDuration + BUFFER_MINUTES;
         const appointments = await fetchAppointmentsForSelectedDay();
 
         for (const appointment of appointments) {
@@ -394,11 +470,11 @@ const PublicBooking = () => {
           const appointmentEndMinutes = appointmentStartMinutes + appointmentDuration + BUFFER_MINUTES;
 
           if (hasTimeOverlap(slotStartMinutes, slotEndMinutes, appointmentStartMinutes, appointmentEndMinutes)) {
-            return false; // SLOT OCCUPIED
+            return false;
           }
         }
 
-        return true; // SLOT FREE
+        return true;
       };
 
       const isSlotFree = await preFlightCheck();
@@ -406,7 +482,7 @@ const PublicBooking = () => {
         throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
       }
 
-      // 1. Find or create customer (avoid upsert with composite key)
+      // 1. Find or create customer
       const { data: existingCustomer, error: findError } = await supabase
         .from('customers')
         .select('id')
@@ -418,7 +494,6 @@ const PublicBooking = () => {
 
       let customerId: string;
       if (existingCustomer) {
-        // Update last_seen / name
         await supabase
           .from('customers')
           .update({ name: clientData.name.trim(), last_seen: new Date().toISOString() })
@@ -434,23 +509,32 @@ const PublicBooking = () => {
         customerId = inserted.id;
       }
 
-      // 2. Criação do Agendamento via RPC (SECURITY DEFINER — bypassa RLS)
+      // 2. Criação do Agendamento via RPC com múltiplos itens
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       const pad = (n: number) => String(n).padStart(2, '0');
       const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
+      // Build JSON items for the RPC call
+      const rpcItems = cartItems.map((item: CartItem) => ({
+        name: item.name,
+        price: item.price.toString(),
+        duration: item.duration.toString(),
+        barber_id: item.barber_id || selectedBarber?.id || null,
+        barber_name: item.barber_name || selectedBarber?.name || null,
+        product_type: item.type === "product",
+}));
+
       const { data: apptId, error: rpcError } = await supabase.rpc('create_public_appointment', {
         _barbershop_id: shop!.id,
         _client_name: clientData.name.trim(),
         _client_phone: phoneDigits,
-        _service_name: selectedService.name,
-        _price: Number(selectedService.price),
         _scheduled_at: formattedDateForDB,
         _payment_method: "pix_online",
-        _barber_id: selectedBarber.id,
-        _barber_name: selectedBarber.name,
+        _barber_id: selectedBarber?.id || null,
+        _barber_name: selectedBarber?.name || null,
         _customer_id: customerId,
+        _items: JSON.stringify(rpcItems),
       });
 
       if (rpcError) {
@@ -462,20 +546,25 @@ const PublicBooking = () => {
 
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
-      // 4. Redirecionamento para Pagamento
+      // 3. Redirecionamento para Pagamento
       const infiniteTag = shop?.settings?.infinitepay_tag;
       if (!infiniteTag) throw new Error("Esta barbearia não está configurada para receber pagamentos online.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
-      const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
-      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
-        ? selectedService.advance_payment_value
-        : selectedService.price;
-      const priceInCents = Math.round(amountToCharge * 100);
+
+      // Use cartTotalAdvance if cart has advance payment, else use full cart total
+      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
+      const priceInCents = Math.round(totalToCharge * 100);
 
       if (priceInCents < 100) {
-        throw new Error("O valor do serviço deve ser de no mínimo R$ 1,00 para pagamento online.");
+        throw new Error("O valor total deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
+
+      const serviceItems = cartItems.filter((i) => i.type === "service");
+      const mainItem = serviceItems[0];
+      const itemName = mainItem?.advance_payment_value && mainItem.advance_payment_value > 0
+        ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} serviços`}`
+        : `Agendamento - ${shop?.name || 'Serviços'}`;
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
@@ -492,25 +581,35 @@ const PublicBooking = () => {
       } catch { /* */ }
       setPaymentExpiresAt(expires);
       setPendingApptId(res.apptId);
+      clearCart();
+      setCartUpdateTick((t) => t + 1);
       queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
       if (res.url) {
         window.location.href = res.url;
       }
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Falha no Agendamento", 
-        description: error.message || "Erro desconhecido. Tente novamente.", 
-        variant: "destructive" 
+      toast({
+        title: "Falha no Agendamento",
+        description: error.message || "Erro desconhecido. Tente novamente.",
+        variant: "destructive"
       });
-      setStep(3);
       setSelectedTime(null);
       queryClient.invalidateQueries({ queryKey: ["slots"] });
     }
   });
 
+  // Compute timeSlots based on total cart duration instead of single service
   const timeSlots = useMemo(() => {
-    if (!selectedDate || !selectedService || !shopResources) return [];
+    if (!selectedDate || !shopResources) return [];
+
+    const serviceItems = cartItems.filter((i) => i.type === "service");
+    if (serviceItems.length === 0 && step < 4) return [];
+
+    // Use totalCartDuration for slot blocking, fallback to single service during intermediate steps
+    const firstServiceInCategory = shopResources.services.find((s: any) => s.category_id === selectedCategory);
+    const durationToUse = totalCartDuration || Number(firstServiceInCategory?.duration || 30);
+
     const dayOfWeek = selectedDate.getDay();
     const bh = shopResources.hours.find((h: any) => h.day_of_week === dayOfWeek);
     if (!bh || bh.is_closed) return [];
@@ -527,8 +626,8 @@ const PublicBooking = () => {
         slotStart.setHours(h, m, 0, 0);
         if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotStartMinutes = h * 60 + m;
-        const slotEndMinutes = slotStartMinutes + Number(selectedService.duration || 30) + BUFFER_MINUTES;
-        
+        const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
+
         const hasConflict = existingAppts.some((appt: any) => {
           const appointmentStartMinutes = getBrtMinutesFromScheduledAt(appt.scheduled_at);
           const appointmentDuration = serviceDurationByName.get(appt.service_name) || 30;
@@ -541,14 +640,14 @@ const PublicBooking = () => {
             appointmentEndMinutes,
           );
         });
-        
+
         if (!hasConflict) {
           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
       }
     }
     return slots;
-  }, [selectedDate, selectedService, shopResources, existingAppts]);
+  }, [selectedDate, cartItems, totalCartDuration, shopResources, existingAppts, step]);
 
   if (loadingShop) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
   if (errorShop || !shop) return (
@@ -573,8 +672,84 @@ const PublicBooking = () => {
                 </p>
              </div>
           </div>
+          {/* Cart button — shown after step 2 */}
+          {step >= 2 && cartItems.length > 0 && !success && (
+            <button
+              onClick={() => setShowCart(true)}
+              className="relative p-2 rounded-xl border border-border bg-card hover:border-primary/40 transition-all"
+            >
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-black flex items-center justify-center">
+                {cartItems.length}
+              </span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Cart drawer/modal */}
+      {showCart && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={() => setShowCart(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-lg bg-card rounded-t-3xl p-6 pb-10 animate-in slide-in-from-bottom-50 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black text-foreground font-display">Carrinho</h3>
+              <button onClick={() => setShowCart(false)} className="p-1 rounded-lg hover:bg-secondary transition-colors">
+                <Minus className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {cartItems.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">Nenhum serviço adicionado.</p>
+            ) : (
+              <div className="space-y-3 max-h-72 overflow-y-auto mb-6">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between bg-secondary/50 rounded-2xl p-4 border border-border">
+                    <div className="flex-1">
+                      <p className="font-bold text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.type === "product" ? "Produto" : `${item.duration} min`}</p>
+                    </div>
+                    <p className="text-sm font-black text-primary mr-3">R$ {Number(item.price).toFixed(2)}</p>
+                    <button
+                      onClick={() => { removeFromCart(item.id); setCartUpdateTick((t) => t + 1); }}
+                      className="p-2 rounded-lg hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {cartItems.length > 0 && (
+              <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <span className="text-xs text-muted-foreground uppercase font-black">Total Serviços</span>
+                  <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} itens</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-muted-foreground uppercase font-black">Tempo Estimado</span>
+                  <span className="text-sm font-black text-foreground">{totalCartDuration} min</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2 mt-2">
+                  <span className="text-sm font-black text-muted-foreground uppercase">Total</span>
+                  <span className="text-lg font-black text-primary">R$ {cartTotalPrice.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowCart(false)}
+              className="w-full h-14 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="container max-w-2xl mt-8 px-4">
         {!isPaymentConfigured ? (
@@ -637,22 +812,41 @@ const PublicBooking = () => {
                       <div className="grid gap-3">
                         {shopResources?.services
                           .filter((s: any) => s.category_id === selectedCategory)
-                          .map((s: any) => (
-                            <button key={s.id} onClick={() => { setSelectedService(s); setStep(3); }} className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg text-foreground">{s.name}</p>
+                          .map((s: any) => {
+                            const isInCart = cartItems.some((ci) => ci.id === s.id);
+                            return (
+                            <button key={s.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                // Add to cart instead of replacing
+                                addServiceToCart(s, selectedBarber);
+                              }}
+                              onDoubleClick={(e) => {
+                                e.preventDefault();
+                                addServiceToCart(s, selectedBarber);
+                                setStep(3);
+                              }}
+                              className="rounded-3xl border border-border bg-card p-6 text-left hover:border-primary/40 transition-all active:scale-[0.98]"
+                            >
+                                <div className="flex justify-between items-start gap-2 min-w-0">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
                                         <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
                                     </div>
-                                    <p className="text-xl font-black text-primary text-right">
+                                    <p className="text-base sm:text-xl font-black text-primary text-right whitespace-nowrap shrink-0">
                                       {s.price_is_starting_at
-                                        ? <span className="text-[10px] block text-muted-foreground font-bold">A partir de</span>
+                                        ? <span className="text-[10px] sm:text-xs block text-muted-foreground font-extrabold uppercase tracking-wide leading-none mb-0.5">A partir de</span>
                                         : null}
                                       R$ {Number(s.price).toFixed(2)}
                                     </p>
                                 </div>
+                                {isInCart && (
+                                  <p className="text-xs text-emerald-500 font-bold mt-2 flex items-center gap-1">
+                                    <Check className="h-3 w-3" /> Adicionado ao carrinho
+                                  </p>
+                                )}
                             </button>
-                        ))}
+                          )})}
                       </div>
                     ) : (
                       <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
@@ -663,7 +857,22 @@ const PublicBooking = () => {
                           <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
                       </div>
                     )}
-                    <Button variant="ghost" onClick={() => { setSelectedCategory(null); setStep(1); }} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
+                    {cartItems.length > 0 && (
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-foreground font-bold mb-3">
+                          <ShoppingBag className="h-4 w-4 inline mr-1 text-primary" />
+                          {cartItems.length} {cartItems.length === 1 ? 'serviço' : 'serviços'} no carrinho · {totalCartDuration} min · R$ {cartTotalPrice.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    <Button variant="ghost" onClick={() => { setSelectedCategory(null); if (cartItems.length === 0) setStep(1); else setStep(4); }} className="mt-4 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" />
+                      {cartItems.length > 0 ? "Carrinho" : "Voltar"}
+                    </Button>
+                    {cartItems.length > 0 && (
+                      <Button onClick={() => setStep(3)} className="mt-4 mx-auto flex h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold">
+                        <ShoppingBag className="mr-2 h-4 w-4" /> Escolher Profissional
+                      </Button>
+                    )}
                 </div>
             )}
 
@@ -671,14 +880,18 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in slide-in-from-right-4">
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
                     <p className="text-sm text-muted-foreground mb-8 font-medium">
-                      Profissionais que realizam <span className="font-bold text-foreground">{selectedService?.name}</span>
+                      {cartItems.filter((i) => i.type === "service").length > 1
+                        ? `Profissionais que realizam os ${cartItems.filter((i) => i.type === "service").length} serviços selecionados`
+                        : cartItems.length === 1
+                          ? `Profissionais que realizam ${cartItems[0]?.name}`
+                          : "Selecione um profissional"
+                      }
                     </p>
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
-                    ) : (shopResources?.barberServices.filter((bs: any) => bs.service_id === selectedService?.id) || []).length > 0 ? (
+                    ) : availableBarbers.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {shopResources?.barbers
-                          .filter((b: any) => shopResources.barberServices.some((bs: any) => bs.service_id === selectedService.id && bs.barber_id === b.id))
+                        {availableBarbers
                           .map((b: any) => (
                             <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
                                 <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
@@ -695,7 +908,7 @@ const PublicBooking = () => {
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
                           <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Nenhum profissional disponível</h1>
-                          <p className="text-muted-foreground text-sm">Nenhum profissional realiza este serviço no momento.</p>
+                          <p className="text-muted-foreground text-sm">Nenhum profissional realiza os serviços selecionados no momento.</p>
                       </div>
                     )}
                     <Button variant="ghost" onClick={() => setStep(2)} className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"><ArrowLeft className="mr-2 h-3 w-3" /> Voltar</Button>
@@ -706,11 +919,27 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
                     <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
-                        <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Categoria</span><span className="font-bold text-foreground text-right">{shopResources?.categories.find((c: any) => c.id === selectedCategory)?.name || ""}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">{selectedService?.name}</span></div>
+                        {/* Show cart summary if there are items, otherwise single service summary */}
+                        {cartItems.length > 0 ? (
+                          <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
-                        </div>
+                            <div className="border-t border-border pt-3">
+                              <p className="text-xs text-muted-foreground uppercase font-black mb-2">Itens do Carrinho ({cartItems.length})</p>
+                              {cartItems.map((item: CartItem) => (
+                                <div key={item.id} className="flex justify-between items-center py-1.5">
+                                  <span className="text-sm text-foreground">{item.name}</span>
+                                  <span className="text-sm font-bold text-muted-foreground">{item.type === "product" ? "Produto" : `${item.duration} min`}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Categoria</span><span className="font-bold text-foreground text-right">{shopResources?.categories.find((c: any) => c.id === selectedCategory)?.name || ""}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">—</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
+                          </div>
+                        )}
 
                         <div className="bg-card border border-border rounded-3xl p-4 mb-2 flex justify-center shadow-card">
                             <Calendar
@@ -768,19 +997,27 @@ const PublicBooking = () => {
                         <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-black uppercase text-muted-foreground">
-                                Valor a Pagar Agora
+                                {cartItems.length > 0
+                                  ? `Total a Pagar (${cartItems.length} ${cartItems.length === 1 ? 'item' : 'itens'})`
+                                  : "Valor a Pagar Agora"
+                                }
                               </span>
-                              <span className="text-2xl font-black text-primary">
-                                R$ {Number((selectedService.advance_payment_value || 0) > 0 ? selectedService.advance_payment_value : selectedService.price).toFixed(2).replace(".", ",")}
-                              </span>
+                              <div className="text-right">
+                                <span className="text-2xl font-black text-primary">
+                                  R$ {Number((cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice).toFixed(2))}
+                                </span>
+                                {cartItems.length > 0 && totalCartDuration > 0 && (
+                                  <p className="text-[10px] text-muted-foreground font-bold">{totalCartDuration} min total</p>
+                                )}
+                              </div>
                             </div>
                         </div>
 
                         <div className="pt-4 flex items-center justify-between gap-4">
-                          <Button variant="ghost" onClick={() => setStep(3)} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
+                          <Button variant="ghost" onClick={() => { setStep(3); }} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
                           <Button
                               onClick={() => bookingMutation.mutate()}
-                              disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime}
+                              disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
                               className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
                           >
                               {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</>}
@@ -898,12 +1135,12 @@ const PublicBooking = () => {
                 <p className="text-muted-foreground mb-8 max-w-xs mx-auto">Seu pagamento foi aprovado. A sua vaga está garantida e te esperamos no horário marcado.</p>
 
                  <div className="flex flex-col gap-3 mb-6">
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => {
                         const start = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`);
-                        const end = addMinutes(start, selectedService?.duration || 30);
-                        const title = encodeURIComponent(`${selectedService?.name}${shop?.name ? ` - ${shop.name}` : ''}`);
+                        const end = addMinutes(start, totalCartDuration || 30);
+                        const title = encodeURIComponent(`Agendamento - ${shop?.name || 'Barbearia'}`);
                         const dates = `${format(start, "yyyyMMdd'T'HHmmss")}/${format(end, "yyyyMMdd'T'HHmmss")}`;
                         const location = encodeURIComponent(shop?.address || '');
                         window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}`, '_blank');
@@ -912,9 +1149,9 @@ const PublicBooking = () => {
                     >
                       <CalendarDays className="h-5 w-5" /> Adicionar ao Google Agenda
                     </Button>
-                  
+
                   {shop?.address && (
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`, '_blank')}
                       className="h-14 rounded-2xl font-bold border-border text-foreground hover:bg-secondary gap-2"

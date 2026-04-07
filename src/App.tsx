@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 // 4. Hooks e Contextos Global
 import { AuthProvider } from "@/hooks/useAuth";
 import { BookingProvider } from "@/contexts/BookingContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // 5. Componentes de UI e Layout
