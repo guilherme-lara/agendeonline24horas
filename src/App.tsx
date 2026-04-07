@@ -343,9 +343,11 @@ const App = () => (
           {/* Reconector Global REMOVIDO - estava causando conflitos */}
           <BrowserRouter>
             <AuthProvider>
-              <BookingProvider>
-                <AppContent />
-              </BookingProvider>
+              <CartProvider>
+                <BookingProvider>
+                  <AppContent />
+                </BookingProvider>
+              </CartProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
