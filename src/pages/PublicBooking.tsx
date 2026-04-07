@@ -433,60 +433,32 @@ const PublicBooking = () => {
         customerId = inserted.id;
       }
 
-      // 2. Criação do Agendamento com `customer_id`
+      // 2. Criação do Agendamento via RPC (SECURITY DEFINER — bypassa RLS)
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       const pad = (n: number) => String(n).padStart(2, '0');
       const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
-      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
-        ? selectedService.advance_payment_value
-        : selectedService.price;
+      const { data: apptId, error: rpcError } = await supabase.rpc('create_public_appointment', {
+        _barbershop_id: shop!.id,
+        _client_name: clientData.name.trim(),
+        _client_phone: phoneDigits,
+        _service_name: selectedService.name,
+        _price: Number(selectedService.price),
+        _scheduled_at: formattedDateForDB,
+        _payment_method: "pix_online",
+        _barber_id: selectedBarber.id,
+        _barber_name: selectedBarber.name,
+        _customer_id: customerId,
+      });
 
-      // 3. Cria o agendamento já com o barbeiro e lock temporário, para apagar o slot instantaneamente.
-      const expiresAt = new Date(Date.now() + PAYMENT_LOCK_MS);
-      const appointmentPayload = {
-        barbershop_id: shop!.id,
-        client_name: clientData.name.trim(),
-        client_phone: phoneDigits,
-        customer_id: customerId,
-        service_name: selectedService.name,
-        price: Number(selectedService.price),
-        total_price: Number(selectedService.price),
-        scheduled_at: formattedDateForDB,
-        payment_method: "pix_online",
-        payment_status: "pending",
-        barber_id: selectedBarber.id,
-        barber_name: selectedBarber.name,
-        status: "pending_payment",
-        has_signal: (selectedService.advance_payment_value || 0) > 0,
-        signal_value: selectedService.advance_payment_value || 0,
-        expires_at: expiresAt.toISOString(),
-      };
-
-      let insertResult = await supabase
-        .from("appointments")
-        .insert(appointmentPayload)
-        .select("id")
-        .single();
-
-      if (insertResult.error && insertResult.error.message?.toLowerCase().includes("expires_at")) {
-        const { expires_at: _ignoredExpiry, ...payloadWithoutExpiry } = appointmentPayload;
-        insertResult = await supabase
-          .from("appointments")
-          .insert(payloadWithoutExpiry)
-          .select("id")
-          .single();
-      }
-
-      if (insertResult.error) {
-        if (/horário|reservad|indisponível|conflict/i.test(insertResult.error.message || "")) {
+      if (rpcError) {
+        if (/horário|reservad|indisponível|conflict/i.test(rpcError.message || "")) {
           throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
         }
-        throw insertResult.error;
+        throw new Error(rpcError.message);
       }
 
-      const apptId = insertResult.data?.id;
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
       // 4. Redirecionamento para Pagamento
@@ -495,6 +467,9 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
       const itemName = ((selectedService.advance_payment_value || 0) > 0) ? `Sinal: ${selectedService.name}` : selectedService.name;
+      const amountToCharge = (selectedService.advance_payment_value && selectedService.advance_payment_value > 0)
+        ? selectedService.advance_payment_value
+        : selectedService.price;
       const priceInCents = Math.round(amountToCharge * 100);
 
       if (priceInCents < 100) {

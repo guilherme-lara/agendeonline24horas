@@ -47,6 +47,8 @@ export type Database = {
           client_name: string
           client_phone: string | null
           created_at: string | null
+          customer_id: string | null
+          expires_at: string | null
           has_signal: boolean | null
           id: string
           payment_confirmed_at: string | null
@@ -71,6 +73,8 @@ export type Database = {
           client_name: string
           client_phone?: string | null
           created_at?: string | null
+          customer_id?: string | null
+          expires_at?: string | null
           has_signal?: boolean | null
           id?: string
           payment_confirmed_at?: string | null
@@ -95,6 +99,8 @@ export type Database = {
           client_name?: string
           client_phone?: string | null
           created_at?: string | null
+          customer_id?: string | null
+          expires_at?: string | null
           has_signal?: boolean | null
           id?: string
           payment_confirmed_at?: string | null
@@ -138,6 +144,13 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -396,6 +409,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categories: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       clients: {
         Row: {
@@ -872,11 +906,14 @@ export type Database = {
           active: boolean
           advance_payment_value: number | null
           barbershop_id: string
+          category: string | null
+          category_id: string | null
           created_at: string | null
           duration: number
           id: string
           name: string
           price: number
+          price_is_starting_at: boolean
           requires_advance_payment: boolean | null
           sort_order: number
         }
@@ -884,11 +921,14 @@ export type Database = {
           active?: boolean
           advance_payment_value?: number | null
           barbershop_id: string
+          category?: string | null
+          category_id?: string | null
           created_at?: string | null
           duration?: number
           id?: string
           name: string
           price?: number
+          price_is_starting_at?: boolean
           requires_advance_payment?: boolean | null
           sort_order?: number
         }
@@ -896,11 +936,14 @@ export type Database = {
           active?: boolean
           advance_payment_value?: number | null
           barbershop_id?: string
+          category?: string | null
+          category_id?: string | null
           created_at?: string | null
           duration?: number
           id?: string
           name?: string
           price?: number
+          price_is_starting_at?: boolean
           requires_advance_payment?: boolean | null
           sort_order?: number
         }
@@ -917,6 +960,13 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -1234,18 +1284,35 @@ export type Database = {
         }[]
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
-      create_public_appointment: {
-        Args: {
-          _barbershop_id: string
-          _client_name: string
-          _client_phone: string
-          _payment_method?: string
-          _price: number
-          _scheduled_at: string
-          _service_name: string
-        }
-        Returns: string
-      }
+      cleanup_expired_appointments: { Args: never; Returns: undefined }
+      create_public_appointment:
+        | {
+            Args: {
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _payment_method?: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _barber_id?: string
+              _barber_name?: string
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _customer_id?: string
+              _payment_method?: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
       get_customers_with_stats: {
         Args: { _barbershop_id: string }
         Returns: {
