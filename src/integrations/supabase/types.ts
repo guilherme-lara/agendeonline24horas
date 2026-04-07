@@ -1285,18 +1285,34 @@ export type Database = {
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
       cleanup_expired_appointments: { Args: never; Returns: undefined }
-      create_public_appointment: {
-        Args: {
-          _barbershop_id: string
-          _client_name: string
-          _client_phone: string
-          _payment_method?: string
-          _price: number
-          _scheduled_at: string
-          _service_name: string
-        }
-        Returns: string
-      }
+      create_public_appointment:
+        | {
+            Args: {
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _payment_method?: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _barber_id?: string
+              _barber_name?: string
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _customer_id?: string
+              _payment_method?: string
+              _price: number
+              _scheduled_at: string
+              _service_name: string
+            }
+            Returns: string
+          }
       get_customers_with_stats: {
         Args: { _barbershop_id: string }
         Returns: {
