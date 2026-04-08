@@ -62,8 +62,16 @@ DECLARE
   _item_is_product boolean;
   _item_category_id uuid;
 BEGIN
+  -- Ensure _items is always treated as an array to prevent "cannot extract elements from a scalar"
+  IF _items IS NULL THEN
+    _items := '[]'::jsonb;
+  ELSEIF jsonb_typeof(_items) <> 'array' THEN
+    -- If it's not an array, wrap it in an array
+    _items := to_jsonb(ARRAY[_items]);
+  END IF;
+
   -- If multiple items are provided, calculate total price and check conflicts
-  IF _items IS NOT NULL THEN
+  IF jsonb_array_length(_items) > 0 THEN
     FOR _item IN SELECT * FROM jsonb_array_elements(_items)
     LOOP
       _item_name := _item->>'name';

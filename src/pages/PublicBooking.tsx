@@ -119,6 +119,7 @@ const PublicBooking = () => {
   const [showCart, setShowCart] = useState(false);
   const [productTab, setProductTab] = useState(false);
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
+  const [resetCategoryFlag, setResetCategoryFlag] = useState(false);
 
   const [success, setSuccess] = useState(searchParams.get("success") === "true");
   const [cancelled, setCancelled] = useState(false);
@@ -388,6 +389,12 @@ const PublicBooking = () => {
   // Auto-select first category when entering Step 2
   useEffect(() => {
     if (step === 2 && shopCategories.length > 0 && shopResources?.services.length > 0) {
+      // If we just reset the category via "Voltar", don't auto-select
+      if (resetCategoryFlag) {
+        setResetCategoryFlag(false);
+        return;
+      }
+
       // Preserve existing category if valid, otherwise pick first available
       const hasValidCategory = selectedCategory && shopCategories.some((c: any) => c.id === selectedCategory);
       if (!hasValidCategory) {
@@ -397,7 +404,7 @@ const PublicBooking = () => {
         if (firstValid) setSelectedCategory(firstValid.id);
       }
     }
-  }, [step, shopCategories, shopResources, selectedCategory]);
+  }, [step, shopCategories, shopResources, selectedCategory, resetCategoryFlag]);
 
   const disabledDates = useMemo(() => {
     const closedDays = shopResources?.hours?.filter((h: any) => h.is_closed).map((h: any) => h.day_of_week) || [];
@@ -1038,6 +1045,7 @@ const PublicBooking = () => {
                       onClick={() => {
                         setSelectedCategory(null);
                         setProductTab(false);
+                        setResetCategoryFlag(true); // Flag that we just reset category
                         setStep(1);
                       }}
                       className="mt-6 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
