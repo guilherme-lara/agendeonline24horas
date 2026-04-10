@@ -572,17 +572,20 @@ const PublicBooking = () => {
         product_type: item.type === "product",
 }));
 
-      const { data: apptId, error: rpcError } = await supabase.rpc('create_public_appointment', {
-        _barbershop_id: shop!.id,
-        _client_name: clientData.name.trim(),
-        _client_phone: phoneDigits,
-        _scheduled_at: formattedDateForDB,
-        _payment_method: "pix_online",
-        _barber_id: selectedBarber?.id || null,
-        _barber_name: selectedBarber?.name || null,
-        _customer_id: customerId,
-        _items: JSON.stringify(rpcItems),
-      });
+      const { data: apptId, error: rpcError } = await supabase.rpc(
+        "create_public_appointment",
+        {
+          _barbershop_id: shop!.id,
+          _client_name: clientData.name.trim(),
+          _client_phone: phoneDigits,
+          _scheduled_at: formattedDateForDB,
+          _payment_method: "pix_online",
+          _barber_id: selectedBarber?.id || null,
+          _barber_name: selectedBarber?.name || null,
+          _customer_id: customerId,
+          _items: rpcItems,
+        },
+      );
 
       if (rpcError) {
         if (/horário|reservad|indisponível|conflict/i.test(rpcError.message || "")) {
