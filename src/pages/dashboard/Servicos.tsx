@@ -99,33 +99,37 @@ const Servicos = () => {
   });
 
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories"],
+    queryKey: ["categories", barbershop?.id],
     queryFn: async () => {
+      if (!barbershop?.id) return [];
       const { data, error } = await supabase
         .from("categories")
         .select("id, name, active")
         .eq("active", true)
+        .eq("barbershop_id", barbershop.id)
         .order("name");
       if (error) throw error;
       return data;
     },
+    enabled: queryEnabled,
   });
 
   const { data: allCategories = [] } = useQuery<Category[]>({
-    queryKey: ["categories-admin"],
+    queryKey: ["categories-admin", barbershop?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
         .select("id, name, active")
+        .eq("barbershop_id", barbershop?.id)
         .order("name");
       if (error) throw error;
       return data;
     },
+    enabled: queryEnabled,
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-
       if (!barbershop?.id) throw new Error("Barbearia não encontrada.");
 
       const numericPrice = Number(price) || 0;
@@ -188,14 +192,15 @@ const Servicos = () => {
           `Falha ao remover vínculos antigos: ${deleteError.message}`,
         );
 
-      if (!barbershop) throw new Error("Sessão expirada. Faça login novamente.");
+      if (!barbershop)
+        throw new Error("Sessão expirada. Faça login novamente.");
       const tenantId = barbershop.id;
 
       // 2. Inserir novos vínculos (apenas os que têm comissão definida)
       const validCommissions = barberCommissions
         .filter(
           (bc) => bc.commission_pct !== "" && Number(bc.commission_pct) >= 0,
-          )
+        )
         .map((bc) => ({
           barbershop_id: tenantId,
           service_id: serviceId,
@@ -203,27 +208,42 @@ const Servicos = () => {
           commission_pct: Number(bc.commission_pct),
         }));
 
-      if(validCommissions.length > 0) {
-          const { error: insertError } = await supabase.from('barber_services').insert(validCommissions);
-          if (insertError) throw new Error(`Falha ao salvar comissões: ${insertError.message}`);
+      if (validCommissions.length > 0) {
+        const { error: insertError } = await supabase
+          .from("barber_services")
+          .insert(validCommissions);
+        if (insertError)
+          throw new Error(`Falha ao salvar comissões: ${insertError.message}`);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       // Também invalidar a query de recursos da loja para o PublicBooking
       queryClient.invalidateQueries({ queryKey: ["shopResources"] });
-      toast({ title: editing ? "Serviço Atualizado com Sucesso!" : "Serviço Cadastrado com Sucesso!", description: "As comissões dos profissionais foram vinculadas." });
+      toast({
+        title: editing
+          ? "Serviço Atualizado com Sucesso!"
+          : "Serviço Cadastrado com Sucesso!",
+        description: "As comissões dos profissionais foram vinculadas.",
+      });
       setIsDialogOpen(false);
       resetForm();
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-    }
+      toast({
+        title: "Erro ao salvar",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, active }: { id: string, active: boolean }) => {
-      const { error } = await supabase.from("services").update({ active }).eq("id", id);
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("services")
+        .update({ active })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
@@ -233,7 +253,10 @@ const Servicos = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("services").delete().eq("id", id);
       if (error) {
-        if (error.code === '23503') throw new Error("Este serviço possui agendamentos. Desative-o em vez de deletar.");
+        if (error.code === "23503")
+          throw new Error(
+            "Este serviço possui agendamentos. Desative-o em vez de deletar.",
+          );
         throw new Error(`Erro ao deletar: ${error.message}`);
       }
     },
@@ -243,12 +266,20 @@ const Servicos = () => {
       toast({ title: "Serviço removido com sucesso." });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro ao remover",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
-  const openNew = () => { setEditing(null); resetForm(); setIsDialogOpen(true); };
-  
+  const openNew = () => {
+    setEditing(null);
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
   const openEdit = async (s: Service) => {
     setEditing(s);
     setName(s.name);
@@ -259,61 +290,95 @@ const Servicos = () => {
     setPriceIsStartingAt(s.price_is_starting_at || false);
 
     // Fetch e preenche as comissões existentes
-    const { data, error } = await supabase.from('barber_services').select('barber_id, commission_pct').eq('service_id', s.id);
+    const { data, error } = await supabase
+      .from("barber_services")
+      .select("barber_id, commission_pct")
+      .eq("service_id", s.id);
     if (error) {
-      toast({ title: "Erro ao buscar comissões", description: error.message, variant: "destructive" });
+      toast({
+        title: "Erro ao buscar comissões",
+        description: error.message,
+        variant: "destructive",
+      });
       setBarberCommissions([]);
     } else {
-      setBarberCommissions(data.map(d => ({ ...d, commission_pct: d.commission_pct || "" })));
+      setBarberCommissions(
+        data.map((d) => ({ ...d, commission_pct: d.commission_pct || "" })),
+      );
     }
 
     setIsDialogOpen(true);
   };
 
-  const resetForm = () => { setName(""); setPrice(""); setDuration("30"); setAdvanceValue(""); setCategoryId(""); setPriceIsStartingAt(false); setBarberCommissions([]); };
+  const resetForm = () => {
+    setName("");
+    setPrice("");
+    setDuration("30");
+    setAdvanceValue("");
+    setCategoryId("");
+    setPriceIsStartingAt(false);
+    setBarberCommissions([]);
+  };
 
   const handleCommissionToggle = (barberId: string, checked: boolean) => {
     if (checked) {
-      setBarberCommissions([...barberCommissions, { barber_id: barberId, commission_pct: '' }]);
+      setBarberCommissions([
+        ...barberCommissions,
+        { barber_id: barberId, commission_pct: "" },
+      ]);
     } else {
-      setBarberCommissions(barberCommissions.filter(bc => bc.barber_id !== barberId));
+      setBarberCommissions(
+        barberCommissions.filter((bc) => bc.barber_id !== barberId),
+      );
     }
   };
 
   const handleCommissionChange = (barberId: string, value: string) => {
     setBarberCommissions(
-      barberCommissions.map(bc =>
-        bc.barber_id === barberId ? { ...bc, commission_pct: value } : bc
-      )
+      barberCommissions.map((bc) =>
+        bc.barber_id === barberId ? { ...bc, commission_pct: value } : bc,
+      ),
     );
   };
 
   // Category management mutations
   const saveCategoryMutation = useMutation({
     mutationFn: async () => {
-      if (!categoryName.trim()) throw new Error("Nome da categoria é obrigatório.");
+      if (!categoryName.trim())
+        throw new Error("Nome da categoria é obrigatório.");
+      if (!barbershop?.id) throw new Error("Barbearia não encontrada.");
+
+
       if (editingCategory) {
         const { error } = await supabase
           .from("categories")
           .update({ name: categoryName.trim() })
-          .eq("id", editingCategory.id);
+          .eq("id", editingCategory.id)
+          .eq("barbershop_id", barbershop.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("categories")
-          .insert({ name: categoryName.trim() });
+          .insert({ name: categoryName.trim(), barbershop_id: barbershop.id});
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["categories-admin"] });
-      toast({ title: editingCategory ? "Categoria atualizada!" : "Categoria criada!" });
+      toast({
+        title: editingCategory ? "Categoria atualizada!" : "Categoria criada!",
+      });
       setCategoryDialogOpen(false);
       setEditingCategory(null);
       setCategoryName("");
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) =>
+      toast({
+        title: "Erro",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const deleteCategoryMutation = useMutation({

@@ -115,7 +115,10 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
         quantity: qty,
         notes: movementNotes.trim(),
       }),
-      (supabase.from("inventory") as any).update({ quantity: newQuantity }).eq("id", movementItem.id),
+      (supabase.from("inventory") as any)
+        .update({ quantity: newQuantity })
+        .eq("id", movementItem.id)
+        .eq("barbershop_id", barbershopId),
     ]);
 
     if (movRes.error || updRes.error) {

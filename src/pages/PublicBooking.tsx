@@ -291,14 +291,39 @@ const PublicBooking = () => {
   const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
-      const [servs, hours, barbers, barberServices, cats, inventory] = await Promise.all([
-        supabase.from("services").select("id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order, category, category_id, price_is_starting_at").eq("barbershop_id", shop!.id).eq("active", true).order("sort_order"),
-        supabase.from("business_hours").select("*").eq("barbershop_id", shop!.id),
-        supabase.from("barbers").select("id, name, avatar_url").eq("barbershop_id", shop!.id),
-        supabase.from("barber_services").select("barber_id, service_id, commission_pct").eq("barbershop_id", shop!.id),
-        supabase.from("categories").select("id, name").eq("active", true),
-        supabase.from("inventory").select("id, name, price, stock, available_for_sale").eq("available_for_sale", true),
-      ]);
+      const [servs, hours, barbers, barberServices, cats, inventory] =
+        await Promise.all([
+          supabase
+            .from("services")
+            .select(
+              "id, name, price, duration, requires_advance_payment, advance_payment_value, sort_order, category, category_id, price_is_starting_at",
+            )
+            .eq("barbershop_id", shop!.id)
+            .eq("active", true)
+            .order("sort_order"),
+          supabase
+            .from("business_hours")
+            .select("*")
+            .eq("barbershop_id", shop!.id),
+          supabase
+            .from("barbers")
+            .select("id, name, avatar_url")
+            .eq("barbershop_id", shop!.id),
+          supabase
+            .from("barber_services")
+            .select("barber_id, service_id, commission_pct")
+            .eq("barbershop_id", shop!.id),
+          supabase
+            .from("categories")
+            .select("id, name")
+            .eq("active", true)
+            .eq("barbershop_id", shop!.id),
+          supabase
+            .from("inventory")
+            .select("id, name, price, stock, available_for_sale")
+            .eq("available_for_sale", true)
+            .eq("barbershop_id", shop!.id),
+        ]);
       return {
         services: servs.data || [],
         hours: hours.data || [],
