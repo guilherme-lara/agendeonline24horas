@@ -320,8 +320,8 @@ const PublicBooking = () => {
             .eq("barbershop_id", shop!.id),
           supabase
             .from("inventory")
-            .select("id, name, price, stock, available_for_sale")
-            .eq("available_for_sale", true)
+            .select("id, name, sell_price, quantity, active")
+            .eq("active", true)
             .eq("barbershop_id", shop!.id),
         ]);
       return {
@@ -330,7 +330,12 @@ const PublicBooking = () => {
         barbers: barbers.data || [],
         barberServices: barberServices.data || [],
         categories: cats.data || [],
-        products: (inventory.data || []).filter((p: any) => (p.stock ?? 0) > 0),
+        products: (inventory.data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.sell_price,
+          stock: p.quantity
+        })).filter((p: any) => p.stock > 0),
       };
     },
     enabled: !!shop?.id,
@@ -570,7 +575,7 @@ const PublicBooking = () => {
         barber_id: item.barber_id || selectedBarber?.id || null,
         barber_name: item.barber_name || selectedBarber?.name || null,
         product_type: item.type === "product",
-}));
+      }));
 
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
