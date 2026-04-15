@@ -575,6 +575,7 @@ const PublicBooking = () => {
         barber_id: item.barber_id || selectedBarber?.id || null,
         barber_name: item.barber_name || selectedBarber?.name || null,
         product_type: item.type === "product",
+        category_id: item.category_id || null,
       }));
 
       const { data: apptId, error: rpcError } = await supabase.rpc(
