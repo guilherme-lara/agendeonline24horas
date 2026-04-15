@@ -39,23 +39,37 @@ interface SidebarProps {
 }
 
 const navItems = [
-  {
-    label: "Suporte",
-    icon: MessageCircle,
-    path: "/dashboard?tab=support",
-    external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte!",
-  },
+ 
   { label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Agenda", icon: CalendarDays, path: "/dashboard/agenda" },
-  { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
-  { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
-  { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
-  { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
-  { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
-  { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
-  { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
-  { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
-  
+  {
+    label: "Agenda",
+    icon: Briefcase,
+    path: "#",
+    subItems: [
+      { label: "Agendamentos", icon: CalendarDays, path: "/dashboard/agenda" },
+      { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
+    ]
+  },
+  {
+    label: "Equipe & Serviços",
+    icon: Briefcase,
+    path: "#",
+    subItems: [
+      { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
+      { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
+      { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
+      { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },  
+    ]
+  },
+  {
+    label: "Clientes",
+    icon: Briefcase,
+    path: "#",
+    subItems: [
+      { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
+      { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
+    ]
+  },
   {
     label: "Financeiro",
     icon: Briefcase,
@@ -73,10 +87,17 @@ const navItems = [
     icon: Settings,
     path: "#",
     subItems: [
+      { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
       { label: "Sistema", icon: Settings, path: "/dashboard/configuracoes" },
       { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
     ],
   },
+  {
+    label: "Suporte",
+    icon: MessageCircle,
+    path: "/dashboard?tab=support",
+    external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte!",
+  }
 ];
 
 const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
