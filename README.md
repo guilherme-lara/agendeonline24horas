@@ -14,7 +14,7 @@ Sistema completo de gestão para barbearias com agendamento online, dashboard in
 | Roteamento | React Router v6 |
 
 ## 📐 Arquitetura Multi-Tenant
-
+line
 Cada barbearia é um **tenant** isolado por `barbershop_id`. As políticas de **Row Level Security (RLS)** garantem que cada dono acessa apenas os dados de sua barbearia.
 
 ```
