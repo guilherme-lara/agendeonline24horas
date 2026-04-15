@@ -23,6 +23,8 @@ import {
   Crown,
   Clock,
   Briefcase,
+  Store,
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBarbershop } from "@/hooks/useBarbershop";
@@ -39,11 +41,10 @@ interface SidebarProps {
 }
 
 const navItems = [
- 
   { label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   {
     label: "Agenda",
-    icon: Briefcase,
+    icon: Calendar,
     path: "#",
     subItems: [
       { label: "Agendamentos", icon: CalendarDays, path: "/dashboard/agenda" },
@@ -52,7 +53,7 @@ const navItems = [
   },
   {
     label: "Equipe & Serviços",
-    icon: Briefcase,
+    icon: Store,
     path: "#",
     subItems: [
       { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
@@ -63,7 +64,7 @@ const navItems = [
   },
   {
     label: "Clientes",
-    icon: Briefcase,
+    icon: Users,
     path: "#",
     subItems: [
       { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
@@ -78,15 +79,14 @@ const navItems = [
       { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
       { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
-      { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
     ],
   },
-
   {
     label: "Configurações",
     icon: Settings,
     path: "#",
     subItems: [
+      { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
       { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
       { label: "Sistema", icon: Settings, path: "/dashboard/configuracoes" },
       { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
@@ -106,8 +106,11 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
   const { barbershop } = useBarbershop() as any;
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    Financeiro: pathname.includes("/caixa") || pathname.includes("/despesas") || pathname.includes("/relatorios") || pathname.includes("/pagamentos"),
-    Configurações: pathname.includes("/configuracoes") || pathname.includes("/horarios")
+    "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
+    "Equipe & Serviços": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
+    "Clientes": pathname.includes("/clientes") || pathname.includes("/aniversarios"),
+    "Financeiro": pathname.includes("/caixa") || pathname.includes("/despesas") || pathname.includes("/relatorios"),
+    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos")
   });
 
   const toggleMenu = (label: string) => {
@@ -180,7 +183,7 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
                     </div>
                     {isMenuOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                   </button>
-                  <div className={cn("pl-8 space-y-0.5 overflow-hidden transition-all", isMenuOpen ? "max-h-48 opacity-100 py-1" : "max-h-0 opacity-0")}>
+                  <div className={cn("pl-8 space-y-0.5 overflow-hidden transition-all", isMenuOpen ? "max-h-56 opacity-100 py-1" : "max-h-0 opacity-0")}>
                     {item.subItems.map(sub => (
                       <Link key={sub.path} to={sub.path} onClick={onClose} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all", isActive(sub.path) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}>
                         <sub.icon className="h-3.5 w-3.5" />
