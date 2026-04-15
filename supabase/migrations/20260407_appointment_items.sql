@@ -62,11 +62,17 @@ DECLARE
   _item_is_product boolean;
   _item_category_id uuid;
 BEGIN
+
+  IF _barber_id IS NOT NULL THEN 
+    PERFORM 1 FROM public.barbers WHERE id = _barber_id FOR UPDATE;
+  ELSE 
+    PERFORM 1 FROM public.barbershops WHERE id = _barbershop_id FOR UPDATE;
+  END IF;
+
   -- Ensure _items is always treated as an array to prevent "cannot extract elements from a scalar"
   IF _items IS NULL THEN
     _items := '[]'::jsonb;
   ELSEIF jsonb_typeof(_items) <> 'array' THEN
-    -- If it's not an array, wrap it in an array
     _items := to_jsonb(ARRAY[_items]);
   END IF;
 
