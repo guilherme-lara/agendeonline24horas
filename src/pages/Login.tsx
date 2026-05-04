@@ -28,7 +28,7 @@ const Login = () => {
       } else if (isBarber) {
         navigate("/barber/dashboard", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate("/dashboard/caixa", { replace: true });
       }
     }
   }, [user, isAdmin, isBarber, authLoading, navigate]);
@@ -100,7 +100,7 @@ const Login = () => {
           .maybeSingle();
 
         if (shopData) {
-          window.location.href = "/dashboard";
+          window.location.href = "/dashboard/caixa";
         } else {
           window.location.href = "/onboarding";
         }
