@@ -38,6 +38,57 @@ export type Database = {
         }
         Relationships: []
       }
+      appointment_items: {
+        Row: {
+          appointment_id: string | null
+          barber_id: string | null
+          barber_name: string | null
+          created_at: string | null
+          duration: number
+          id: string
+          price: number
+          product_type: boolean | null
+          service_name: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          barber_id?: string | null
+          barber_name?: string | null
+          created_at?: string | null
+          duration: number
+          id?: string
+          price: number
+          product_type?: boolean | null
+          service_name: string
+        }
+        Update: {
+          appointment_id?: string | null
+          barber_id?: string | null
+          barber_name?: string | null
+          created_at?: string | null
+          duration?: number
+          id?: string
+          price?: number
+          product_type?: boolean | null
+          service_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_items_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_items_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           barber_id: string | null
@@ -413,23 +464,41 @@ export type Database = {
       categories: {
         Row: {
           active: boolean
+          barbershop_id: string | null
           created_at: string | null
           id: string
           name: string
         }
         Insert: {
           active?: boolean
+          barbershop_id?: string | null
           created_at?: string | null
           id?: string
           name: string
         }
         Update: {
           active?: boolean
+          barbershop_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
@@ -1286,6 +1355,22 @@ export type Database = {
       cancel_expired_pix_appointments: { Args: never; Returns: number }
       cleanup_expired_appointments: { Args: never; Returns: undefined }
       create_public_appointment:
+        | {
+            Args: {
+              _barber_id?: string
+              _barber_name?: string
+              _barbershop_id: string
+              _client_name: string
+              _client_phone: string
+              _customer_id?: string
+              _items?: Json
+              _payment_method?: string
+              _price?: number
+              _scheduled_at?: string
+              _service_name?: string
+            }
+            Returns: string
+          }
         | {
             Args: {
               _barbershop_id: string
