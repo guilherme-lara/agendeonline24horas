@@ -111,7 +111,7 @@ const SuperAdmin = () => {
     const active = plans.filter(p => p.status === "active");
     const mrrValue = active.reduce((sum, p) => sum + Number(p.price || 0), 0);
     return [
-      { label: "Barbearias", value: shops.length, icon: Building2, color: "text-blue-600" },
+      { label: "Estabelecimentos", value: shops.length, icon: Building2, color: "text-blue-600" },
       { label: "Ativos", value: active.length, icon: Users, color: "text-emerald-600" },
       { label: "MRR", value: `R$ ${mrrValue.toLocaleString()}`, icon: DollarSign, color: "text-violet-600" },
       { label: "Bookings 24h", value: metrics?.last24hBookings || 0, icon: CalendarDays, color: "text-amber-600" },
@@ -173,7 +173,7 @@ const SuperAdmin = () => {
           <Textarea 
             value={broadcastText} 
             onChange={(e) => setBroadcastText(e.target.value)} 
-            placeholder="Digite o aviso que aparecerá no Dashboard de todos os barbeiros..."
+            placeholder="Digite o aviso que aparecerá no Dashboard de todos os estabelecimentos..."
             className="bg-gray-50 border-gray-200 min-h-[80px] rounded-lg resize-none" 
           />
           <Button 
@@ -208,7 +208,7 @@ const SuperAdmin = () => {
             <table className="w-full">
               <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left">Barbearia</th>
+                  <th className="px-6 py-3 text-left">Estabelecimento</th>
                   <th className="px-6 py-3 text-left">Proprietário</th>
                   <th className="px-6 py-3 text-left">Plano</th>
                   <th className="px-6 py-3 text-left">Status</th>
