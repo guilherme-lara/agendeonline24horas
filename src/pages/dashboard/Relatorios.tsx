@@ -21,7 +21,7 @@ const Relatorios = () => {
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as métricas da sua barbearia.</p>
+        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as métricas do seu negócio.</p>
         <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>

@@ -42,7 +42,7 @@ const painPoints = [
 const niches = [
   { icon: HeartPulse, title: "Clínicas de Estética", desc: "Procedimentos faciais, corporais e tratamentos de alto padrão com agendamento controlado." },
   { icon: Scissors, title: "Salões de Beleza", desc: "Corte, cor, tratamentos — gerencie stylists, comissões e horários em um único painel." },
-  { icon: Brush, title: "Barbearias Premium", desc: "Barba, corte e experiência masculina. Controle de fila e sinal para segurar a vaga." },
+  { icon: Brush, title: "Barbearias & Salões Premium", desc: "Barba, corte e experiência masculina. Controle de fila e sinal para segurar a vaga." },
   { icon: Palette, title: "Esmalterias & Nail Design", desc: "Design de unhas, nail art e spa dos pés com agenda otimizada e pagamentos antecipados." },
   { icon: HeartPulse, title: "Spas & Centros de Bem-Estar", desc: "Massagens, terapias e rituais de relaxamento com experiência do cliente impecável." },
   { icon: Fingerprint, title: "Estúdios de Tatuagem", desc: "Sessões, orçamentos e portfólio integrados. Deposite sinal e garanta a agenda do artista." },

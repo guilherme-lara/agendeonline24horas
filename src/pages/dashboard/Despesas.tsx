@@ -106,7 +106,7 @@ const Despesas = () => {
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display">
             <TrendingDown className="h-8 w-8 text-red-400" /> Fluxo de Despesas
           </h1>
-          <p className="text-muted-foreground text-sm mt-1 font-medium">Controle rigoroso de todas as saídas da sua barbearia.</p>
+          <p className="text-muted-foreground text-sm mt-1 font-medium">Controle rigoroso de todas as saídas do seu negócio.</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="bg-red-600 hover:bg-red-500 text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-red-900/20 transition-all active:scale-95">
           <Plus className="h-5 w-5 mr-2" /> Novo Lançamento

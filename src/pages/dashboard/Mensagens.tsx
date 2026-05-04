@@ -67,7 +67,7 @@ const Mensagens = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Barbearia não identificada.");
+      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
 
       const { data: current } = await supabase
         .from("barbershops")

@@ -247,7 +247,7 @@ const Caixa = () => {
           orderError.message?.includes("policy")
         ) {
           throw new Error(
-            `Permissão negada ao criar comanda. Verifique se você é o dono desta barbearia. (Código: ${orderError.code})`,
+            `Permissão negada ao criar comanda. Verifique se você é o dono deste estabelecimento. (Código: ${orderError.code})`,
           );
         }
         if (orderError.code === "23505") {

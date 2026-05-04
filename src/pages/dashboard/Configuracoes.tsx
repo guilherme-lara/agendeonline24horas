@@ -192,7 +192,7 @@ const Configuracoes = () => {
                   <Input 
                     value={companyName} 
                     onChange={(e) => setCompanyName(e.target.value)} 
-                    placeholder="Minha Barbearia" 
+                    placeholder="Meu Negócio" 
                     className="bg-background border-border h-12 text-foreground focus-visible:ring-primary/50" 
                   />
                 </div>

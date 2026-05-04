@@ -171,14 +171,14 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
 
   const handleExportCSV = () => {
     const rows = commissionData.map((b) => ({
-      Barbeiro: b.name,
+      Profissional: b.name,
       Atendimentos: b.count,
       "Faturado (R$)": b.revenue.toFixed(2),
       "Comissão (%)": b.commission_pct,
       "Comissão (R$)": b.commission.toFixed(2),
     }));
     rows.push({
-      Barbeiro: "TOTAIS",
+      Profissional: "TOTAIS",
       Atendimentos: filteredAppts.length,
       "Faturado (R$)": totalBruto.toFixed(2),
       "Comissão (%)": 0,
@@ -302,7 +302,7 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-secondary">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Barbeiro</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Profissional</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Atendimentos</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Faturado</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">% Com.</th>

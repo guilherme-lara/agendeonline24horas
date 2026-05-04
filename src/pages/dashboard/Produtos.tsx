@@ -39,7 +39,7 @@ const Produtos = () => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight font-display">Produtos & Estoque</h1>
-          <p className="text-muted-foreground text-sm font-medium">Gerencie o inventário e venda de produtos da sua barbearia.</p>
+          <p className="text-muted-foreground text-sm font-medium">Gerencie o inventário e venda de produtos do seu negócio.</p>
         </div>
       </div>
 

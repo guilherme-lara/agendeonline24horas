@@ -89,7 +89,7 @@ const Onboarding = () => {
 
       } else if (currentStep === 2) {
         const bId = barbershopIdRef.current;
-        if (!bId) throw new Error("ID da barbearia não encontrado.");
+        if (!bId) throw new Error("ID do estabelecimento não encontrado.");
 
         // Seed default business hours (batch insert)
         const { error: hoursError } = await supabase
@@ -116,7 +116,7 @@ const Onboarding = () => {
       if (data?.finalize) {
         toast({
           title: "Boas-vindas ao time!",
-          description: "Sua barbearia foi configurada. Aproveite seus 30 dias de Plano PRO!",
+          description: "Seu estabelecimento foi configurado. Aproveite seus 30 dias de Plano PRO!",
         });
         queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
         navigate("/dashboard", { replace: true });
@@ -154,7 +154,7 @@ const Onboarding = () => {
               </div>
               <div>
                 <label className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-2"><Globe className="h-4 w-4" /> Sua URL Exclusiva</label>
-                <div className="flex items-center"><span className="text-sm text-slate-500 mr-1">agende.online/</span><Input value={slug} onChange={e => setSlug(generateSlug(e.target.value))} placeholder="sua-barbearia" /></div>
+                <div className="flex items-center"><span className="text-sm text-slate-500 mr-1">agende.online/</span><Input value={slug} onChange={e => setSlug(generateSlug(e.target.value))} placeholder="seu-negocio" /></div>
               </div>
               <Button onClick={() => manageBarbershopMutation.mutate(1)} disabled={!name.trim() || !slug.trim() || manageBarbershopMutation.isPending}>{manageBarbershopMutation.isPending && step === 1 ? <><Loader2 className="h-4 w-4 animate-spin mr-2"/> Criando...</> : <>Próximo <ArrowRight className="ml-2 h-4 w-4" /></>}</Button>
             </div>
@@ -164,7 +164,7 @@ const Onboarding = () => {
             <div className="space-y-6 text-center">
               <h2 className="text-xl font-bold text-white">Tudo pronto para começar?</h2>
               <p className="text-slate-400 text-sm">
-                Sua barbearia <strong className="text-white">{name}</strong> está configurada com horários padrão (Seg-Sex: 09-18h, Sáb: 09-14h).
+                Seu estabelecimento <strong className="text-white">{name}</strong> está configurada com horários padrão (Seg-Sex: 09-18h, Sáb: 09-14h).
                 Você poderá ajustar serviços, equipe e horários dentro do Dashboard.
               </p>
               <Button onClick={() => manageBarbershopMutation.mutate(2)} disabled={manageBarbershopMutation.isPending} className="w-full">

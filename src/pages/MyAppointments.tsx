@@ -293,7 +293,7 @@ const AppointmentItem = ({ a }: { a: AppointmentResult }) => {
 
       </div>
 
-      {/* Rodapé do Card: Data, Hora e Barbeiro */}
+      {/* Rodapé do Card: Data, Hora e Profissional */}
       <div className="grid grid-cols-2 gap-4 bg-slate-950/50 rounded-2xl p-3 border border-slate-800/50">
         <div className="flex items-center gap-2">
           <Clock className="h-3.5 w-3.5 text-slate-500" />

@@ -16,7 +16,7 @@ const CustomerInfoStep = () => {
     <div className="animate-fade-in">
       <h2 className="font-display text-xl font-bold mb-1">Seus Dados</h2>
       <p className="text-sm text-muted-foreground mb-6">
-        Informe seu nome e telefone para que o barbeiro saiba quem irá atender
+        Informe seu nome e telefone para que o profissional saiba quem irá atender
       </p>
       <div className="space-y-4">
         <div className="space-y-2">
