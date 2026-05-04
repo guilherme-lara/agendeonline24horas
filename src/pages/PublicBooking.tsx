@@ -494,7 +494,7 @@ const PublicBooking = () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inválido.");
       if (!shop?.settings?.infinitepay_tag) {
-        throw new Error("Erro: A barbearia ainda não configurou o método de pagamento.");
+        throw new Error("Erro: O estabelecimento ainda não configurou o método de pagamento.");
       }
       if (cartItems.length === 0) throw new Error("Adicione pelo menos um serviço ao agendamento.");
 
@@ -604,7 +604,7 @@ const PublicBooking = () => {
 
       // 3. Redirecionamento para Pagamento
       const infiniteTag = shop?.settings?.infinitepay_tag;
-      if (!infiniteTag) throw new Error("Esta barbearia não está configurada para receber pagamentos online.");
+      if (!infiniteTag) throw new Error("Este estabelecimento não está configurado para receber pagamentos online.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
@@ -709,7 +709,7 @@ const PublicBooking = () => {
   if (errorShop || !shop) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
       <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
-      <h1 className="text-2xl font-black text-foreground font-display">Barbearia Não Encontrada</h1>
+      <h1 className="text-2xl font-black text-foreground font-display">Estabelecimento Não Encontrado</h1>
     </div>
   );
 
@@ -848,7 +848,7 @@ const PublicBooking = () => {
                   <WifiOff className="h-12 w-12 text-amber-500" />
               </div>
               <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Agendamentos Indisponíveis</h1>
-              <p className="text-muted-foreground text-sm">Esta barbearia está configurando os pagamentos e não pode receber agendamentos no momento. Tente novamente mais tarde.</p>
+              <p className="text-muted-foreground text-sm">Este estabelecimento está configurando os pagamentos e não pode receber agendamentos no momento. Tente novamente mais tarde.</p>
             </div>
         ) :
 
@@ -1440,7 +1440,7 @@ const PublicBooking = () => {
                       onClick={() => {
                         const start = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`);
                         const end = addMinutes(start, totalCartDuration || 30);
-                        const title = encodeURIComponent(`Agendamento - ${shop?.name || 'Barbearia'}`);
+                        const title = encodeURIComponent(`Agendamento - ${shop?.name || 'Estabelecimento'}`);
                         const dates = `${format(start, "yyyyMMdd'T'HHmmss")}/${format(end, "yyyyMMdd'T'HHmmss")}`;
                         const location = encodeURIComponent(shop?.address || '');
                         window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}`, '_blank');

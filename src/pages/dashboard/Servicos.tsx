@@ -130,7 +130,7 @@ const Servicos = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Barbearia não encontrada.");
+      if (!barbershop?.id) throw new Error("Estabelecimento não encontrado.");
 
       const numericPrice = Number(price) || 0;
       const numericAdvanceValue = Number(advanceValue) || 0;
@@ -346,7 +346,7 @@ const Servicos = () => {
     mutationFn: async () => {
       if (!categoryName.trim())
         throw new Error("Nome da categoria é obrigatório.");
-      if (!barbershop?.id) throw new Error("Barbearia não encontrada.");
+      if (!barbershop?.id) throw new Error("Estabelecimento não encontrado.");
 
 
       if (editingCategory) {

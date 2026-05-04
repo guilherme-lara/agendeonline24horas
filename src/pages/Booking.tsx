@@ -74,7 +74,7 @@ const Booking = () => {
   const confirmMutation = useMutation({
     mutationFn: async () => {
       // 1. Health Check de disponibilidade (Futuramente você pode checar se o horário ainda está vago)
-      if (!barbershop?.id) throw new Error("Barbearia não identificada.");
+      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
 
       const payload = {
         barbershop_id: barbershop.id,

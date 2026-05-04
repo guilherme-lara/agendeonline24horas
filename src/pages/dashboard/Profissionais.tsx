@@ -55,7 +55,7 @@ const Profissionais = () => {
             </div>
             <div>
                 <h1 className="text-3xl font-black text-foreground tracking-tight font-display">Equipe & Profissionais</h1>
-                <p className="text-muted-foreground text-sm font-medium">Gerencie os barbeiros e as permissões de acesso ao sistema.</p>
+                <p className="text-muted-foreground text-sm font-medium">Gerencie os profissionais e as permissões de acesso ao sistema.</p>
             </div>
         </div>
         <div className="bg-card border border-border px-4 py-2 rounded-xl flex items-center gap-3">

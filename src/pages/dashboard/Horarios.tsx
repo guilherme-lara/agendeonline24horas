@@ -81,7 +81,7 @@ const Horarios = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Barbearia não identificada.");
+      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
 
       const { error } = await supabase.from("business_hours").upsert(
         hours.map((h) => ({

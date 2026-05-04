@@ -28,7 +28,7 @@ const Login = () => {
       } else if (isBarber) {
         navigate("/barber/dashboard", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate("/dashboard/caixa", { replace: true });
       }
     }
   }, [user, isAdmin, isBarber, authLoading, navigate]);
@@ -100,7 +100,7 @@ const Login = () => {
           .maybeSingle();
 
         if (shopData) {
-          window.location.href = "/dashboard";
+          window.location.href = "/dashboard/caixa";
         } else {
           window.location.href = "/onboarding";
         }
@@ -177,7 +177,7 @@ const Login = () => {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-amber-500/80 transition-colors" />
                   <Input
                     type="email"
-                    placeholder="contato@barbearia.com"
+                    placeholder="contato@meunegocio.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="bg-zinc-950/50 border-zinc-800/50 pl-12 h-14 rounded-2xl text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-amber-500/30 focus-visible:border-amber-500/50 transition-all"
@@ -240,7 +240,7 @@ const Login = () => {
             onClick={() => setIsSignUp(!isSignUp)}
             className="w-full text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
           >
-            {isSignUp ? "Já possui uma conta? Entrar" : "Nova barbearia? Criar uma conta"}
+            {isSignUp ? "Já possui uma conta? Entrar" : "Novo estabelecimento? Criar uma conta"}
           </button>
         </div>
         

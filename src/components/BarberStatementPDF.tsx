@@ -58,7 +58,7 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
     printWindow.document.close();
   };
 
-  const shopName = barber.barbershops?.name || "Barbearia";
+  const shopName = barber.barbershops?.name || "Estabelecimento";
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">

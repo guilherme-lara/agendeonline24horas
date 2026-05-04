@@ -70,7 +70,7 @@ const LogoUpload = ({ barbershopId, currentUrl, onUploaded }: LogoUploadProps) =
         )}
       </button>
       <div>
-        <p className="text-sm font-medium">Logo da Barbearia</p>
+        <p className="text-sm font-medium">Logo do Estabelecimento</p>
         <p className="text-xs text-muted-foreground">Clique para {currentUrl ? "alterar" : "enviar"}</p>
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
