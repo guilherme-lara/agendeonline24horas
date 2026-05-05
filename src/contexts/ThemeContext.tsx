@@ -12,7 +12,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("techbarber-theme") as Theme;
-    return saved === "light" ? "light" : "dark";
+    return saved === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {
