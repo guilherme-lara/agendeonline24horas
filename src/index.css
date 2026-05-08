@@ -45,6 +45,37 @@
     --font-body: 'Inter', sans-serif;
   }
 
+  .dark {
+    /* ─── LANDING PAGE THEME DARK MODE ─── */
+    --background: 240 10% 4%;
+    --foreground: 240 10% 98%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 240 10% 98%;
+
+    --popover: 240 10% 6%;
+    --popover-foreground: 240 10% 98%;
+
+    --primary: 350 35% 65%;         /* Rose Gold lighter */
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 40 20% 12%;        /* Dark cream */
+    --secondary-foreground: 350 35% 80%;
+
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 4% 65%;
+
+    --accent: 43 65% 53%;           /* Champagne */
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 240 10% 98%;
+
+    --border: 240 6% 15%;
+    --input: 240 6% 15%;
+    --ring: 350 35% 65%;
+  }
+
   .dashboard-theme {
     /* ─── LIGHT MODE (Material + Apple) ─── */
     --background: 210 40% 96%;        /* slate-100: bg-slate-100 */
