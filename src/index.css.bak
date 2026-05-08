@@ -45,6 +45,7 @@
     --font-body: 'Inter', sans-serif;
   }
 
+  /*
   .dashboard-theme {
     --background: 210 10% 96%;
     --foreground: 210 10% 20%;
@@ -96,6 +97,7 @@
     --input: 210 10% 15%;
     --ring: 210 10% 95%;
   }
+  */
 }
 
 
