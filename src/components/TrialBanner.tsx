@@ -3,11 +3,33 @@ import { Rocket, Sparkles } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "./ui/button";
 
 const TrialBanner = () => {
-  const { clinic } = useClinic() as any;
+  const { clinic, refetch } = useClinic() as any;
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const extendTrialMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinic?.id) return;
+      const newDate = new Date();
+      newDate.setDate(newDate.getDate() + 30);
+      const { error } = await supabase
+        .from("barbershops")
+        .update({ trial_ends_at: newDate.toISOString() })
+        .eq("id", clinic.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
+      refetch();
+    }
+  });
 
   // Support multiple field names for backward compatibility
   const trialEnd = clinic?.trial_ends_at ||
@@ -32,10 +54,10 @@ const TrialBanner = () => {
   const today = new Date();
   const daysRemaining = differenceInDays(endDate, today);
 
-  // Hide if trial ended more than 0 days ago
-  if (daysRemaining <= 0 && !isTrial) return null;
-  // Hide if trial ended today or in the past and it's been over 7 days
-  if (daysRemaining < -7) return null;
+  // Hide if trial ended more than 0 days ago (unless Admin)
+  if (daysRemaining <= 0 && !isTrial && !isAdmin) return null;
+  // Hide if trial ended today or in the past and it's been over 7 days (unless Admin)
+  if (daysRemaining < -7 && !isAdmin) return null;
 
   // Only show for 0-30 day window (entire trial period)
   if (daysRemaining > 30 && planStatus !== "trialing") return null;
@@ -61,7 +83,9 @@ const TrialBanner = () => {
     message = "Seu teste gratuito vence hoje! Faça upgrade para não perder acesso.";
     urgency = "critical";
   } else {
-    message = "Seu período de teste gratuito terminou. Faça um upgrade para continuar aproveitando.";
+    message = isAdmin 
+      ? `Atenção (Modo Suporte): O trial deste cliente acabou há ${Math.abs(daysRemaining)} dias. O sistema está bloqueado para ele.`
+      : "Seu período de teste gratuito terminou. Faça um upgrade para continuar aproveitando.";
     urgency = "expired";
   }
 
@@ -91,12 +115,23 @@ const TrialBanner = () => {
           )}
         </div>
       </div>
-      <Button
-        onClick={() => navigate('/subscribe/pro')}
-        className="bg-white text-blue-600 hover:bg-gray-100 font-bold h-11 px-6 rounded-xl transition-transform active:scale-95 flex-shrink-0 shadow-lg"
-      >
-        <Rocket className="h-4 w-4 mr-2" /> Fazer Upgrade Agora
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        {isAdmin && daysRemaining <= 0 && (
+          <Button
+            onClick={() => extendTrialMutation.mutate()}
+            disabled={extendTrialMutation.isPending}
+            className="bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-6 rounded-xl transition-transform active:scale-95 flex-shrink-0 shadow-lg"
+          >
+            {extendTrialMutation.isPending ? "Processando..." : "Estender Trial (+30d)"}
+          </Button>
+        )}
+        <Button
+          onClick={() => navigate('/subscribe/pro')}
+          className="bg-white text-blue-600 hover:bg-gray-100 font-bold h-11 px-6 rounded-xl transition-transform active:scale-95 flex-shrink-0 shadow-lg"
+        >
+          <Rocket className="h-4 w-4 mr-2" /> {isAdmin ? "Ver Planos" : "Fazer Upgrade Agora"}
+        </Button>
+      </div>
     </div>
   );
 };
