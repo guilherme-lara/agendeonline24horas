@@ -193,7 +193,7 @@ const Caixa = () => {
       { name: appt.service_name, price: appt.price, qty: 1, type: "service" },
     ];
 
-    if (appt.has_signal && appt.signal_value > 0) {
+    if (appt.has_signal && appt.signal_value > 0 && appt.payment_method === 'pix_online') {
       initialCart.push({
         name: "Desconto (Sinal Adiantado)",
         price: -Math.abs(appt.signal_value),
@@ -559,7 +559,7 @@ const Caixa = () => {
                       {a.service_name} &bull; R${" "}
                       {a.status === "completed" ? a.total_price : a.price}
                     </p>
-                    {a.has_signal && a.status !== "completed" && (
+                    {a.has_signal && a.payment_method === "pix_online" && a.status !== "completed" && (
                       <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">
                         - R$ {a.signal_value} (Sinal)
                       </Badge>
