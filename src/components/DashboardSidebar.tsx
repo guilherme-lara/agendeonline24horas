@@ -42,7 +42,7 @@ interface SidebarProps {
 
 const navItems = [
   { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
-  { label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Painel", icon: LayoutDashboard, path: "/dashboard/painel" },
   {
     label: "Agenda",
     icon: Calendar,

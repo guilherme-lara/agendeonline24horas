@@ -260,6 +260,14 @@ const AppContent = () => {
             }
           />
           <Route
+            path="painel"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Dashboard />
+              </Suspense>
+            }
+          />
+          <Route
             path="relatorios"
             element={
               <Suspense fallback={<LazyFallback />}>
