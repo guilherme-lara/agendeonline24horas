@@ -41,6 +41,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Painel", icon: LayoutDashboard, path: "/dashboard" },
   {
     label: "Agenda",
@@ -76,7 +77,6 @@ const navItems = [
     icon: Briefcase,
     path: "#",
     subItems: [
-      { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
       { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
     ],
@@ -108,7 +108,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
   const visibleNavItems = useMemo(() => {
     if (isProfessional) {
       return navItems.filter(item => 
-        ["Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
+        ["Caixa", "Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
       );
     }
     return navItems;

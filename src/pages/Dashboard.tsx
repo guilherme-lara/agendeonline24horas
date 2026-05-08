@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { 
   format, subDays, startOfMonth, endOfMonth, 
@@ -28,7 +29,8 @@ import ExpirationBanner from "@/components/ExpirationBanner";
 const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { clinic, loading: shopLoading, clearImpersonation } = useClinic() as any;
+  const { clinic, loading: shopLoading, clearImpersonation, professionalId } = useClinic() as any;
+  const { isProfessional } = useAuth();
   const { toast } = useToast();
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
@@ -82,13 +84,18 @@ const Dashboard = () => {
 
   // --- 3. QUERIES (BUSCA DE DADOS) ---
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ["dashboard-appointments", clinic?.id],
+    queryKey: ["dashboard-appointments", clinic?.id, professionalId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("appointments")
         .select("id, client_name, scheduled_at, status")
-        .eq("barbershop_id", clinic.id)
-        .order("scheduled_at", { ascending: false });
+        .eq("barbershop_id", clinic.id);
+        
+      if (isProfessional && professionalId) {
+        query = query.eq("barber_id", professionalId);
+      }
+      
+      const { data, error } = await query.order("scheduled_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -97,14 +104,19 @@ const Dashboard = () => {
   });
 
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ["dashboard-orders", clinic?.id],
+    queryKey: ["dashboard-orders", clinic?.id, professionalId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("orders")
         .select("*")
         .eq("barbershop_id", clinic.id)
-        .eq("status", "closed")
-        .order("created_at", { ascending: false });
+        .eq("status", "closed");
+
+      if (isProfessional && professionalId) {
+        query = query.eq("barber_id", professionalId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
