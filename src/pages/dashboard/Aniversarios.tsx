@@ -91,7 +91,7 @@ const Aniversarios = () => {
             const isToday = day === today;
             return (
               <div key={c.id} className={`group rounded-2xl border transition-all duration-300 p-5 flex items-center gap-5 ${
-                isToday ? "bg-primary/10 border-primary/30 shadow-premium scale-[1.02]" : "bg-card border-border hover:border-primary/20"
+                isToday ? "bg-primary/10 border-primary/30 shadow-premium scale-[1.02]" : "bg-card border-border hover:border-primary/20 shadow-sm hover:shadow-md"
               }`}>
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform group-hover:rotate-12 ${
                   isToday ? "bg-primary text-primary-foreground shadow-premium" : "bg-background border border-border"
@@ -112,8 +112,8 @@ const Aniversarios = () => {
                 </div>
                 {c.phone && (
                   <Button size="sm" onClick={() => sendWhatsApp(c.phone, c.name)}
-                    className={`h-10 rounded-xl px-4 font-bold transition-all ${
-                      isToday ? "premium-gradient text-primary-foreground" : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20"
+                    className={`h-10 rounded-xl px-4 font-bold shadow-sm transition-all ${
+                      isToday ? "premium-gradient text-primary-foreground" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white dark:border-emerald-500/20"
                     }`}>
                     <MessageCircle className="h-4 w-4 mr-2" /> Parabenizar
                   </Button>

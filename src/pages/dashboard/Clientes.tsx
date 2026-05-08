@@ -178,10 +178,10 @@ const Clientes = () => {
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
-        <div className="bg-card border-border rounded-3xl shadow-card overflow-hidden">
+        <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-secondary/30">
+              <thead className="bg-secondary/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliente</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">Contagem</th>
@@ -191,7 +191,7 @@ const Clientes = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-secondary/20 transition-colors">
+                  <tr key={customer.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-bold text-foreground">{customer.name}</div>
                       <div className="text-xs text-muted-foreground font-mono">{formatPhoneNumber(customer.phone)}</div>
@@ -216,29 +216,31 @@ const Clientes = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 border-blue-500/30 bg-blue-900/40 text-blue-400 hover:bg-blue-900/80 hover:text-blue-300"
+                          className="h-9 w-9 shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-500/30 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/80 dark:hover:text-blue-300"
                           onClick={() => handleEditOpen(customer)}
+                          title="Editar Cliente"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 border-red-500/30 bg-red-900/40 text-red-400 hover:bg-red-900/80 hover:text-red-300"
+                          className="h-9 w-9 shadow-sm border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 dark:border-red-500/30 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/80 dark:hover:text-red-300"
                           onClick={() => setDeleteCustomerId(customer.id)}
                           disabled={deleteMutation.isPending}
+                          title="Excluir Cliente"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           asChild
-                          className="border-emerald-500/30 bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/80 hover:text-emerald-300"
+                          className="h-9 shadow-sm font-bold border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/80 dark:hover:text-emerald-300"
                         >
                           <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
                             <MessageSquare className="h-4 w-4 mr-2" /> Conversar

@@ -195,17 +195,17 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
       </div>
 
       {/* Add form */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <p className="text-sm font-medium">Adicionar Profissional</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do profissional" className="bg-secondary border-border md:col-span-1" maxLength={100} />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-secondary border-border" maxLength={20} />
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-secondary border-border" maxLength={100} />
+      <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-4 transition-all hover:shadow-md">
+        <p className="text-sm font-bold text-foreground">Adicionar Novo Profissional</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do profissional" className="bg-background border-input shadow-sm md:col-span-1 h-11" maxLength={100} />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-background border-input shadow-sm h-11" maxLength={20} />
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-background border-input shadow-sm h-11" maxLength={100} />
         </div>
-        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90">
-          {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          Adicionar
-          {activeCount >= limit && <Crown className="h-3 w-3 ml-2" />}
+        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full h-11 premium-gradient text-primary-foreground font-bold hover:opacity-90 shadow-md">
+          {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
+          Cadastrar Profissional
+          {activeCount >= limit && <Crown className="h-4 w-4 ml-2" />}
         </Button>
       </div>
 
@@ -219,12 +219,12 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           {/* Active barbers */}
           <div className="space-y-2">
             {barbers.filter((b) => b.active).map((b) => (
-              <div key={b.id} className="rounded-lg border border-border bg-card px-4 py-3 space-y-3">
-                <div className="flex items-center gap-3">
+              <div key={b.id} className="rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+                <div className="flex items-center gap-4 px-5 py-4 bg-background/50">
                   <div className="relative group">
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
                       {b.avatar_url ? <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" /> : null}
-                      <AvatarFallback className="bg-secondary text-xs font-bold">{b.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/5 text-primary text-sm font-black">{b.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                       <Upload className="h-3.5 w-3.5 text-white" />
@@ -232,19 +232,19 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                     </label>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{b.name}</p>
+                    <p className="font-bold text-foreground text-base truncate">{b.name}</p>
                     {/* PONTO DE ATUALIZAÇÃO 4: REMOVIDA MENÇÃO À COMISSÃO */}
                     <p className="text-xs text-muted-foreground truncate">
                       {b.phone || b.email || "Sem contato"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {b.user_id ? (
-                      <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded-full">Acesso Ativo</span>
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">Acesso Ativo</span>
                     ) : (
-                      <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded-full">Sem Acesso</span>
+                      <span className="text-[10px] font-black text-muted-foreground bg-secondary px-2.5 py-1 rounded-full uppercase tracking-wider">Sem Acesso</span>
                     )}
-                    <button onClick={() => handleArchive(b.id, true)} className="text-muted-foreground hover:text-yellow-400 shrink-0" title="Arquivar profissional">
+                    <button onClick={() => handleArchive(b.id, true)} className="text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 p-2 rounded-lg transition-colors shrink-0" title="Arquivar profissional">
                       <Archive className="h-4 w-4" />
                     </button>
                   </div>
@@ -252,18 +252,18 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
 
                 {/* Access Management */}
                 {!b.user_id ? (
-                  <div className="border-t border-border pt-3 space-y-2">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                      <KeyRound className="h-3 w-3" /> Criar Acesso ao Sistema
+                  <div className="border-t border-border bg-card/40 p-5 space-y-4">
+                    <p className="text-[11px] font-black text-foreground uppercase tracking-widest flex items-center gap-1.5">
+                      <KeyRound className="h-3.5 w-3.5 text-primary" /> Criar Acesso ao Sistema
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Input
                         type="email"
                         value={creatingAccess === b.id ? accessEmail : ""}
                         onChange={(e) => { setCreatingAccess(b.id); setAccessEmail(e.target.value); }}
                         onFocus={() => setCreatingAccess(b.id)}
                         placeholder="E-mail do profissional"
-                        className="bg-secondary border-border text-xs h-9"
+                        className="bg-background border-input shadow-sm text-sm h-11"
                       />
                       <div className="relative">
                         <Input
@@ -272,7 +272,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                           onChange={(e) => { setCreatingAccess(b.id); setAccessPassword(e.target.value); }}
                           onFocus={() => setCreatingAccess(b.id)}
                           placeholder="Senha"
-                          className="bg-secondary border-border text-xs h-9 pr-16"
+                          className="bg-background border-input shadow-sm text-sm h-11 pr-20"
                         />
                         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 text-muted-foreground hover:text-foreground">
@@ -296,22 +296,24 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                       size="sm"
                       onClick={() => handleCreateAccess(b)}
                       disabled={creatingAccess === b.id && (!accessEmail || !accessPassword)}
-                      className="w-full h-8 text-xs premium-gradient text-primary-foreground font-bold"
+                      className="w-full h-11 text-sm premium-gradient text-primary-foreground font-bold shadow-md"
                     >
-                      {creatingAccess === b.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Power className="h-3 w-3 mr-1" />}
+                      {creatingAccess === b.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Power className="h-4 w-4 mr-2" />}
                       Ativar Acesso
                     </Button>
                   </div>
                 ) : (
-                  <div className="border-t border-border pt-3 flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground">Acesso vinculado ao sistema</p>
+                  <div className="border-t border-border bg-emerald-500/5 px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <p className="text-xs font-bold text-emerald-600/80 flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" /> Acesso vinculado e ativo
+                    </p>
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => handleRevokeAccess(b)}
-                      className="h-7 text-[10px] px-3"
+                      className="h-9 text-xs font-bold px-4"
                     >
-                      <PowerOff className="h-3 w-3 mr-1" /> Revogar Acesso
+                      <PowerOff className="h-3.5 w-3.5 mr-2" /> Revogar Acesso
                     </Button>
                   </div>
                 )}
@@ -325,10 +327,10 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
               <p className="text-xs text-muted-foreground font-medium mb-2">Arquivados</p>
               <div className="space-y-2">
                 {barbers.filter((b) => !b.active).map((b) => (
-                  <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 opacity-60">
-                    <Avatar className="h-10 w-10">
+                  <div key={b.id} className="flex items-center gap-4 rounded-xl border border-border bg-card/50 px-5 py-4 opacity-70 grayscale hover:grayscale-0 transition-all">
+                    <Avatar className="h-10 w-10 border border-primary/10">
                       {b.avatar_url ? <AvatarImage src={b.avatar_url} alt={b.name} className="object-cover" /> : null}
-                      <AvatarFallback className="bg-secondary text-xs font-bold">{b.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="bg-secondary text-muted-foreground text-xs font-bold">{b.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{b.name}</p>
