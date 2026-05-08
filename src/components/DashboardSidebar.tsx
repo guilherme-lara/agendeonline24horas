@@ -158,7 +158,12 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           {clinic?.logo_url ? (
-            <img src={clinic.logo_url} alt="Logo da Empresa" className="h-10 w-auto object-contain max-w-[150px]" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm shrink-0 bg-secondary flex items-center justify-center">
+                <img src={clinic.logo_url} alt="Logo da Empresa" className="h-full w-full object-cover" />
+              </div>
+              <span className="font-bold text-sm text-foreground truncate max-w-[130px]">{clinic?.name}</span>
+            </div>
           ) : (
             <img src={logoAgenda} alt="Logo Padrão" className="h-8 w-auto opacity-90 object-contain" />
           )}

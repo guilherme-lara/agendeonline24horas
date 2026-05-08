@@ -13,7 +13,7 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
   useEffect(() => {
     if (!barbershopId) return;
 
-    const channel = supabase
+    const appointmentsChannel = supabase
       .channel(`live-appointments-${barbershopId}`)
       .on(
         "postgres_changes",
@@ -24,8 +24,27 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
           filter: `barbershop_id=eq.${barbershopId}`,
         },
         () => {
-          // Invalidação silenciosa — TanStack Query faz refetch em background
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        }
+      )
+      .subscribe();
+
+    const ordersChannel = supabase
+      .channel(`live-orders-${barbershopId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `barbershop_id=eq.${barbershopId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
           queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
         }
@@ -33,7 +52,8 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(appointmentsChannel);
+      supabase.removeChannel(ordersChannel);
     };
   }, [barbershopId, queryClient]);
 };
