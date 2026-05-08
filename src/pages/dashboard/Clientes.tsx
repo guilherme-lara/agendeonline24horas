@@ -170,6 +170,14 @@ const Clientes = () => {
       </div>
 
       {customers.length === 0 ? (
+        <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center shadow-sm">
+          <div className="bg-zinc-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-100">
+            <UserSearch className="h-10 w-10 text-zinc-300" />
+          </div>
+          <h3 className="text-xl font-bold text-zinc-900 mb-2">Nenhum cliente cadastrado</h3>
+          <p className="text-sm text-zinc-500 max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
+        </div>
+      ) : (
         <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
