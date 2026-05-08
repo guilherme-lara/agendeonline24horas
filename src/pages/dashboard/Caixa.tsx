@@ -515,7 +515,7 @@ const Caixa = () => {
           <Button
             onClick={() => setShowPixModal(true)}
             variant="outline"
-            className="border-primary/30 text-primary hover:bg-primary/10 font-bold rounded-xl"
+            className="border-primary/30 text-primary hover:bg-primary/10 font-bold rounded-full h-11 px-5"
           >
             <QrCode className="h-4 w-4 mr-2" /> Mostrar Pix Fixo
           </Button>
@@ -528,7 +528,7 @@ const Caixa = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Localizar cliente para cobrar..."
-              className="bg-card border-border pl-11 h-12 rounded-2xl"
+              className="bg-card border-border/50 pl-11 h-14 rounded-full shadow-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -545,7 +545,7 @@ const Caixa = () => {
             .map((a: any) => (
               <div
                 key={a.id}
-                className="p-4 bg-card border border-border rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all"
+                className="p-5 bg-card border border-border/60 rounded-[2rem] shadow-sm flex items-center justify-between group hover:border-primary/40 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div>
                   <p className="font-bold text-foreground flex items-center gap-2">
@@ -571,7 +571,7 @@ const Caixa = () => {
                   <Button
                     variant="outline"
                     onClick={() => openDetails(a)}
-                    className="border-border text-muted-foreground hover:text-primary hover:border-primary/30 font-bold rounded-xl h-9 px-4"
+                    className="border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 font-bold rounded-full h-10 px-5"
                   >
                     <Eye className="h-4 w-4 mr-2" /> Ver Detalhes
                   </Button>
@@ -579,7 +579,7 @@ const Caixa = () => {
                   <Button
                     onClick={() => handleSelectAppt(a)}
                     disabled={!!selectedAppt && selectedAppt.id === a.id}
-                    className="premium-gradient text-primary-foreground font-bold rounded-xl h-9 px-6 shadow-premium"
+                    className="premium-gradient text-primary-foreground font-bold rounded-full h-10 px-7 shadow-premium"
                   >
                     Cobrar
                   </Button>
@@ -594,7 +594,7 @@ const Caixa = () => {
         </div>
 
         {selectedAppt && (
-          <div className="bg-card border border-border rounded-3xl p-8 shadow-card animate-in zoom-in-95 duration-300">
+          <div className="bg-card border border-border/60 rounded-[2.5rem] p-8 shadow-card animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-2xl font-black text-foreground font-display">
@@ -621,7 +621,7 @@ const Caixa = () => {
               {cart.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-center justify-between p-4 bg-background rounded-2xl border border-border ${item.type === "discount" ? "border-amber-500/30 bg-amber-500/5" : ""}`}
+                  className={`flex items-center justify-between p-4 bg-background rounded-[1.5rem] border border-border/50 ${item.type === "discount" ? "border-amber-500/30 bg-amber-500/5" : ""}`}
                 >
                   <div>
                     <p
@@ -699,7 +699,7 @@ const Caixa = () => {
                   <button
                     key={p.id}
                     onClick={() => addProductToCart(p)}
-                    className="flex flex-col p-3 bg-background border border-border rounded-xl hover:border-primary/30 transition-all text-left w-full overflow-hidden"
+                    className="flex flex-col p-3 bg-background border border-border/50 rounded-2xl hover:border-primary/40 hover:shadow-sm transition-all text-left w-full overflow-hidden"
                   >
                     <div className="w-full flex justify-between items-start gap-2">
                       <p className="text-[11px] font-bold text-foreground truncate flex-1">
@@ -723,7 +723,7 @@ const Caixa = () => {
                   Forma de Pagamento
                 </span>
                 <Select value={payMethod} onValueChange={setPayMethod}>
-                  <SelectTrigger className="w-40 bg-background border-border h-10 rounded-xl">
+                  <SelectTrigger className="w-40 bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border text-popover-foreground">
@@ -744,7 +744,7 @@ const Caixa = () => {
               <Button
                 onClick={() => checkoutMutation.mutate()}
                 disabled={checkoutMutation.isPending}
-                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-lg shadow-xl shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-900/30 hover:-translate-y-0.5 transition-all duration-300 text-white font-black rounded-full text-lg shadow-xl shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {checkoutMutation.isPending ? (
                   <>
@@ -767,7 +767,7 @@ const Caixa = () => {
 
         {/* MODAL PIX FIXO */}
         <Dialog open={showPixModal} onOpenChange={setShowPixModal}>
-          <DialogContent className="bg-card border-border text-foreground max-w-sm rounded-3xl">
+          <DialogContent className="bg-card border-border/50 text-foreground max-w-sm rounded-[2rem] shadow-card">
             <DialogHeader>
               <DialogTitle className="text-xl font-black flex items-center gap-2 font-display">
                 <QrCode className="h-5 w-5 text-primary" /> Pix do

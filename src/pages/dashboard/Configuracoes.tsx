@@ -168,7 +168,7 @@ const Configuracoes = () => {
 
       <div className="grid gap-8">
         {/* SEÇÃO: IDENTIDADE VISUAL */}
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-card">
+        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-6 flex items-center gap-2">
                 <Building2 className="h-4 w-4" /> Logo da Empresa
             </h2>
@@ -181,7 +181,7 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: DADOS DA EMPRESA */}
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
+        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
                 <Save className="h-4 w-4" /> Informações do Perfil
             </h2>
@@ -236,7 +236,7 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: CHAVE PIX */}
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
+        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
                 <QrCode className="h-4 w-4" /> Chave Pix para Recebimentos
             </h2>
@@ -291,11 +291,10 @@ const Configuracoes = () => {
             </div>
         </div>
 
-        {/* BOTÃO SALVAR */}
         <Button 
             onClick={() => saveMutation.mutate()} 
             disabled={saveMutation.isPending} 
-            className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
+            className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-full shadow-premium hover:-translate-y-0.5 transition-all duration-300"
         >
           {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Aplicar Alterações no Sistema

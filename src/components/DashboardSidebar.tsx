@@ -150,19 +150,19 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card border-r border-border shadow-xl transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card/95 backdrop-blur-md border-r border-border/40 shadow-2xl transition-transform duration-300 ease-in-out",
           "w-[85vw] max-w-[300px] md:w-64", // Ajuste crítico de largura pro mobile
           "md:translate-x-0 md:static md:z-auto md:shadow-none",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border/40 shrink-0">
           {clinic?.logo_url ? (
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm shrink-0 bg-secondary flex items-center justify-center">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-primary/20 shadow-md shrink-0 bg-secondary flex items-center justify-center">
                 <img src={clinic.logo_url} alt="Logo da Empresa" className="h-full w-full object-cover" />
               </div>
-              <span className="font-bold text-sm text-foreground truncate max-w-[130px]">{clinic?.name}</span>
+              <span className="font-black text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">{clinic?.name}</span>
             </div>
           ) : (
             <img src={logoAgenda} alt="Logo Padrão" className="h-8 w-auto opacity-90 object-contain" />
@@ -196,9 +196,9 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   href={item.external} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all min-w-0"
+                  className="flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-300 min-w-0 mb-1"
                 >
-                  <item.icon className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <item.icon className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
                   <span className="truncate flex-1 text-left">{item.label}</span>
                 </a>
               );
@@ -212,12 +212,12 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   <button 
                     onClick={() => toggleMenu(item.label)} 
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all min-w-0", 
-                      hasActiveChild && !isMenuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-full text-[13px] font-bold transition-all duration-300 min-w-0 mb-1", 
+                      hasActiveChild && !isMenuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <item.icon className={cn("h-4 w-4 shrink-0", hasActiveChild ? "text-primary" : "text-muted-foreground")} />
+                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild ? "text-primary" : "text-muted-foreground")} />
                       <span className="truncate text-left">{item.label}</span>
                     </div>
                     {isMenuOpen ? <ChevronDown className="h-3.5 w-3.5 opacity-50 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 opacity-50 shrink-0" />}
@@ -234,10 +234,10 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                         to={sub.path} 
                         onClick={onClose} 
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all min-w-0", 
+                          "flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300 min-w-0 mb-1", 
                           isActive(sub.path) 
-                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[0.98]" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                         )}
                       >
                         <sub.icon className="h-3.5 w-3.5 shrink-0" />
@@ -255,21 +255,21 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                 to={item.path} 
                 onClick={onClose} 
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all min-w-0", 
+                  "flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-bold transition-all duration-300 min-w-0 mb-1", 
                   isActive(item.path) 
-                    ? "premium-gradient text-primary-foreground shadow-lg shadow-primary/10" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    ? "premium-gradient text-primary-foreground shadow-premium scale-[0.98]" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
+                <item.icon className="h-[18px] w-[18px] shrink-0" />
                 <span className="flex-1 truncate text-left">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-border p-4 space-y-3 bg-card/80 shrink-0">
-          <div className="flex items-center justify-between px-1">
+        <div className="border-t border-border/40 p-5 space-y-4 bg-card/50 shrink-0">
+          <div className="flex items-center justify-between px-2">
             <ThemeToggle />
             <button 
               onClick={signOut} 

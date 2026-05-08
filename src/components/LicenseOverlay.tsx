@@ -1,4 +1,4 @@
-import { Shield, Check, Package, Sparkles, Star, ExternalLink, Lock, Settings, Loader2 } from "lucide-react";
+import { Shield, Check, Package, Sparkles, Star, ExternalLink, Lock, Settings, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,7 +17,7 @@ interface LicenseOverlayProps {
 }
 
 const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, signOut } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -51,9 +51,13 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
 
         <div>
           <h1 className="text-2xl font-black font-display text-foreground">Acesso Suspenso</h1>
-          <p className="text-muted-foreground mt-2 text-sm max-w-md mx-auto">
+          <p className="text-muted-foreground mt-2 text-sm max-w-md mx-auto mb-4">
             Sua licença expirou. Realize o pagamento para liberar o acesso imediatamente.
           </p>
+          <Button variant="outline" onClick={signOut} className="mx-auto flex items-center gap-2 rounded-xl text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4" />
+            Sair do Sistema
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

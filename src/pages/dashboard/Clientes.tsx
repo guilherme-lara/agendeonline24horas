@@ -170,15 +170,15 @@ const Clientes = () => {
       </div>
 
       {customers.length === 0 ? (
-        <div className="bg-card border border-border rounded-3xl p-16 text-center shadow-card">
-          <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
+        <div className="bg-card border border-border/60 rounded-[2rem] p-16 text-center shadow-card">
+          <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border/50">
             <UserSearch className="h-10 w-10 text-muted-foreground/30" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Nenhum cliente cadastrado</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden transition-all">
+        <div className="bg-card border border-border/60 rounded-[2rem] shadow-card overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary/50 border-b border-border">
@@ -220,7 +220,7 @@ const Clientes = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-500/30 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/80 dark:hover:text-blue-300"
+                          className="h-10 w-10 rounded-full shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-500/30 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/80 hover:scale-105 transition-transform"
                           onClick={() => handleEditOpen(customer)}
                           title="Editar Cliente"
                         >
@@ -229,7 +229,7 @@ const Clientes = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-9 w-9 shadow-sm border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 dark:border-red-500/30 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/80 dark:hover:text-red-300"
+                          className="h-10 w-10 rounded-full shadow-sm border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 dark:border-red-500/30 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/80 hover:scale-105 transition-transform"
                           onClick={() => setDeleteCustomerId(customer.id)}
                           disabled={deleteMutation.isPending}
                           title="Excluir Cliente"
@@ -240,7 +240,7 @@ const Clientes = () => {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="h-9 shadow-sm font-bold border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/80 dark:hover:text-emerald-300"
+                          className="h-10 rounded-full px-5 shadow-sm font-bold border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/80 hover:scale-105 transition-transform"
                         >
                           <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
                             <MessageSquare className="h-4 w-4 mr-2" /> Conversar
@@ -307,7 +307,7 @@ const Clientes = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && handleEditClose()}>
-        <DialogContent>
+        <DialogContent className="rounded-[2rem] bg-card border-border/50">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
           </DialogHeader>
@@ -361,7 +361,7 @@ const Clientes = () => {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteCustomerId} onOpenChange={(open) => !open && setDeleteCustomerId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[2rem] bg-card border-border/50">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>

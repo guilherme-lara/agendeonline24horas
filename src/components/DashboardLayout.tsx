@@ -28,20 +28,25 @@ const DashboardLayout = () => {
   // ÉPICO 2: Realtime silencioso — escuta mudanças na tabela appointments
   useLiveAppointments((clinic as any)?.id);
 
-  // Bloqueio por expiração de trial
+  // Bloqueio por expiração de trial ou assinatura
   const isTrialExpired = useMemo(() => {
     if (!clinic) return false;
     const shop = clinic as any;
-    // Se for SuperAdmin impersonando, ele também será bloqueado para ver exatamente o que o cliente vê
-    // If there's an active plan, never block
+    
+    // Se o plano está explicitamente expirado ou cancelado, bloqueia.
+    if (shop.plan_status === "expired" || shop.plan_status === "canceled") return true;
+
+    // Se tem plano ativo E não expirado, libera.
     if (shop.plan_status === "active") return false;
-    // If trial_ends_at exists and has passed
+
+    // Se não tem plano ativo, checa a data de fim do trial
     if (shop.trial_ends_at) {
       return new Date(shop.trial_ends_at) < new Date();
     }
-    // Se não tem plano ativo e o trial já acabou (ou não tem trial), bloqueia.
+
+    // Se não tem plano ativo e não tem data de trial definida, bloqueia.
     return true;
-  }, [clinic, isAdmin]);
+  }, [clinic]);
 
   useEffect(() => {
     if (isInitialLoadRef.current) {
@@ -79,9 +84,13 @@ const DashboardLayout = () => {
     return <DashboardSkeleton />;
   }
 
+  // PONTO DE BLOQUEIO TOTAL
+  if (isTrialExpired) {
+    return <LicenseOverlay barbershopId={(clinic as any)?.id} />;
+  }
+
   return (
-    <div className="flex min-h-screen w-full">
-      {isTrialExpired && <LicenseOverlay barbershopId={(clinic as any)?.id} />}
+    <div className="flex min-h-screen w-full bg-background selection:bg-primary/20">
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -89,14 +98,14 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-30">
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-card/80 backdrop-blur-md sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-secondary"
+            className="rounded-full p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold text-muted-foreground">
+          <span className="text-sm font-black tracking-tight text-foreground font-display">
             {(clinic as any)?.name || "Painel"}
           </span>
         </div>

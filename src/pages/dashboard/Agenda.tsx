@@ -178,26 +178,26 @@ const Agenda = () => {
           <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-1">{format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex bg-card border border-border p-1 rounded-2xl">
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-xl px-6 ${activeTab === "active" ? "premium-gradient text-primary-foreground shadow-premium" : "text-muted-foreground"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-xl px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
+          <div className="flex bg-card border border-border/50 p-1.5 rounded-full shadow-sm">
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-full px-6 ${activeTab === "active" ? "premium-gradient text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary/50"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-full px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
           </div>
-          <div className="h-8 w-[1px] bg-border mx-2 hidden xl:block" />
-          <div className="flex bg-card border border-border p-1 rounded-2xl">
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-xl ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-xl ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><List className="h-4 w-4" /></Button>
+          <div className="h-8 w-[1px] bg-border/50 mx-2 hidden xl:block" />
+          <div className="flex bg-card border border-border/50 p-1.5 rounded-full shadow-sm">
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-full ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary/50"}`}><LayoutGrid className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-full ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary/50"}`}><List className="h-4 w-4" /></Button>
           </div>
           <QuickBooking barbershopId={clinic?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
         </div>
       </div>
 
       <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar por cliente ou serviço..." className="w-full bg-card border border-border h-14 pl-12 rounded-2xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground" />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar por cliente ou serviço..." className="w-full bg-card border-2 border-border/50 h-14 pl-14 rounded-full text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-sm transition-all duration-300" />
       </div>
 
       {viewMode === "list" ? (
-        <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-card">
+        <div className="bg-card border border-border/60 rounded-[2rem] overflow-hidden shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-secondary/50 border-b border-border"><tr className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.2em]">
@@ -230,15 +230,15 @@ const Agenda = () => {
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
                         {a.status === 'confirmed' && a.client_phone && (
-                          <Button variant="ghost" size="icon" onClick={() => handleWhatsAppClick(a)} className="h-10 w-10 rounded-xl hover:bg-green-500/10 text-green-500" title="Confirmar agendamento com cliente via WhatsApp">
+                          <Button variant="ghost" size="icon" onClick={() => handleWhatsAppClick(a)} className="h-10 w-10 rounded-full hover:bg-green-500/10 text-green-500 hover:scale-105 transition-transform" title="Confirmar agendamento com cliente via WhatsApp">
                             <MessageSquare className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(a)} className="h-10 w-10 rounded-xl hover:bg-secondary text-muted-foreground hover:text-primary" title="Editar Agendamento">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(a)} className="h-10 w-10 rounded-full hover:bg-secondary text-muted-foreground hover:text-primary hover:scale-105 transition-transform" title="Editar Agendamento">
                           <Pencil className="h-4 w-4" />
                         </Button>
                         {activeTab === "active" && a.status !== 'pendente_pagamento' && (
-                          <Button variant="ghost" size="icon" onClick={() => window.location.href = '/dashboard/caixa'} className="h-10 w-10 rounded-xl hover:bg-emerald-500/10 text-emerald-500" title="Iniciar Checkout e Fechar Conta">
+                          <Button variant="ghost" size="icon" onClick={() => window.location.href = '/dashboard/caixa'} className="h-10 w-10 rounded-full hover:bg-emerald-500/10 text-emerald-500 hover:scale-105 transition-transform" title="Iniciar Checkout e Fechar Conta">
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         )}
@@ -256,7 +256,7 @@ const Agenda = () => {
       )}
 
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
-        <DialogContent className="bg-card border-border text-foreground max-w-2xl rounded-3xl">
+        <DialogContent className="bg-card border-border/50 text-foreground max-w-2xl rounded-[2rem] shadow-card">
           <DialogHeader><DialogTitle className="text-2xl font-black flex items-center gap-2 font-display"><Pencil className="text-primary h-6 w-6" /> Editar Agendamento</DialogTitle></DialogHeader>
           {editModal.appt && (
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">
