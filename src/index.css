@@ -52,20 +52,20 @@
     --card-foreground: 210 10% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 10% 20%;
-    --primary: 210 10% 20%;
+    --primary: 211 100% 50%;          /* Apple Blue */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 10% 95%;
     --secondary-foreground: 210 10% 20%;
     --muted: 210 10% 95%;
     --muted-foreground: 210 10% 45%;
-    --accent: 210 10% 95%;
-    --accent-foreground: 210 10% 20%;
+    --accent: 211 100% 95%;           /* Soft Apple Blue for hovers */
+    --accent-foreground: 211 100% 50%;
     --destructive: #FF3B30;
     --destructive-foreground: 0 0% 100%;
     --border: 210 10% 85%;
     --input: 210 10% 90%;
-    --ring: 210 10% 20%;
-    --radius: 0.75rem;
+    --ring: 211 100% 50%;             /* Apple Blue focus ring */
+    --radius: 1rem;                   /* rounded-2xl style base */
     --glass-bg-light: rgba(255, 255, 255, 0.8);
     --glass-bg-dark: rgba(0, 0, 0, 0.5);
     --system-red: #FF3B30;
@@ -82,19 +82,19 @@
     --card-foreground: 210 10% 95%;
     --popover: 210 10% 10%;
     --popover-foreground: 210 10% 95%;
-    --primary: 210 10% 95%;
-    --primary-foreground: 210 10% 10%;
+    --primary: 211 100% 55%;          /* Apple Blue (Lighter for Dark Mode) */
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 10% 15%;
     --secondary-foreground: 210 10% 95%;
     --muted: 210 10% 15%;
     --muted-foreground: 210 10% 65%;
-    --accent: 210 10% 15%;
-    --accent-foreground: 210 10% 95%;
-    --destructive: #FF3B30;
+    --accent: 211 50% 15%;            /* Soft dark blue for hovers */
+    --accent-foreground: 211 100% 70%;
+    --destructive: #FF453A;           /* Apple Red Dark Mode */
     --destructive-foreground: 0 0% 100%;
     --border: 210 10% 15%;
-    --input: 210 10% 15%;
-    --ring: 210 10% 95%;
+    --input: 210 10% 20%;
+    --ring: 211 100% 55%;
   }
 }
 
