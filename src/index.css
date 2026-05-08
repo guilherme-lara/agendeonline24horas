@@ -46,55 +46,74 @@
   }
 
   .dashboard-theme {
-    --background: 240 6% 97%;         /* #F2F2F7 */
-    --foreground: 240 5% 26%;         /* #3A3A3C */
-    --card: 0 0% 100%;                /* #FFFFFF */
-    --card-foreground: 240 5% 10%;
+    /* ─── LIGHT MODE (Material + Apple) ─── */
+    --background: 210 40% 96%;        /* slate-100: bg-slate-100 */
+    --foreground: 215 28% 17%;        /* slate-800: Texto principal */
+    
+    --card: 0 0% 100%;                /* white: Superfícies elevadas */
+    --card-foreground: 215 28% 17%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 240 5% 10%;
-    --primary: 211 100% 50%;          /* #007AFF Apple Blue */
+    --popover-foreground: 215 28% 17%;
+    
+    --primary: 243 75% 59%;           /* indigo-600: Ação Principal */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 90%;
-    --secondary-foreground: 240 5% 10%;
-    --muted: 240 5% 90%;
-    --muted-foreground: 240 5% 45%;
-    --accent: 211 100% 95%;           /* Soft Blue Hover */
-    --accent-foreground: 211 100% 50%;
-    --destructive: #FF3B30;
+    
+    --secondary: 214 32% 91%;         /* slate-200 */
+    --secondary-foreground: 215 28% 17%;
+    
+    --muted: 210 40% 96%;             /* slate-100 */
+    --muted-foreground: 215 16% 47%;  /* slate-500: Texto secundário */
+    
+    --accent: 214 32% 91%;            /* slate-200 */
+    --accent-foreground: 215 28% 17%;
+    
+    --destructive: 346 87% 43%;       /* rose-500 */
     --destructive-foreground: 0 0% 100%;
-    --border: 240 5% 85%;
-    --input: 240 5% 90%;
-    --ring: 211 100% 50%;
-    --radius: 1rem;
-    --glass-bg-light: rgba(255, 255, 255, 0.7);
-    --glass-bg-dark: rgba(28, 28, 30, 0.7);
-    --system-red: #FF3B30;
-    --system-green: #34C759;
-    --system-orange: #FF9500;
-    --system-blue: #007AFF;
+    
+    --border: 214 32% 91%;            /* slate-200: Bordas sutis */
+    --input: 214 32% 91%;             /* slate-200 */
+    --ring: 243 75% 59%;              /* indigo-600 focus ring */
+    
+    --radius: 1rem;                   /* rounded-2xl para cards */
+    
+    /* Cores Semânticas Material 3 */
+    --system-red: #F43F5E;            /* rose-500 */
+    --system-green: #10B981;          /* emerald-500 */
+    --system-orange: #F59E0B;         /* amber-500 */
+    --system-blue: #4F46E5;           /* indigo-600 */
   }
 
   .dark .dashboard-theme,
   .dashboard-theme.dark {
-    --background: 240 3% 11%;         /* #1C1C1E */
-    --foreground: 240 5% 90%;         /* #E5E5EA */
-    --card: 240 2% 18%;               /* #2C2C2E */
-    --card-foreground: 240 5% 90%;
-    --popover: 240 2% 18%;
-    --popover-foreground: 240 5% 90%;
-    --primary: 211 100% 55%;
+    /* ─── DARK MODE (Deep Midnight) ─── */
+    --background: 222 84% 5%;         /* slate-950: Fundo super profundo */
+    --foreground: 210 40% 98%;        /* slate-50: Texto claro */
+    
+    --card: 222 47% 11%;              /* slate-900: Superfície elevada */
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 243 75% 59%;           /* indigo-600 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4% 25%;
-    --secondary-foreground: 240 5% 90%;
-    --muted: 240 4% 25%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 211 50% 25%;
-    --accent-foreground: 211 100% 70%;
-    --destructive: #FF453A;
+    
+    --secondary: 215 28% 17%;         /* slate-800 */
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 215 28% 17%;             /* slate-800 */
+    --muted-foreground: 147 24% 65%;  /* slate-400 */
+    
+    --accent: 215 28% 17%;            /* slate-800 */
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 346 87% 43%;       /* rose-500 */
     --destructive-foreground: 0 0% 100%;
-    --border: 240 4% 25%;
-    --input: 240 4% 25%;
-    --ring: 211 100% 55%;
+    
+    --border: 215 28% 17%;            /* slate-800: Bordas sutis escuras */
+    --input: 215 28% 17%;             /* slate-800 */
+    --ring: 243 75% 59%;              /* indigo-600 focus ring */
   }
 }
 

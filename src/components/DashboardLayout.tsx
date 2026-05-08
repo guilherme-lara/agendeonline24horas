@@ -107,7 +107,7 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center gap-3 px-6 py-4 border-b border-white/20 dark:border-white/10 bg-white/80 dark:bg-black/50 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+        <div className="md:hidden flex items-center gap-3 px-6 py-4 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -119,12 +119,10 @@ const DashboardLayout = () => {
           </span>
         </div>
 
-        <main className="flex-1 pb-20 md:pb-0">
+        <main className="flex-1 p-6 md:p-8 pb-20 md:pb-8">
           <TrialBanner /> {/* Ponto 2: Renderizando o banner de trial */}
-          <div className="px-4 pt-4 md:px-0 md:pt-0">
-            <InstallAppBanner />
-            <ExpirationBanner />
-          </div>
+          <InstallAppBanner />
+          <ExpirationBanner />
           <Outlet />
         </main>
       </div>

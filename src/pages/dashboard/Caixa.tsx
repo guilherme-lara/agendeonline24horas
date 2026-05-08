@@ -545,13 +545,13 @@ const Caixa = () => {
             .map((a: any) => (
               <div
                 key={a.id}
-                className="p-5 bg-white border border-zinc-200 shadow-sm rounded-xl flex items-center justify-between group hover:border-zinc-300 transition-all duration-300"
+                className="p-5 bg-card border border-border shadow-sm rounded-2xl flex items-center justify-between group hover:border-border/80 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
               >
                 <div>
-                  <p className="font-bold text-zinc-900 flex items-center gap-2">
+                  <p className="font-bold text-foreground flex items-center gap-2">
                     {a.client_name}
                     {a.status === "completed" && (
-                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                      <CheckCircle className="h-3.5 w-3.5 text-system-green" />
                     )}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
@@ -571,7 +571,7 @@ const Caixa = () => {
                   <Button
                     variant="outline"
                     onClick={() => openDetails(a)}
-                    className="border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 font-bold rounded-full h-10 px-5"
+                    className="border-border/50 text-muted-foreground hover:text-primary hover:border-primary/40 font-bold rounded-xl h-10 px-5 transition-all hover:-translate-y-0.5"
                   >
                     <Eye className="h-4 w-4 mr-2" /> Ver Detalhes
                   </Button>
@@ -579,7 +579,7 @@ const Caixa = () => {
                   <Button
                     onClick={() => handleSelectAppt(a)}
                     disabled={!!selectedAppt && selectedAppt.id === a.id}
-                    className="bg-zinc-900 text-white hover:bg-zinc-800 font-bold rounded-lg h-10 px-7 shadow-sm transition-colors"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl h-10 px-7 shadow-sm transition-all hover:-translate-y-0.5"
                   >
                     Cobrar
                   </Button>
@@ -594,10 +594,10 @@ const Caixa = () => {
         </div>
 
         {selectedAppt && (
-          <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm animate-in zoom-in-95 duration-300">
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-sm animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-xl font-bold text-zinc-900 font-display">
+                <h2 className="text-xl font-bold text-foreground font-display">
                   Comanda Atual
                 </h2>
                 <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mt-1">
@@ -619,11 +619,11 @@ const Caixa = () => {
 
             <div className="space-y-3 mb-8">
               {cart.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100 ${item.type === "discount" ? "border-amber-200 bg-amber-50" : ""}`}
-                >
-                  <div>
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between p-4 bg-background rounded-2xl border border-border/50 ${item.type === "discount" ? "border-system-orange/50 bg-system-orange/5" : ""}`}
+                  >
+                    <div>
                     <p
                       className={`text-sm font-bold ${item.type === "discount" ? "text-amber-500" : "text-foreground"}`}
                     >
@@ -680,7 +680,7 @@ const Caixa = () => {
                       </div>
                     )}
                     <p
-                      className={`text-sm font-black w-20 text-right ${item.type === "discount" ? "text-amber-500" : "text-foreground"}`}
+                      className={`text-sm font-black w-20 text-right ${item.type === "discount" ? "text-system-orange" : "text-foreground"}`}
                     >
                       {item.type === "discount" ? "- " : ""}R${" "}
                       {Math.abs(item.price * item.qty).toFixed(2)}
@@ -734,17 +734,17 @@ const Caixa = () => {
                 </Select>
               </div>
               <div className="flex justify-between items-end">
-                <span className="text-lg font-bold text-zinc-900">
+                <span className="text-lg font-bold text-foreground">
                   Total a Pagar
                 </span>
-                <span className="text-3xl font-bold text-zinc-900 tracking-tight">
+                <span className="text-3xl font-bold text-foreground tracking-tight">
                   R$ {Math.max(0, cartTotal).toFixed(2).replace(".", ",")}
                 </span>
               </div>
               <Button
                 onClick={() => checkoutMutation.mutate()}
                 disabled={checkoutMutation.isPending}
-                className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl text-base shadow-sm transition-all duration-300 disabled:opacity-50"
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl text-base shadow-lg transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5"
               >
                 {checkoutMutation.isPending ? (
                   <>
