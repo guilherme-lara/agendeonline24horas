@@ -63,10 +63,13 @@
     --secondary-foreground: 240 6% 10%;
 
     --muted: 240 5% 90%;
-    --muted-foreground: 240 4% 46%; /* zinc-500 */
+    --muted-foreground: 240 4% 46%; /* zinc-50 */
 
     --accent: 240 5% 96%;           /* zinc-100 */
     --accent-foreground: 240 6% 10%;
+
+    --destructive: 0 84.2% 60.2%;   /* Standard Red */
+    --destructive-foreground: 0 0% 100%;
 
     --border: 240 5% 88%;           /* zinc-200/60 approx */
     --input: 240 5% 88%;
@@ -84,6 +87,47 @@
     --sidebar-accent: 240 5% 96%;
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 240 5% 90%;
+  }
+
+  /* ─── DASHBOARD DARK MODE ─── */
+  .dark .dashboard-theme,
+  .dashboard-theme.dark {
+    --background: 240 10% 4%;        /* zinc-950 */
+    --foreground: 0 0% 98%;          /* zinc-50 */
+
+    --card: 240 6% 10%;              /* zinc-900 */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;             /* zinc-50 */
+    --primary-foreground: 240 6% 10%;
+
+    --secondary: 240 5% 15%;         /* zinc-800 */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 240 5% 15%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 0 0% 98%;
+    
+    --sidebar-background: 240 6% 10%;
+    --sidebar-foreground: 240 5% 65%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 6% 10%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 15%;
+    --premium-gradient: linear-gradient(135deg, #27272A, #3F3F46);
   }
 
   .dark {

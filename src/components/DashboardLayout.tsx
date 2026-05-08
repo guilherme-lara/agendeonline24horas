@@ -33,19 +33,24 @@ const DashboardLayout = () => {
     if (!clinic) return false;
     const shop = clinic as any;
     
-    // Se o plano está explicitamente expirado ou cancelado, bloqueia.
+    // 1. Bloqueios explícitos (Status da Assinatura)
     if (shop.plan_status === "expired" || shop.plan_status === "canceled") return true;
 
-    // Se tem plano ativo E não expirado, libera.
+    // 2. Liberação explícita (Assinatura Ativa)
     if (shop.plan_status === "active") return false;
 
-    // Se não tem plano ativo, checa a data de fim do trial
-    if (shop.trial_ends_at) {
-      return new Date(shop.trial_ends_at) < new Date();
+    // 3. Lógica de Trial (Baseado em datas)
+    const trialEnd = shop.trial_ends_at || shop.trial_end_date || shop.plan_ends_at || shop.expires_at;
+    if (trialEnd) {
+      const trialDate = new Date(trialEnd);
+      if (isNaN(trialDate.getTime())) return true; // Data inválida = bloqueia por segurança
+      
+      // Bloqueia se a data de término for anterior ao momento atual
+      return trialDate.getTime() < Date.now();
     }
 
-    // Se não tem plano ativo e não tem data de trial definida, bloqueia.
-    return true;
+    // 4. Fallback: Se não há plano ativo e não há data de trial definida, considera expirado.
+    return true; 
   }, [clinic]);
 
   useEffect(() => {
@@ -86,7 +91,11 @@ const DashboardLayout = () => {
 
   // PONTO DE BLOQUEIO TOTAL
   if (isTrialExpired) {
-    return <LicenseOverlay barbershopId={(clinic as any)?.id} />;
+    return (
+      <div className="dashboard-theme">
+        <LicenseOverlay barbershopId={(clinic as any)?.id} />
+      </div>
+    );
   }
 
   return (

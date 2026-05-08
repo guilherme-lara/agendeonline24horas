@@ -22,7 +22,7 @@ const statusBadgeConfig: Record<string, { label: string; className: string }> = 
   pendente_pagamento: { label: "⏳ Aguard. Pagamento - Expira em breve", className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse" },
   confirmed: { label: "Confirmado", className: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
   completed: { label: "Concluído", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  cancelled: { label: "Cancelado", className: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
+  cancelled: { label: "Cancelado", className: "bg-zinc-500/10 text-zinc-600 border-zinc-500/20" },
 };
 
 const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
@@ -56,7 +56,7 @@ const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
         {config.label}
       </Badge>
       {timeLeft && (
-        <span className={`text-[9px] font-black tabular-nums ${timeLeft === "Expirado" ? "text-rose-500" : "text-amber-600/80"}`}>
+        <span className={`text-[9px] font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-500" : "text-amber-600/80"}`}>
           {timeLeft === "Expirado" ? "⚠️ Reserva Expirada" : `Expira em ${timeLeft}`}
         </span>
       )}
