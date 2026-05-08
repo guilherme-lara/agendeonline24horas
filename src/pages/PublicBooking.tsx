@@ -622,8 +622,7 @@ const PublicBooking = () => {
         throw new Error("O valor total deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
-      const serviceItems = cartItems.filter((i) => i.type === "service");
-      const mainItem = serviceItems[0];
+      // serviceItems e mainItem já foram declarados acima para uso no RPC
       const itemName = mainItem?.advance_payment_value && mainItem.advance_payment_value > 0
         ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} serviços`}`
         : `Agendamento - ${shop?.name || 'Serviços'}`;
