@@ -90,7 +90,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background selection:bg-primary/20">
+    <div className="dashboard-theme flex min-h-screen w-full bg-background selection:bg-primary/20">
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -98,14 +98,14 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-card/80 backdrop-blur-md sticky top-0 z-30">
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-zinc-200 bg-white sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-full p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+            className="rounded-lg p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-black tracking-tight text-foreground font-display">
+          <span className="text-sm font-bold tracking-tight text-zinc-900 font-display">
             {(clinic as any)?.name || "Painel"}
           </span>
         </div>

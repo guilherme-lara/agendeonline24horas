@@ -150,24 +150,24 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card border-r border-border/50 shadow-sm transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-white border-r border-zinc-200 transition-transform duration-300 ease-in-out",
           "w-[85vw] max-w-[300px] md:w-64",
           "md:translate-x-0 md:static md:z-auto md:shadow-none",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/40 shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           {clinic?.logo_url ? (
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-primary/20 shadow-md shrink-0 bg-secondary flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg overflow-hidden border border-zinc-200 shadow-sm shrink-0 bg-zinc-50 flex items-center justify-center">
                 <img src={clinic.logo_url} alt="Logo da Empresa" className="h-full w-full object-cover" />
               </div>
-              <span className="font-black text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">{clinic?.name}</span>
+              <span className="font-bold text-[15px] tracking-tight text-zinc-900 truncate max-w-[130px] font-display">{clinic?.name}</span>
             </div>
           ) : (
             <img src={logoAgenda} alt="Logo Padrão" className="h-8 w-auto opacity-90 object-contain" />
           )}
-          <button onClick={onClose} className="md:hidden p-1.5 text-muted-foreground hover:bg-secondary rounded-lg transition-colors">
+          <button onClick={onClose} className="md:hidden p-1.5 text-zinc-400 hover:bg-zinc-100 rounded-lg transition-colors">
             <X className="h-5 w-5 shrink-0" />
           </button>
         </div>
@@ -196,9 +196,9 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   href={item.external} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 min-w-0 mb-1"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all duration-300 min-w-0 mb-1"
                 >
-                  <item.icon className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
+                  <item.icon className="h-[18px] w-[18px] text-zinc-400 shrink-0" />
                   <span className="truncate flex-1 text-left">{item.label}</span>
                 </a>
               );
@@ -212,15 +212,16 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   <button 
                     onClick={() => toggleMenu(item.label)} 
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
-                      hasActiveChild && !isMenuOpen ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                      "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 min-w-0 mb-1 relative", 
+                      hasActiveChild && !isMenuOpen ? "bg-zinc-50 text-zinc-900 font-semibold" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild ? "text-primary" : "text-muted-foreground")} />
+                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild ? "text-zinc-900" : "text-zinc-400")} />
                       <span className="truncate text-left">{item.label}</span>
                     </div>
                     {isMenuOpen ? <ChevronDown className="h-3.5 w-3.5 opacity-50 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 opacity-50 shrink-0" />}
+                    {hasActiveChild && !isMenuOpen && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-zinc-900 rounded-full" />}
                   </button>
                   <div 
                     className={cn(
@@ -234,14 +235,15 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                         to={sub.path} 
                         onClick={onClose} 
                         className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-300 min-w-0 mb-1", 
+                          "flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-300 min-w-0 mb-1 relative", 
                           isActive(sub.path) 
-                            ? "bg-secondary text-foreground font-semibold scale-[0.98]" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                            ? "bg-zinc-100 text-zinc-900 font-semibold" 
+                            : "text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50"
                         )}
                       >
                         <sub.icon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate flex-1 text-left">{sub.label}</span>
+                        {isActive(sub.path) && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-zinc-900 rounded-full" />}
                       </Link>
                     ))}
                   </div>
@@ -255,32 +257,33 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                 to={item.path} 
                 onClick={onClose} 
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
+                  "flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 min-w-0 mb-1 relative", 
                   isActive(item.path) 
-                    ? "bg-secondary text-foreground font-semibold scale-[0.98]" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    ? "bg-zinc-100 text-zinc-900 font-semibold" 
+                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
                 )}
               >
-                <item.icon className="h-[18px] w-[18px] shrink-0" />
+                <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive(item.path) ? "text-zinc-900" : "text-zinc-400")} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
+                {isActive(item.path) && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-zinc-900 rounded-full" />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-border/50 p-5 space-y-4 bg-background/50 shrink-0">
+        <div className="border-t border-zinc-100 p-5 space-y-4 bg-zinc-50/50 shrink-0">
           <div className="flex items-center justify-between px-2">
             <ThemeToggle />
             <button 
               onClick={signOut} 
-              className="flex items-center gap-2 text-xs font-black text-muted-foreground hover:text-destructive transition-colors group"
+              className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-red-600 transition-colors group"
             >
               <LogOut className="h-4 w-4 shrink-0 group-hover:translate-x-0.5 transition-transform" /> 
               Sair
             </button>
           </div>
           <div className="px-1 pt-1">
-            <p className="text-[9px] font-bold text-muted-foreground/40 leading-tight truncate">
+            <p className="text-[9px] font-medium text-zinc-400 leading-tight truncate">
               Desenvolvido por Jotatechinfo
               <br />
               © 2026 · v1.2.0

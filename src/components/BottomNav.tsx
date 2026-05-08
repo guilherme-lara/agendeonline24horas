@@ -24,7 +24,7 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-zinc-200 safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-1">
         {primaryItems.map((item) => {
           const active = isActive(item.path);
@@ -34,16 +34,16 @@ const BottomNav = () => {
               to={item.path}
               onClick={tapVibrate}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all",
                 active
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                  ? "text-zinc-900"
+                  : "text-zinc-400"
               )}
             >
-              <item.icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]")} />
+              <item.icon className="h-5 w-5" />
               <span className={cn(
                 "text-[10px] font-bold tracking-tight",
-                active && "text-primary"
+                active ? "text-zinc-900" : "text-zinc-400"
               )}>
                 {item.label}
               </span>

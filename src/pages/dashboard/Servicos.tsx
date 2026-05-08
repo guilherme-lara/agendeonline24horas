@@ -418,42 +418,42 @@ const Servicos = () => {
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-primary" /> Catálogo de Serviços</h1>
-          <p className="text-muted-foreground text-sm mt-1 font-medium">Defina os preços, tempos e quais profissionais realizam cada serviço.</p>
+          <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-zinc-900" /> Catálogo de Serviços</h1>
+          <p className="text-zinc-500 text-sm mt-1 font-medium">Defina os preços, tempos e quais profissionais realizam cada serviço.</p>
         </div>
-        <Button onClick={openNew} className="bg-primary text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-sm transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
+        <Button onClick={openNew} className="bg-zinc-900 text-white font-bold h-12 px-6 rounded-xl shadow-sm transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
       </div>
 
       <Tabs defaultValue="services" className="w-full">
-        <TabsList className="mb-6 bg-card border border-border">
-          <TabsTrigger value="services" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Serviços</TabsTrigger>
-          <TabsTrigger value="categories" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Categorias</TabsTrigger>
+        <TabsList className="mb-6 bg-white border border-zinc-200 p-1 rounded-xl">
+          <TabsTrigger value="services" className="data-[state=active]:bg-zinc-100 data-[state=active]:text-zinc-900 rounded-lg">Serviços</TabsTrigger>
+          <TabsTrigger value="categories" className="data-[state=active]:bg-zinc-100 data-[state=active]:text-zinc-900 rounded-lg">Categorias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="services">
 
       {services.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-card">
-            <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border"><Scissors className="h-10 w-10 text-muted-foreground/30" /></div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Catálogo Vazio</h3>
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Comece cadastrando seu serviço principal para liberar a agenda online.</p>
-            <Button onClick={openNew} variant="outline" className="border-border text-muted-foreground hover:text-foreground">Cadastrar Primeiro Serviço</Button>
+        <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center shadow-sm">
+            <div className="bg-zinc-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-100"><Scissors className="h-10 w-10 text-zinc-300" /></div>
+            <h3 className="text-xl font-bold text-zinc-900 mb-2">Catálogo Vazio</h3>
+            <p className="text-sm text-zinc-500 max-w-xs mx-auto mb-6">Comece cadastrando seu serviço principal para liberar a agenda online.</p>
+            <Button onClick={openNew} variant="outline" className="border-zinc-200 text-zinc-500 hover:text-zinc-900">Cadastrar Primeiro Serviço</Button>
         </div>
       ) : (
         <div className="grid gap-3">
           {services.map((s) => (
-            <div key={s.id} className={`group flex items-center gap-4 rounded-2xl border transition-all duration-300 p-5 backdrop-blur-md shadow-card ${!s.active ? "bg-background/40 border-border opacity-60" : "bg-card border-border hover:border-primary/30"}`}>
-              <GripVertical className="h-5 w-5 text-muted-foreground/30 flex-shrink-0 cursor-grab group-hover:text-muted-foreground transition-colors" />
+            <div key={s.id} className={`group flex items-center gap-4 rounded-xl border transition-all duration-300 p-5 shadow-sm ${!s.active ? "bg-zinc-50 border-zinc-100 opacity-60" : "bg-white border-zinc-200 hover:border-zinc-300"}`}>
+              <GripVertical className="h-5 w-5 text-zinc-200 flex-shrink-0 cursor-grab group-hover:text-zinc-400 transition-colors" />
               <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground text-lg tracking-tight truncate">{s.name}</p>
-                  <div className="flex items-center gap-3 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                  <p className="font-bold text-zinc-900 text-lg tracking-tight truncate">{s.name}</p>
+                  <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
                       {s.category_id && categories.find(c => c.id === s.category_id) && (
-                        <Badge variant="secondary" className="text-[10px] font-bold">{categories.find(c => c.id === s.category_id)?.name}</Badge>
+                        <Badge variant="secondary" className="text-[10px] font-bold bg-zinc-100 text-zinc-500 border-none">{categories.find(c => c.id === s.category_id)?.name}</Badge>
                       )}
-                      <span className="text-primary">R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
+                      <span className="text-zinc-900">R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
                       <span>&bull;</span>
                       <span>{s.duration} Minutos</span>
-                      {s.requires_advance_payment && s.advance_payment_value > 0 && <><span className="text-emerald-500">&bull; Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span></>}
+                      {s.requires_advance_payment && s.advance_payment_value > 0 && <><span className="text-zinc-600">&bull; Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span></>}
                   </div>
               </div>
               <div className="flex items-center gap-2">

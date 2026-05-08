@@ -156,20 +156,20 @@ const Configuracoes = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto animate-in fade-in duration-500">
-      <div className="mb-10 flex items-center gap-4 border-b border-border pb-8">
-        <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20">
-            <Settings className="h-7 w-7 text-primary" />
+      <div className="mb-10 flex items-center gap-4 border-b border-zinc-100 pb-8">
+        <div className="bg-zinc-100 p-3 rounded-xl border border-zinc-200">
+            <Settings className="h-7 w-7 text-zinc-900" />
         </div>
         <div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight font-display">Configurações</h1>
-            <p className="text-muted-foreground text-sm font-medium">Gerencie a identidade e os dados fiscais do seu negócio.</p>
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-display">Configurações</h1>
+            <p className="text-zinc-500 text-sm font-medium">Gerencie a identidade e os dados fiscais do seu negócio.</p>
         </div>
       </div>
 
       <div className="grid gap-8">
         {/* SEÇÃO: IDENTIDADE VISUAL */}
-        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow">
-            <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-6 flex items-center gap-2">
+        <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm transition-shadow">
+            <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-6 flex items-center gap-2">
                 <Building2 className="h-4 w-4" /> Logo da Empresa
             </h2>
             <LogoUpload
@@ -181,8 +181,8 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: DADOS DA EMPRESA */}
-        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
-            <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
+        <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm transition-shadow space-y-6">
+            <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <Save className="h-4 w-4" /> Informações do Perfil
             </h2>
 
@@ -236,8 +236,8 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: CHAVE PIX */}
-        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
-            <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
+        <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm transition-shadow space-y-6">
+            <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <QrCode className="h-4 w-4" /> Chave Pix para Recebimentos
             </h2>
             <p className="text-xs text-muted-foreground -mt-4">
@@ -294,7 +294,7 @@ const Configuracoes = () => {
         <Button 
             onClick={() => saveMutation.mutate()} 
             disabled={saveMutation.isPending} 
-            className="w-full bg-primary text-primary-foreground font-black h-14 rounded-full shadow-sm hover:-translate-y-0.5 transition-all duration-300"
+            className="w-full bg-zinc-900 text-white font-bold h-14 rounded-xl shadow-sm hover:bg-zinc-800 transition-all"
         >
           {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Aplicar Alterações no Sistema

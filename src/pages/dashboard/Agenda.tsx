@@ -174,43 +174,43 @@ const Agenda = () => {
       
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-3xl font-black text-foreground tracking-tighter flex items-center gap-3 font-display"><CalendarDays className="text-primary" /> Agenda</h1>
-          <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-1">{format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight flex items-center gap-3 font-display"><CalendarDays className="text-zinc-900" /> Agenda</h1>
+          <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">{format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex bg-card border border-border/50 p-1.5 rounded-full shadow-sm">
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-full px-6 ${activeTab === "active" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary/50"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-full px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
+          <div className="flex bg-white border border-zinc-200 p-1 rounded-xl shadow-sm">
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-lg px-6 ${activeTab === "active" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:bg-zinc-50"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-lg px-6 ${activeTab === "completed" ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
           </div>
-          <div className="h-8 w-[1px] bg-border/50 mx-2 hidden xl:block" />
-          <div className="flex bg-card border border-border/50 p-1.5 rounded-full shadow-sm">
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-full ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary/50"}`}><LayoutGrid className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-full ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary/50"}`}><List className="h-4 w-4" /></Button>
+          <div className="h-8 w-[1px] bg-zinc-200 mx-2 hidden xl:block" />
+          <div className="flex bg-white border border-zinc-200 p-1 rounded-xl shadow-sm">
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-lg ${viewMode === "calendar" ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50"}`}><LayoutGrid className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-lg ${viewMode === "list" ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50"}`}><List className="h-4 w-4" /></Button>
           </div>
           <QuickBooking barbershopId={clinic?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
         </div>
       </div>
 
       <div className="relative mb-8">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar por cliente ou serviço..." className="w-full bg-card border-2 border-border/50 h-14 pl-14 rounded-full text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-muted-foreground shadow-sm transition-all duration-300" />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 h-5 w-5" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar por cliente ou serviço..." className="w-full bg-white border border-zinc-200 h-14 pl-14 rounded-xl text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent placeholder:text-zinc-400 shadow-sm transition-all" />
       </div>
 
       {viewMode === "list" ? (
-        <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-card">
+        <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-secondary/50 border-b border-border"><tr className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.2em]">
+              <thead className="bg-zinc-50 border-b border-zinc-100"><tr className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
                   <th className="px-8 py-6 text-left">Hora</th><th className="px-8 py-6 text-left">Cliente</th><th className="px-8 py-6 text-left">Serviço / Profissional</th>
                   <th className="px-8 py-6 text-left">Preço</th><th className="px-8 py-6 text-left">Status</th><th className="px-8 py-6 text-right">Ações</th>
               </tr></thead>
               <tbody className="divide-y divide-border/50">
                 {filtered.map((a: any) => (
-                  <tr key={a.id} className={`hover:bg-secondary/30 transition-colors group ${a.status === 'pendente_pagamento' ? 'opacity-50' : ''}`}>
-                    <td className="px-8 py-5 text-primary font-black text-lg">{format(parseISO(a.scheduled_at), "HH:mm")}</td>
+                  <tr key={a.id} className={`hover:bg-zinc-50/80 transition-colors group ${a.status === 'pendente_pagamento' ? 'opacity-50' : ''}`}>
+                    <td className="px-8 py-5 text-zinc-900 font-bold text-lg">{format(parseISO(a.scheduled_at), "HH:mm")}</td>
                     <td className="px-8 py-5">
-                      <p className="text-foreground font-bold">{a.client_name}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{a.client_phone}</p>
+                      <p className="text-zinc-900 font-bold">{a.client_name}</p>
+                      <p className="text-[10px] text-zinc-400 font-mono">{a.client_phone}</p>
                     </td>
                     <td className="px-8 py-5">
                       <p className="text-foreground/80 text-sm font-medium">{a.service_name}</p>

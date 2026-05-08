@@ -215,26 +215,26 @@ const Dashboard = () => {
       {/* HEADER */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-card ring-1 ring-primary/10">
+          <div className="h-16 w-16 rounded-xl bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shadow-sm">
             {clinic.logo_url ? (
               <img
                 src={clinic.logo_url}
                 className="h-full w-full object-cover"
               />
             ) : (
-              <Building2 className="h-10 w-10 text-muted-foreground" />
+              <Building2 className="h-8 w-8 text-zinc-400" />
             )}
           </div>
           <div>
-            <h1 className="text-4xl font-black text-foreground tracking-tight font-display">
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-display">
               {clinic.name}
             </h1>
-            <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-1">
+            <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">
               {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </p>
           </div>
         </div>
-        <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+        <Badge className="bg-zinc-100 text-zinc-900 border-zinc-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
           Plano {clinic.plan_name || "Premium"}
         </Badge>
       </div>
@@ -244,46 +244,42 @@ const Dashboard = () => {
         {[
           {
             icon: DollarSign,
-            color: "emerald",
+            color: "zinc",
             label: "Caixa Hoje",
             value: kpis.todayRevTotal,
           },
           {
             icon: Scissors,
-            color: "blue",
+            color: "zinc",
             label: "Serviços",
             value: kpis.todayRevServices,
           },
           {
             icon: TrendingUp,
-            color: "primary",
+            color: "zinc",
             label: "Mês Atual",
             value: kpis.monthRevTotal,
           },
           {
             icon: Clock,
-            color: "violet",
+            color: "zinc",
             label: "Ticket Médio",
             value: kpis.ticketMedio,
           },
         ].map((kpi, i) => (
           <div
             key={i}
-            className={`rounded-2xl border border-border bg-card p-6 shadow-card hover:border-${kpi.color === "primary" ? "primary" : kpi.color + "-400"}/40 transition-all group`}
+            className="rounded-xl border border-zinc-200/60 bg-white p-6 shadow-sm hover:border-zinc-300 transition-all group"
           >
             <div className="flex items-center gap-4 mb-4">
-              <div
-                className={`h-12 w-12 bg-${kpi.color === "primary" ? "primary" : kpi.color + "-500"}/10 rounded-2xl flex items-center justify-center`}
-              >
-                <kpi.icon
-                  className={`h-6 w-6 text-${kpi.color === "primary" ? "primary" : kpi.color + "-500"}`}
-                />
+              <div className="h-10 w-10 bg-zinc-50 rounded-lg flex items-center justify-center">
+                <kpi.icon className="h-5 w-5 text-zinc-900" />
               </div>
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                 {kpi.label}
               </span>
             </div>
-            <p className="text-3xl font-black text-foreground tracking-tighter">
+            <p className="text-2xl font-bold text-zinc-900 tracking-tight">
               R$ {kpi.value.toFixed(2)}
             </p>
           </div>
@@ -292,16 +288,16 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* GRÁFICO PRINCIPAL */}
-        <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-8 shadow-card">
+        <div className="lg:col-span-2 rounded-xl border border-zinc-200/60 bg-white p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black flex items-center gap-3 font-display">
-                <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+              <h2 className="text-lg font-bold flex items-center gap-3 font-display text-zinc-900">
+                <div className="h-2 w-2 rounded-full bg-zinc-900" />
                 Desempenho Semanal
               </h2>
               {lastUpdated && (
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black uppercase tracking-wider animate-in fade-in slide-in-from-right-2 duration-300">
-                  ⚡ Atualizado Agora
+                <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 text-[9px] font-bold uppercase tracking-wider">
+                  ⚡ Atualizado
                 </Badge>
               )}
             </div>
@@ -362,9 +358,9 @@ const Dashboard = () => {
         </div>
 
         {/* TRANSAÇÕES RECENTES */}
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-card">
-          <h2 className="text-xl font-black mb-8 font-display flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-primary" /> Atividade Live
+        <div className="rounded-xl border border-zinc-200/60 bg-white p-8 shadow-sm">
+          <h2 className="text-lg font-bold mb-8 font-display flex items-center gap-2 text-zinc-900">
+            <RefreshCw className="h-4 w-4 text-zinc-400" /> Atividade Live
           </h2>
           <div className="space-y-6">
             {kpis.lastTransactions.length > 0 ? (
@@ -374,14 +370,14 @@ const Dashboard = () => {
                   className="flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center font-black text-xs text-muted-foreground uppercase">
+                    <div className="h-9 w-9 rounded-lg bg-zinc-50 flex items-center justify-center font-bold text-[10px] text-zinc-400 uppercase border border-zinc-100">
                       {tx.method?.slice(0, 2) || "PIX"}
                     </div>
                     <div>
-                      <p className="text-xs font-black text-foreground truncate w-32">
+                      <p className="text-xs font-bold text-zinc-900 truncate w-32">
                         {tx.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground font-bold">
+                      <p className="text-[10px] text-zinc-400 font-semibold">
                         {tx.time}
                       </p>
                     </div>
@@ -400,7 +396,7 @@ const Dashboard = () => {
             )}
             <Button
               variant="ghost"
-              className="w-full rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5"
+              className="w-full rounded-xl text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
               onClick={() => navigate("/dashboard/caixa")}
             >
               Ver Extrato Completo

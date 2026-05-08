@@ -163,38 +163,30 @@ const Clientes = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
       <div className="mb-10">
-        <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display">
-          <UserSearch className="h-8 w-8 text-primary" /> Carteira de Clientes
+        <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3 tracking-tight font-display">
+          <UserSearch className="h-8 w-8 text-zinc-900" /> Carteira de Clientes
         </h1>
-        <p className="text-muted-foreground text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
+        <p className="text-zinc-500 text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
       </div>
 
       {customers.length === 0 ? (
-        <div className="bg-card border border-border/60 rounded-2xl p-16 text-center shadow-card">
-          <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border/50">
-            <UserSearch className="h-10 w-10 text-muted-foreground/30" />
-          </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
-        </div>
-      ) : (
-        <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden transition-all">
+        <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-secondary/50 border-b border-border">
+              <thead className="bg-zinc-50 border-b border-zinc-100">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">Contagem</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">Última Visita</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-muted-foreground uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Cliente</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Contagem</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Última Visita</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-zinc-400 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-primary/5 transition-colors group">
+                  <tr key={customer.id} className="hover:bg-zinc-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-bold text-foreground">{customer.name}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{formatPhoneNumber(customer.phone)}</div>
+                      <div className="font-bold text-zinc-900">{customer.name}</div>
+                      <div className="text-xs text-zinc-400 font-mono">{formatPhoneNumber(customer.phone)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant="outline" className="font-mono text-xs">
@@ -240,7 +232,7 @@ const Clientes = () => {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="h-10 rounded-full px-5 shadow-sm font-bold border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/80 hover:scale-105 transition-transform"
+                          className="h-9 rounded-lg px-4 shadow-sm font-bold border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all"
                         >
                           <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
                             <MessageSquare className="h-4 w-4 mr-2" /> Conversar

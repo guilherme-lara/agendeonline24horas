@@ -508,14 +508,14 @@ const Caixa = () => {
   return (
     <div className="w-full max-w-full p-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-black text-foreground flex items-center gap-3 font-display">
-          <ShoppingCart className="text-primary" /> Frente de Caixa
+        <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3 font-display">
+          <ShoppingCart className="text-zinc-900" /> Frente de Caixa
         </h1>
         {(pixKey || pixStaticQrUrl) && (
           <Button
             onClick={() => setShowPixModal(true)}
             variant="outline"
-            className="border-primary/30 text-primary hover:bg-primary/10 font-bold rounded-full h-11 px-5"
+            className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 font-bold rounded-full h-11 px-5"
           >
             <QrCode className="h-4 w-4 mr-2" /> Mostrar Pix Fixo
           </Button>
@@ -525,10 +525,10 @@ const Caixa = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
             <Input
               placeholder="Localizar cliente para cobrar..."
-              className="bg-card border-border/50 pl-11 h-14 rounded-full shadow-sm"
+              className="bg-white border-zinc-200 pl-11 h-14 rounded-xl shadow-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -545,10 +545,10 @@ const Caixa = () => {
             .map((a: any) => (
               <div
                 key={a.id}
-                className="p-5 bg-card border border-border/60 rounded-2xl shadow-sm flex items-center justify-between group hover:border-primary/40 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                className="p-5 bg-white border border-zinc-200 shadow-sm rounded-xl flex items-center justify-between group hover:border-zinc-300 transition-all duration-300"
               >
                 <div>
-                  <p className="font-bold text-foreground flex items-center gap-2">
+                  <p className="font-bold text-zinc-900 flex items-center gap-2">
                     {a.client_name}
                     {a.status === "completed" && (
                       <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
@@ -579,7 +579,7 @@ const Caixa = () => {
                   <Button
                     onClick={() => handleSelectAppt(a)}
                     disabled={!!selectedAppt && selectedAppt.id === a.id}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl h-10 px-7 shadow-sm transition-colors"
+                    className="bg-zinc-900 text-white hover:bg-zinc-800 font-bold rounded-lg h-10 px-7 shadow-sm transition-colors"
                   >
                     Cobrar
                   </Button>
@@ -594,13 +594,13 @@ const Caixa = () => {
         </div>
 
         {selectedAppt && (
-          <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card animate-in zoom-in-95 duration-300">
+          <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-2xl font-black text-foreground font-display">
+                <h2 className="text-xl font-bold text-zinc-900 font-display">
                   Comanda Atual
                 </h2>
-                <p className="text-primary text-xs font-bold uppercase tracking-widest">
+                <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mt-1">
                   {selectedAppt.client_name}
                 </p>
               </div>
@@ -621,7 +621,7 @@ const Caixa = () => {
               {cart.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-center justify-between p-4 bg-background rounded-2xl border border-border/50 ${item.type === "discount" ? "border-amber-500/30 bg-amber-500/5" : ""}`}
+                  className={`flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100 ${item.type === "discount" ? "border-amber-200 bg-amber-50" : ""}`}
                 >
                   <div>
                     <p
@@ -734,17 +734,17 @@ const Caixa = () => {
                 </Select>
               </div>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-black text-foreground">
-                  Restante a Pagar
+                <span className="text-lg font-bold text-zinc-900">
+                  Total a Pagar
                 </span>
-                <span className="text-4xl font-black text-primary tracking-tighter">
+                <span className="text-3xl font-bold text-zinc-900 tracking-tight">
                   R$ {Math.max(0, cartTotal).toFixed(2).replace(".", ",")}
                 </span>
               </div>
               <Button
                 onClick={() => checkoutMutation.mutate()}
                 disabled={checkoutMutation.isPending}
-                className="w-full h-16 bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-900/30 hover:-translate-y-0.5 transition-all duration-300 text-white font-black rounded-full text-lg shadow-xl shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 text-white font-bold rounded-xl text-base shadow-sm transition-all duration-300 disabled:opacity-50"
               >
                 {checkoutMutation.isPending ? (
                   <>
