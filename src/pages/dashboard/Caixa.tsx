@@ -694,24 +694,24 @@ const Caixa = () => {
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
                 Adicionar Produto
               </label>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
                 {inventory.map((p: any) => (
                   <button
                     key={p.id}
                     onClick={() => addProductToCart(p)}
-                    className="flex items-center justify-between p-3 bg-background border border-border rounded-xl hover:border-primary/30 transition-all text-left"
+                    className="flex flex-col p-3 bg-background border border-border rounded-xl hover:border-primary/30 transition-all text-left w-full overflow-hidden"
                   >
-                    <div>
-                      <p className="text-[11px] font-bold text-foreground truncate">
+                    <div className="w-full flex justify-between items-start gap-2">
+                      <p className="text-[11px] font-bold text-foreground truncate flex-1">
                         {p.name}
                       </p>
-                      <p className="text-[9px] text-muted-foreground">
-                        Qtd: {p.quantity}
-                      </p>
+                      <span className="text-[11px] font-black text-emerald-500 shrink-0">
+                        R${p.sell_price}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-black text-emerald-500">
-                      R${p.sell_price}
-                    </span>
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      Estoque: {p.quantity}
+                    </p>
                   </button>
                 ))}
               </div>

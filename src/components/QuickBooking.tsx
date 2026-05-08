@@ -53,7 +53,14 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
       _barber_id: null as any,
       _barber_name: null as any,
       _customer_id: null as any,
-      _items: [] as any,
+      _items: [
+        {
+          name: selectedService.name,
+          price: selectedService.price,
+          duration: selectedService.duration,
+          product_type: false,
+        }
+      ] as any,
     });
 
     if (error) {
