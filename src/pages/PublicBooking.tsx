@@ -578,12 +578,18 @@ const PublicBooking = () => {
         category_id: item.category_id || null,
       }));
 
+      // O Supabase requer os argumentos antigos de serviço base para resolver a sobrecarga (function overloading)
+      const serviceItems = cartItems.filter((i) => i.type === "service");
+      const mainItem = serviceItems[0] || cartItems[0];
+
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
         {
           _barbershop_id: shop!.id,
           _client_name: clientData.name.trim(),
           _client_phone: phoneDigits,
+          _service_name: mainItem?.name || "Serviço Adicional",
+          _price: mainItem?.price || 0,
           _scheduled_at: formattedDateForDB,
           _payment_method: "pix_online",
           _barber_id: selectedBarber?.id || null,
