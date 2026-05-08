@@ -46,6 +46,61 @@
   }
 
   .dashboard-theme {
+    /* ─── DASHBOARD THEME (Apple Light/Dark) ─── */
+    /* Light mode */
+    --background: 210 10% 96%;        /* bg-[#F2F2F7] */
+    --foreground: 210 10% 20%;       /* dark gray for text */
+    --card: 0 0% 100%;               /* pure white */
+    --card-foreground: 210 10% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 20%;
+    --primary: 210 10% 20%;          /* primary (blue) placeholder */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 10% 95%;        /* very light gray */
+    --secondary-foreground: 210 10% 20%;
+    --muted: 210 10% 95%;
+    --muted-foreground: 210 10% 45%;
+    --accent: 210 10% 95%;
+    --accent-foreground: 210 10% 20%;
+    --destructive: #FF3B30;          /* system red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 10% 85%;
+    --input: 210 10% 90%;
+    --ring: 210 10% 20%;
+    --radius: 0.75rem;               /* rounded‑xl */
+    /* Glass‑morphism backgrounds */
+    --glass-bg-light: rgba(255,255,255,0.8);
+    --glass-bg-dark: rgba(0,0,0,0.5);
+    /* System semantic colors */
+    --system-red: #FF3B30;
+    --system-green: #34C759;
+    --system-orange: #FF9500;
+    --system-blue: #007AFF;
+  }
+
+  /* ─── DASHBOARD DARK MODE ─── */
+  .dark .dashboard-theme,
+  .dashboard-theme.dark {
+    --background: 210 10% 5%;         /* bg-[#1C1C1E] */
+    --foreground: 210 10% 95%;
+    --card: 210 10% 10%;
+    --card-foreground: 210 10% 95%;
+    --popover: 210 10% 10%;
+    --popover-foreground: 210 10% 95%;
+    --primary: 210 10% 95%;
+    --primary-foreground: 210 10% 10%;
+    --secondary: 210 10% 15%;
+    --secondary-foreground: 210 10% 95%;
+    --muted: 210 10% 15%;
+    --muted-foreground: 210 10% 65%;
+    --accent: 210 10% 15%;
+    --accent-foreground: 210 10% 95%;
+    --destructive: #FF3B30;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 10% 15%;
+    --input: 210 10% 15%;
+    --ring: 210 10% 95%;
+  }
     /* ─── DASHBOARD THEME (Stone & Zinc / Clinical) ─── */
     --background: 240 6% 96%;        /* bg-zinc-100 / #F4F4F5 */
     --foreground: 240 6% 10%;       /* zinc-900 */

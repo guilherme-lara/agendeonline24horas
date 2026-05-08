@@ -150,7 +150,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-white border-r border-zinc-200 transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-[var(--glass-bg-light)] dark:bg-[var(--glass-bg-dark)] backdrop-blur-md rounded-2xl border-r border-zinc-200 transition-transform duration-300 ease-in-out",
           "w-[85vw] max-w-[300px] md:w-64",
           "md:translate-x-0 md:static md:z-auto md:shadow-none",
           open ? "translate-x-0" : "-translate-x-full",
