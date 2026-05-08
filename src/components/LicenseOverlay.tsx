@@ -50,11 +50,11 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
         </div>
 
         <div>
-          <h1 className="text-2xl font-black font-display text-foreground">Acesso Suspenso</h1>
-          <p className="text-muted-foreground mt-2 text-sm max-w-md mx-auto mb-4">
-            Sua licença expirou. Realize o pagamento para liberar o acesso imediatamente.
+          <h1 className="text-3xl font-black font-display text-foreground tracking-tight">Acesso Bloqueado</h1>
+          <p className="text-muted-foreground mt-3 text-sm max-w-md mx-auto mb-6">
+            Seu período de teste ou assinatura expirou. Renove agora para restaurar imediatamente o acesso ao seu painel.
           </p>
-          <Button variant="outline" onClick={signOut} className="mx-auto flex items-center gap-2 rounded-xl text-muted-foreground hover:text-foreground">
+          <Button variant="outline" onClick={signOut} className="mx-auto flex items-center gap-2 rounded-full h-10 px-6 text-muted-foreground hover:text-foreground shadow-sm">
             <LogOut className="h-4 w-4" />
             Sair do Sistema
           </Button>
@@ -65,22 +65,22 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
             <button
               key={plan.key}
               onClick={() => openPlanCheckout(plan.key, barbershopId)}
-              className={`rounded-2xl border p-5 text-center transition-all hover:scale-[1.02] ${
+              className={`rounded-[2rem] border p-6 text-center transition-all duration-300 hover:-translate-y-1 ${
                 plan.popular
-                  ? "border-primary bg-primary/5 shadow-lg"
-                  : "border-border bg-card hover:border-primary/50"
+                  ? "border-primary bg-primary/5 shadow-premium scale-105 z-10"
+                  : "border-border/60 bg-card hover:border-primary/40 shadow-sm"
               }`}
             >
-              <plan.icon className={`mx-auto h-6 w-6 mb-2 ${plan.popular ? "text-primary" : "text-muted-foreground"}`} />
-              <h3 className="font-bold text-sm">{plan.name}</h3>
-              <p className="text-lg font-black text-foreground mt-1">{plan.price}<span className="text-[10px] text-muted-foreground">/mês</span></p>
-              <div className={`mt-3 rounded-xl py-2 text-xs font-bold ${
+              <plan.icon className={`mx-auto h-8 w-8 mb-3 ${plan.popular ? "text-primary" : "text-muted-foreground"}`} />
+              <h3 className="font-bold text-sm tracking-widest uppercase">{plan.name}</h3>
+              <p className="text-2xl font-black text-foreground mt-2">{plan.price}<span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">/mês</span></p>
+              <div className={`mt-5 rounded-full py-2.5 text-xs font-black shadow-sm ${
                 plan.popular
                   ? "premium-gradient text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
               }`}>
-                <ExternalLink className="h-3 w-3 inline mr-1" />
-                Assinar
+                <ExternalLink className="h-3.5 w-3.5 inline mr-1" />
+                Assinar Agora
               </div>
             </button>
           ))}
@@ -92,18 +92,18 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
       </div>
 
       {isAdmin && (
-        <div className="mt-12 bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl max-w-lg w-full text-center">
+        <div className="mt-12 bg-amber-500/10 border border-amber-500/30 p-6 rounded-[2rem] max-w-lg w-full text-center shadow-sm">
           <div className="flex items-center justify-center gap-2 text-amber-600 mb-3">
             <Settings className="h-5 w-5" />
-            <p className="font-bold">Controles de Super Admin (Modo Suporte)</p>
+            <p className="font-black uppercase tracking-widest text-[11px]">Controles de Super Admin</p>
           </div>
-          <p className="text-xs text-amber-600/80 mb-4 font-medium">
-            Você está visualizando a tela de bloqueio do cliente. Ele não pode acessar o sistema sem pagar.
+          <p className="text-xs text-amber-600/80 mb-5 font-medium">
+            Você está visualizando a tela de bloqueio impenetrável do cliente.
           </p>
           <Button 
             onClick={() => extendTrialMutation.mutate()}
             disabled={extendTrialMutation.isPending}
-            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold h-11"
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black h-12 rounded-full shadow-sm"
           >
             {extendTrialMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Estender Trial (+30 dias) e Desbloquear
