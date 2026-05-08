@@ -18,11 +18,11 @@ import QuickBooking from "@/components/QuickBooking";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusBadgeConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pendente", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  pendente_pagamento: { label: "⏳ Aguard. Pagamento - Expira em breve", className: "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse" },
-  confirmed: { label: "Confirmado", className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  completed: { label: "Concluído", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  cancelled: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  pending: { label: "Pendente", className: "bg-stone-500/10 text-stone-600 border-stone-500/20" },
+  pendente_pagamento: { label: "⏳ Aguard. Pagamento - Expira em breve", className: "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse" },
+  confirmed: { label: "Confirmado", className: "bg-teal-500/10 text-teal-600 border-teal-500/20" },
+  completed: { label: "Concluído", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  cancelled: { label: "Cancelado", className: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
 };
 
 const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
@@ -56,7 +56,7 @@ const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
         {config.label}
       </Badge>
       {timeLeft && (
-        <span className={`text-[9px] font-black tabular-nums ${timeLeft === "Expirado" ? "text-red-400" : "text-amber-500/80"}`}>
+        <span className={`text-[9px] font-black tabular-nums ${timeLeft === "Expirado" ? "text-rose-500" : "text-amber-600/80"}`}>
           {timeLeft === "Expirado" ? "⚠️ Reserva Expirada" : `Expira em ${timeLeft}`}
         </span>
       )}

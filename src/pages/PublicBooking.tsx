@@ -874,7 +874,7 @@ const PublicBooking = () => {
                     ) : shopCategories.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {shopCategories.map((cat: any) => (
-                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-3xl border border-border bg-card p-8 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
+                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-[2rem] border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 active:-translate-y-0.5">
                                 <Tag className="h-8 w-8 mx-auto mb-4 text-primary" />
                                 <p className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{cat.name}</p>
                             </button>
@@ -956,11 +956,11 @@ const PublicBooking = () => {
                                 const isInCart = cartItems.some((ci) => ci.id === s.id);
                                 return (
                                 <div key={s.id}
-                                  className={`rounded-3xl border bg-card p-5 text-left transition-all ${
+                                  className={`rounded-[2rem] border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
                                     isInCart
                                       ? "border-emerald-500/30 bg-emerald-500/5"
-                                      : "border-border hover:border-primary/40"
-                                  } active:scale-[0.98]`}
+                                      : "border-border/60 hover:border-primary/30"
+                                  }`}
                                 >
                                     <div className="flex justify-between items-start gap-2 min-w-0">
                                         <div className="min-w-0 flex-1">
@@ -1018,7 +1018,7 @@ const PublicBooking = () => {
                               const qty = cartItem?.quantity ?? 1;
                               return (
                                 <div key={product.id}
-                                  className="rounded-3xl border bg-card p-5 text-left transition-all flex items-center gap-4"
+                                  className="rounded-[2rem] border border-border/60 bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-4"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-base text-foreground truncate">{product.name}</p>
@@ -1111,7 +1111,7 @@ const PublicBooking = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {availableBarbers
                           .map((b: any) => (
-                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/40 transition-all active:scale-[0.98]">
+                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-[2rem] border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
                                 <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
                                     <AvatarImage src={b.avatar_url} />
                                     <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
@@ -1153,7 +1153,7 @@ const PublicBooking = () => {
                     <p className="text-sm text-muted-foreground text-center mb-6 -mt-4">
                       Confira seus serviços, escolha a data e o horário
                     </p>
-                    <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-6">
+                    <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card space-y-6">
                         {/* Show cart summary if there are items, otherwise single service summary */}
                         {cartItems.length > 0 ? (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">

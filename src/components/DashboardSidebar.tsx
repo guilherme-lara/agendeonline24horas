@@ -150,8 +150,8 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card/95 backdrop-blur-md border-r border-border/40 shadow-2xl transition-transform duration-300 ease-in-out",
-          "w-[85vw] max-w-[300px] md:w-64", // Ajuste crítico de largura pro mobile
+          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card border-r border-border/50 shadow-sm transition-transform duration-300 ease-in-out",
+          "w-[85vw] max-w-[300px] md:w-64",
           "md:translate-x-0 md:static md:z-auto md:shadow-none",
           open ? "translate-x-0" : "-translate-x-full",
         )}
@@ -196,7 +196,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   href={item.external} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all duration-300 min-w-0 mb-1"
+                  className="flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 min-w-0 mb-1"
                 >
                   <item.icon className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
                   <span className="truncate flex-1 text-left">{item.label}</span>
@@ -212,8 +212,8 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                   <button 
                     onClick={() => toggleMenu(item.label)} 
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-full text-[13px] font-bold transition-all duration-300 min-w-0 mb-1", 
-                      hasActiveChild && !isMenuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                      "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
+                      hasActiveChild && !isMenuOpen ? "bg-primary/5 text-primary font-bold" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -234,10 +234,10 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                         to={sub.path} 
                         onClick={onClose} 
                         className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300 min-w-0 mb-1", 
+                          "flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-300 min-w-0 mb-1", 
                           isActive(sub.path) 
-                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[0.98]" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                            ? "bg-primary/10 text-primary font-bold scale-[0.98]" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
                         )}
                       >
                         <sub.icon className="h-3.5 w-3.5 shrink-0" />
@@ -255,10 +255,10 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                 to={item.path} 
                 onClick={onClose} 
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-bold transition-all duration-300 min-w-0 mb-1", 
+                  "flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
                   isActive(item.path) 
-                    ? "premium-gradient text-primary-foreground shadow-premium scale-[0.98]" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                    ? "bg-primary/10 text-primary font-bold scale-[0.98]" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 )}
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" />
@@ -268,7 +268,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
           })}
         </nav>
 
-        <div className="border-t border-border/40 p-5 space-y-4 bg-card/50 shrink-0">
+        <div className="border-t border-border/50 p-5 space-y-4 bg-background/50 shrink-0">
           <div className="flex items-center justify-between px-2">
             <ThemeToggle />
             <button 
