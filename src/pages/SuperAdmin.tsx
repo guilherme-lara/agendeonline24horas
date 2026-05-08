@@ -107,6 +107,23 @@ const SuperAdmin = () => {
     onSuccess: () => toast({ title: "Aviso enviado!", description: "Todos os usuários verão o aviso." })
   });
 
+  const renewTrialMutation = useMutation({
+    mutationFn: async (shopId: string) => {
+      const newDate = new Date();
+      newDate.setDate(newDate.getDate() + 30);
+      const { error } = await supabase
+        .from("barbershops")
+        .update({ trial_ends_at: newDate.toISOString() })
+        .eq("id", shopId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-shops"] });
+      toast({ title: "Trial estendido por 30 dias!" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" })
+  });
+
   const dashboardStats = useMemo(() => {
     const active = plans.filter(p => p.status === "active");
     const mrrValue = active.reduce((sum, p) => sum + Number(p.price || 0), 0);
@@ -220,6 +237,14 @@ const SuperAdmin = () => {
                   const plan = plans.find(p => p.barbershop_id === shop.id);
                   const planName = plan?.plan_name || "essential";
                   const isActive = plan?.status === "active";
+                  
+                  // Lógica de Trial
+                  const now = new Date();
+                  const trialEnd = shop.trial_ends_at ? new Date(shop.trial_ends_at) : null;
+                  const isTrialActive = trialEnd && trialEnd > now && !isActive;
+                  const isTrialExpired = trialEnd && trialEnd <= now && !isActive;
+                  const trialDaysLeft = isTrialActive ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
                   return (
                     <tr key={shop.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
@@ -237,10 +262,23 @@ const SuperAdmin = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${isActive ? "text-emerald-600" : "text-red-500"}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-400"}`} />
-                          {isActive ? "Ativo" : plan?.status || "Inativo"}
-                        </span>
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Ativo
+                          </span>
+                        ) : isTrialActive ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Trial ({trialDaysLeft}d)
+                          </span>
+                        ) : isTrialExpired ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Trial Expirado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                            <span className="h-1.5 w-1.5 rounded-full bg-gray-400" /> Inativo
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
@@ -250,6 +288,12 @@ const SuperAdmin = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-lg rounded-lg w-48">
+                            <DropdownMenuItem
+                              onClick={() => renewTrialMutation.mutate(shop.id)}
+                              className="cursor-pointer text-sm gap-2 text-amber-600"
+                            >
+                              <CalendarDays className="h-3.5 w-3.5" /> Estender Trial (+30d)
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => { setDetailShop(shop); setEditForm({ plan: plan?.plan_name || "essential", status: plan?.status || "active" }); }}
                               className="cursor-pointer text-sm gap-2"

@@ -40,8 +40,8 @@ const DashboardLayout = () => {
     if (shop.trial_ends_at) {
       return new Date(shop.trial_ends_at) < new Date();
     }
-    // No trial date and no active plan = block (legacy data safety)
-    return false;
+    // Se não tem plano ativo e o trial já acabou (ou não tem trial), bloqueia.
+    return true;
   }, [clinic, isAdmin]);
 
   useEffect(() => {
