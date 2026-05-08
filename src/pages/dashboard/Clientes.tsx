@@ -153,7 +153,7 @@ const Clientes = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de Sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar sua lista de clientes.</p>
-        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
@@ -170,7 +170,7 @@ const Clientes = () => {
       </div>
 
       {customers.length === 0 ? (
-        <div className="bg-card border border-border/60 rounded-[2rem] p-16 text-center shadow-card">
+        <div className="bg-card border border-border/60 rounded-2xl p-16 text-center shadow-card">
           <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border/50">
             <UserSearch className="h-10 w-10 text-muted-foreground/30" />
           </div>
@@ -178,7 +178,7 @@ const Clientes = () => {
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
-        <div className="bg-card border border-border/60 rounded-[2rem] shadow-card overflow-hidden transition-all">
+        <div className="bg-card border border-border/60 rounded-2xl shadow-card overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary/50 border-b border-border">
@@ -307,7 +307,7 @@ const Clientes = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && handleEditClose()}>
-        <DialogContent className="rounded-[2rem] bg-card border-border/50">
+        <DialogContent className="rounded-2xl bg-card border-border/50">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
           </DialogHeader>
@@ -361,7 +361,7 @@ const Clientes = () => {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteCustomerId} onOpenChange={(open) => !open && setDeleteCustomerId(null)}>
-        <AlertDialogContent className="rounded-[2rem] bg-card border-border/50">
+        <AlertDialogContent className="rounded-2xl bg-card border-border/50">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>

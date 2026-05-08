@@ -179,7 +179,7 @@ const Agenda = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-card border border-border/50 p-1.5 rounded-full shadow-sm">
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-full px-6 ${activeTab === "active" ? "premium-gradient text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary/50"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-full px-6 ${activeTab === "active" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary/50"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
             <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-full px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
           </div>
           <div className="h-8 w-[1px] bg-border/50 mx-2 hidden xl:block" />
@@ -197,7 +197,7 @@ const Agenda = () => {
       </div>
 
       {viewMode === "list" ? (
-        <div className="bg-card border border-border/60 rounded-[2rem] overflow-hidden shadow-card">
+        <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-secondary/50 border-b border-border"><tr className="text-[10px] uppercase font-black text-muted-foreground tracking-[0.2em]">
@@ -256,7 +256,7 @@ const Agenda = () => {
       )}
 
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
-        <DialogContent className="bg-card border-border/50 text-foreground max-w-2xl rounded-[2rem] shadow-card">
+        <DialogContent className="bg-card border-border/50 text-foreground max-w-2xl rounded-2xl shadow-card">
           <DialogHeader><DialogTitle className="text-2xl font-black flex items-center gap-2 font-display"><Pencil className="text-primary h-6 w-6" /> Editar Agendamento</DialogTitle></DialogHeader>
           {editModal.appt && (
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">

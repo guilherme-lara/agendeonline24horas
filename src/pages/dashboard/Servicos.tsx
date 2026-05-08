@@ -407,7 +407,7 @@ const Servicos = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar seu catálogo de serviços.</p>
-        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold"><RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente</Button>
+        <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold"><RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente</Button>
       </div>
     );
   }
@@ -421,7 +421,7 @@ const Servicos = () => {
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-primary" /> Catálogo de Serviços</h1>
           <p className="text-muted-foreground text-sm mt-1 font-medium">Defina os preços, tempos e quais profissionais realizam cada serviço.</p>
         </div>
-        <Button onClick={openNew} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
+        <Button onClick={openNew} className="bg-primary text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-sm transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
       </div>
 
       <Tabs defaultValue="services" className="w-full">
@@ -433,7 +433,7 @@ const Servicos = () => {
         <TabsContent value="services">
 
       {services.length === 0 ? (
-        <div className="bg-card border border-border rounded-3xl p-16 text-center shadow-card">
+        <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-card">
             <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border"><Scissors className="h-10 w-10 text-muted-foreground/30" /></div>
             <h3 className="text-xl font-bold text-foreground mb-2">Catálogo Vazio</h3>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Comece cadastrando seu serviço principal para liberar a agenda online.</p>
@@ -557,7 +557,7 @@ const Servicos = () => {
           </div>
           <div className="pt-6">
             <Button
-              className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
+              className="w-full bg-primary text-primary-foreground font-black h-14 rounded-2xl shadow-sm transition-all active:scale-95"
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !name.trim() || !price}
             >
@@ -576,11 +576,11 @@ const Servicos = () => {
               <h2 className="text-xl font-black text-foreground flex items-center gap-2 font-display">Gerencie suas Categorias</h2>
               <p className="text-sm text-muted-foreground mt-1">Organize seus serviços em grupos para facilitar a navegação do cliente.</p>
             </div>
-            <Button onClick={openNewCategory} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Nova Categoria</Button>
+            <Button onClick={openNewCategory} className="bg-primary text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-sm transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Nova Categoria</Button>
           </div>
 
           {allCategories.length === 0 ? (
-            <div className="bg-card border border-border rounded-3xl p-16 text-center shadow-card">
+            <div className="bg-card border border-border rounded-2xl p-16 text-center shadow-card">
                 <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border"><Tag className="h-10 w-10 text-muted-foreground/30" /></div>
                 <h3 className="text-xl font-bold text-foreground mb-2">Nenhuma Categoria</h3>
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Crie categorias como "Cabelo", "Barba", "Combo" para organizar seus serviços.</p>
@@ -616,7 +616,7 @@ const Servicos = () => {
                       <Input placeholder="Ex: Cabelo, Barba, Combo..." value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
                   </div>
                   <Button
-                    className="w-full premium-gradient text-primary-foreground font-black h-12 rounded-xl shadow-premium transition-all active:scale-95"
+                    className="w-full bg-primary text-primary-foreground font-black h-12 rounded-xl shadow-sm transition-all active:scale-95"
                     onClick={() => saveCategoryMutation.mutate()}
                     disabled={saveCategoryMutation.isPending || !categoryName.trim()}
                   >

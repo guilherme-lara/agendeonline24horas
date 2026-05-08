@@ -145,7 +145,7 @@ const Configuracoes = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as configurações da sua empresa.</p>
-        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
@@ -168,7 +168,7 @@ const Configuracoes = () => {
 
       <div className="grid gap-8">
         {/* SEÇÃO: IDENTIDADE VISUAL */}
-        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow">
+        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-6 flex items-center gap-2">
                 <Building2 className="h-4 w-4" /> Logo da Empresa
             </h2>
@@ -181,7 +181,7 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: DADOS DA EMPRESA */}
-        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
+        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
                 <Save className="h-4 w-4" /> Informações do Perfil
             </h2>
@@ -236,7 +236,7 @@ const Configuracoes = () => {
         </div>
 
         {/* SEÇÃO: CHAVE PIX */}
-        <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
+        <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card hover:shadow-md transition-shadow space-y-6">
             <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
                 <QrCode className="h-4 w-4" /> Chave Pix para Recebimentos
             </h2>
@@ -294,7 +294,7 @@ const Configuracoes = () => {
         <Button 
             onClick={() => saveMutation.mutate()} 
             disabled={saveMutation.isPending} 
-            className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-full shadow-premium hover:-translate-y-0.5 transition-all duration-300"
+            className="w-full bg-primary text-primary-foreground font-black h-14 rounded-full shadow-sm hover:-translate-y-0.5 transition-all duration-300"
         >
           {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Aplicar Alterações no Sistema

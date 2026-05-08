@@ -838,7 +838,7 @@ const PublicBooking = () => {
 
             <button
               onClick={() => setShowCart(false)}
-              className="w-full h-14 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium"
+              className="w-full h-14 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors"
             >
               Continuar
             </button>
@@ -861,7 +861,7 @@ const PublicBooking = () => {
           <div>
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "premium-gradient shadow-premium" : "bg-secondary"}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "bg-primary shadow-sm" : "bg-secondary"}`} />
               ))}
             </div>
 
@@ -874,7 +874,7 @@ const PublicBooking = () => {
                     ) : shopCategories.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {shopCategories.map((cat: any) => (
-                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-[2rem] border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 active:-translate-y-0.5">
+                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 active:-translate-y-0.5">
                                 <Tag className="h-8 w-8 mx-auto mb-4 text-primary" />
                                 <p className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{cat.name}</p>
                             </button>
@@ -956,7 +956,7 @@ const PublicBooking = () => {
                                 const isInCart = cartItems.some((ci) => ci.id === s.id);
                                 return (
                                 <div key={s.id}
-                                  className={`rounded-[2rem] border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
+                                  className={`rounded-2xl border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
                                     isInCart
                                       ? "border-emerald-500/30 bg-emerald-500/5"
                                       : "border-border/60 hover:border-primary/30"
@@ -1018,7 +1018,7 @@ const PublicBooking = () => {
                               const qty = cartItem?.quantity ?? 1;
                               return (
                                 <div key={product.id}
-                                  className="rounded-[2rem] border border-border/60 bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-4"
+                                  className="rounded-2xl border border-border/60 bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-4"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-base text-foreground truncate">{product.name}</p>
@@ -1111,7 +1111,7 @@ const PublicBooking = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {availableBarbers
                           .map((b: any) => (
-                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-[2rem] border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
                                 <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
                                     <AvatarImage src={b.avatar_url} />
                                     <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
@@ -1131,7 +1131,7 @@ const PublicBooking = () => {
                           </p>
                           <Button
                             onClick={() => setStep(2)}
-                            className="mx-auto h-12 px-8 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium"
+                            className="mx-auto h-12 px-8 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                           >
                             <ShoppingBag className="h-4 w-4 mr-2" /> Ajustar Carrinho
                           </Button>
@@ -1153,7 +1153,7 @@ const PublicBooking = () => {
                     <p className="text-sm text-muted-foreground text-center mb-6 -mt-4">
                       Confira seus serviços, escolha a data e o horário
                     </p>
-                    <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-card space-y-6">
+                    <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card space-y-6">
                         {/* Show cart summary if there are items, otherwise single service summary */}
                         {cartItems.length > 0 ? (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
@@ -1286,7 +1286,7 @@ const PublicBooking = () => {
                           <Button
                               onClick={() => bookingMutation.mutate()}
                               disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
-                              className="flex-1 h-16 premium-gradient text-primary-foreground font-black rounded-2xl shadow-premium active:scale-95 transition-all"
+                              className="flex-1 h-14 bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center"
                           >
                               {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</>}
                           </Button>
@@ -1327,7 +1327,7 @@ const PublicBooking = () => {
                 </button>
                 <Button
                   onClick={() => setStep(step === 2 ? 3 : 4)}
-                  className="h-12 px-8 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium whitespace-nowrap shrink-0"
+                  className="h-12 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm whitespace-nowrap shrink-0 transition-colors"
                 >
                   {step === 2 ? 'Escolher Profissional' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -1386,7 +1386,7 @@ const PublicBooking = () => {
                     setSelectedTime(null);
                     queryClient.invalidateQueries({ queryKey: ["slots"] });
                   }}
-                  className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
                 >
                   Escolher Outro Horário
                 </Button>
@@ -1424,7 +1424,7 @@ const PublicBooking = () => {
                 setSelectedTime(null);
                 queryClient.invalidateQueries({ queryKey: ["slots"] });
               }}
-              className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
             >
               Escolher Outro Horário
             </Button>
@@ -1466,7 +1466,7 @@ const PublicBooking = () => {
                   )}
                 </div>
 
-                <Button onClick={() => navigate(`/`)} className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full">Ir para a Página Inicial</Button>
+                <Button onClick={() => navigate(`/`)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors">Ir para a Página Inicial</Button>
             </div>
         )}
       </div>

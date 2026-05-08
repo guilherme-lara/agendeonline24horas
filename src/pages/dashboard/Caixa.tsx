@@ -545,7 +545,7 @@ const Caixa = () => {
             .map((a: any) => (
               <div
                 key={a.id}
-                className="p-5 bg-card border border-border/60 rounded-[2rem] shadow-sm flex items-center justify-between group hover:border-primary/40 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                className="p-5 bg-card border border-border/60 rounded-2xl shadow-sm flex items-center justify-between group hover:border-primary/40 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div>
                   <p className="font-bold text-foreground flex items-center gap-2">
@@ -579,7 +579,7 @@ const Caixa = () => {
                   <Button
                     onClick={() => handleSelectAppt(a)}
                     disabled={!!selectedAppt && selectedAppt.id === a.id}
-                    className="premium-gradient text-primary-foreground font-bold rounded-full h-10 px-7 shadow-premium"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl h-10 px-7 shadow-sm transition-colors"
                   >
                     Cobrar
                   </Button>
@@ -594,7 +594,7 @@ const Caixa = () => {
         </div>
 
         {selectedAppt && (
-          <div className="bg-card border border-border/60 rounded-[2.5rem] p-8 shadow-card animate-in zoom-in-95 duration-300">
+          <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-2xl font-black text-foreground font-display">
@@ -621,7 +621,7 @@ const Caixa = () => {
               {cart.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-center justify-between p-4 bg-background rounded-[1.5rem] border border-border/50 ${item.type === "discount" ? "border-amber-500/30 bg-amber-500/5" : ""}`}
+                  className={`flex items-center justify-between p-4 bg-background rounded-2xl border border-border/50 ${item.type === "discount" ? "border-amber-500/30 bg-amber-500/5" : ""}`}
                 >
                   <div>
                     <p
@@ -767,7 +767,7 @@ const Caixa = () => {
 
         {/* MODAL PIX FIXO */}
         <Dialog open={showPixModal} onOpenChange={setShowPixModal}>
-          <DialogContent className="bg-card border-border/50 text-foreground max-w-sm rounded-[2rem] shadow-card">
+          <DialogContent className="bg-card border-border/50 text-foreground max-w-sm rounded-2xl shadow-card">
             <DialogHeader>
               <DialogTitle className="text-xl font-black flex items-center gap-2 font-display">
                 <QrCode className="h-5 w-5 text-primary" /> Pix do

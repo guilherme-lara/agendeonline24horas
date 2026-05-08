@@ -65,18 +65,18 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
             <button
               key={plan.key}
               onClick={() => openPlanCheckout(plan.key, barbershopId)}
-              className={`rounded-[2rem] border p-6 text-center transition-all duration-300 hover:-translate-y-1 ${
+              className={`rounded-2xl border p-6 text-center transition-all duration-300 hover:-translate-y-1 ${
                 plan.popular
-                  ? "border-primary bg-primary/5 shadow-premium scale-105 z-10"
+                  ? "border-primary bg-primary/5 shadow-md scale-105 z-10"
                   : "border-border/60 bg-card hover:border-primary/40 shadow-sm"
               }`}
             >
               <plan.icon className={`mx-auto h-8 w-8 mb-3 ${plan.popular ? "text-primary" : "text-muted-foreground"}`} />
               <h3 className="font-bold text-sm tracking-widest uppercase">{plan.name}</h3>
               <p className="text-2xl font-black text-foreground mt-2">{plan.price}<span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">/mês</span></p>
-              <div className={`mt-5 rounded-full py-2.5 text-xs font-black shadow-sm ${
+              <div className={`mt-5 rounded-full py-2.5 text-xs font-black shadow-sm transition-colors ${
                 plan.popular
-                  ? "premium-gradient text-primary-foreground"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-secondary text-foreground hover:bg-secondary/80"
               }`}>
                 <ExternalLink className="h-3.5 w-3.5 inline mr-1" />

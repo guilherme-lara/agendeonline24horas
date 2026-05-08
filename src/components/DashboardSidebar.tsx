@@ -213,7 +213,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                     onClick={() => toggleMenu(item.label)} 
                     className={cn(
                       "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
-                      hasActiveChild && !isMenuOpen ? "bg-primary/5 text-primary font-bold" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                      hasActiveChild && !isMenuOpen ? "bg-secondary text-foreground font-semibold" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -236,7 +236,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                         className={cn(
                           "flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-300 min-w-0 mb-1", 
                           isActive(sub.path) 
-                            ? "bg-primary/10 text-primary font-bold scale-[0.98]" 
+                            ? "bg-secondary text-foreground font-semibold scale-[0.98]" 
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
                         )}
                       >
@@ -257,7 +257,7 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-full text-[13px] font-medium transition-all duration-300 min-w-0 mb-1", 
                   isActive(item.path) 
-                    ? "bg-primary/10 text-primary font-bold scale-[0.98]" 
+                    ? "bg-secondary text-foreground font-semibold scale-[0.98]" 
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 )}
               >

@@ -215,7 +215,7 @@ const Dashboard = () => {
       {/* HEADER */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-3xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-card ring-1 ring-primary/10">
+          <div className="h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-card ring-1 ring-primary/10">
             {clinic.logo_url ? (
               <img
                 src={clinic.logo_url}
@@ -269,7 +269,7 @@ const Dashboard = () => {
         ].map((kpi, i) => (
           <div
             key={i}
-            className={`rounded-3xl border border-border bg-card p-6 shadow-card hover:border-${kpi.color === "primary" ? "primary" : kpi.color + "-400"}/40 transition-all group`}
+            className={`rounded-2xl border border-border bg-card p-6 shadow-card hover:border-${kpi.color === "primary" ? "primary" : kpi.color + "-400"}/40 transition-all group`}
           >
             <div className="flex items-center gap-4 mb-4">
               <div
@@ -292,7 +292,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* GRÁFICO PRINCIPAL */}
-        <div className="lg:col-span-2 rounded-[2.5rem] border border-border bg-card p-8 shadow-card">
+        <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-8 shadow-card">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-black flex items-center gap-3 font-display">
@@ -362,7 +362,7 @@ const Dashboard = () => {
         </div>
 
         {/* TRANSAÇÕES RECENTES */}
-        <div className="rounded-[2.5rem] border border-border bg-card p-8 shadow-card">
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-card">
           <h2 className="text-xl font-black mb-8 font-display flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-primary" /> Atividade Live
           </h2>
