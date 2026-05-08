@@ -107,14 +107,14 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-zinc-200 bg-white sticky top-0 z-30">
+        <div className="md:hidden flex items-center gap-3 px-6 py-4 border-b border-white/20 dark:border-white/10 bg-white/80 dark:bg-black/50 backdrop-blur-md sticky top-0 z-30 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+            className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-bold tracking-tight text-zinc-900 font-display">
+          <span className="text-base font-bold tracking-tight text-foreground font-display">
             {(clinic as any)?.name || "Painel"}
           </span>
         </div>

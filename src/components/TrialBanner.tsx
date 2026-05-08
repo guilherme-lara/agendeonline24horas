@@ -90,19 +90,19 @@ const TrialBanner = () => {
   }
 
   const borderColor = urgency === "critical" || urgency === "expired"
-    ? "border-zinc-500/30"
-    : "border-zinc-200/20";
+    ? "border-system-red/30"
+    : "border-black/5 dark:border-white/10";
 
   const textColor = urgency === "critical" || urgency === "expired"
-    ? "text-zinc-300"
-    : "text-zinc-400";
+    ? "text-system-red dark:text-system-red"
+    : "text-zinc-600 dark:text-zinc-400";
 
   return (
-    <div className="bg-zinc-900 text-white rounded-xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border border-zinc-800 animate-in fade-in duration-300">
+    <div className={`bg-white/80 dark:bg-black/50 backdrop-blur-md text-zinc-900 dark:text-white rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border ${borderColor} animate-in fade-in duration-300`}>
       <div className="flex items-center gap-4">
-        <Sparkles className={`h-8 w-8 ${urgency === "critical" || urgency === "expired" ? "text-zinc-400" : "text-zinc-300"} ${urgency === "critical" || urgency === "expired" ? "animate-pulse" : ""}`} />
+        <Sparkles className={`h-8 w-8 ${urgency === "critical" || urgency === "expired" ? "text-system-red" : "text-system-blue"} ${urgency === "critical" || urgency === "expired" ? "animate-pulse" : ""}`} />
         <div>
-          <h3 className="font-bold text-lg text-white">Trial do Plano PRO</h3>
+          <h3 className="font-bold text-lg">Trial do Plano PRO</h3>
           <p className={`text-sm ${textColor}`}>{message}</p>
           {hasFutureTrial && daysRemaining <= 30 && daysRemaining > 7 && (
             <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-zinc-500">
@@ -116,14 +116,15 @@ const TrialBanner = () => {
           <Button
             onClick={() => extendTrialMutation.mutate()}
             disabled={extendTrialMutation.isPending}
-            className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold h-11 px-6 rounded-lg transition-all flex-shrink-0 border border-zinc-700"
+            variant="outline"
+            className="rounded-xl font-bold h-11 px-6 transition-all flex-shrink-0"
           >
             {extendTrialMutation.isPending ? "Processando..." : "Estender Trial (+30d)"}
           </Button>
         )}
         <Button
           onClick={() => navigate('/subscribe/pro')}
-          className="bg-white text-zinc-900 hover:bg-zinc-50 font-bold h-11 px-6 rounded-lg transition-all flex-shrink-0 shadow-sm"
+          className="bg-system-blue text-white hover:bg-system-blue/90 font-bold h-11 px-6 rounded-xl transition-all flex-shrink-0 shadow-sm"
         >
           <Rocket className="h-4 w-4 mr-2" /> {isAdmin ? "Ver Planos" : "Fazer Upgrade Agora"}
         </Button>

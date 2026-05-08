@@ -56,8 +56,8 @@ const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-sm mx-4 rounded-xl border border-border/50 bg-card p-8 shadow-sm backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-black/50 p-8 shadow-sm backdrop-blur-md">
         <button onClick={handleClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>

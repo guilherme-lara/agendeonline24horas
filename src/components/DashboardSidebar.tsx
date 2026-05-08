@@ -156,27 +156,27 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border/50 shrink-0">
           {clinic?.logo_url ? (
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg overflow-hidden border border-zinc-200 shadow-sm shrink-0 bg-zinc-50 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl overflow-hidden border border-border shadow-sm shrink-0 bg-background flex items-center justify-center">
                 <img src={clinic.logo_url} alt="Logo da Empresa" className="h-full w-full object-cover" />
               </div>
-              <span className="font-bold text-[15px] tracking-tight text-zinc-900 truncate max-w-[130px] font-display">{clinic?.name}</span>
+              <span className="font-bold text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">{clinic?.name}</span>
             </div>
           ) : (
             <img src={logoAgenda} alt="Logo Padrão" className="h-8 w-auto opacity-90 object-contain" />
           )}
-          <button onClick={onClose} className="md:hidden p-1.5 text-zinc-400 hover:bg-zinc-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="md:hidden p-1.5 text-muted-foreground hover:bg-secondary rounded-xl transition-colors">
             <X className="h-5 w-5 shrink-0" />
           </button>
         </div>
 
         {trialDaysLeft && (
-          <div className="px-5 py-2.5 border-b border-border bg-amber-500/5 shrink-0">
+          <div className="px-5 py-2.5 border-b border-border/50 bg-system-orange/10 shrink-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <Crown className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
-              <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider truncate">Pro Trial: {trialDaysLeft}d restantes</span>
+              <Crown className="h-3.5 w-3.5 text-system-orange animate-pulse shrink-0" />
+              <span className="text-[10px] font-black text-system-orange uppercase tracking-wider truncate">Pro Trial: {trialDaysLeft}d restantes</span>
             </div>
             <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
               <div 

@@ -46,28 +46,28 @@
   }
 
   .dashboard-theme {
-    --background: 210 10% 96%;
-    --foreground: 210 10% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 210 10% 20%;
+    --background: 240 6% 97%;         /* #F2F2F7 */
+    --foreground: 240 5% 26%;         /* #3A3A3C */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 240 5% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 10% 20%;
-    --primary: 211 100% 50%;          /* Apple Blue */
+    --popover-foreground: 240 5% 10%;
+    --primary: 211 100% 50%;          /* #007AFF Apple Blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 10% 95%;
-    --secondary-foreground: 210 10% 20%;
-    --muted: 210 10% 95%;
-    --muted-foreground: 210 10% 45%;
-    --accent: 211 100% 95%;           /* Soft Apple Blue for hovers */
+    --secondary: 240 5% 90%;
+    --secondary-foreground: 240 5% 10%;
+    --muted: 240 5% 90%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 211 100% 95%;           /* Soft Blue Hover */
     --accent-foreground: 211 100% 50%;
     --destructive: #FF3B30;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 10% 85%;
-    --input: 210 10% 90%;
-    --ring: 211 100% 50%;             /* Apple Blue focus ring */
-    --radius: 1rem;                   /* rounded-2xl style base */
-    --glass-bg-light: rgba(255, 255, 255, 0.8);
-    --glass-bg-dark: rgba(0, 0, 0, 0.5);
+    --border: 240 5% 85%;
+    --input: 240 5% 90%;
+    --ring: 211 100% 50%;
+    --radius: 1rem;
+    --glass-bg-light: rgba(255, 255, 255, 0.7);
+    --glass-bg-dark: rgba(28, 28, 30, 0.7);
     --system-red: #FF3B30;
     --system-green: #34C759;
     --system-orange: #FF9500;
@@ -76,24 +76,24 @@
 
   .dark .dashboard-theme,
   .dashboard-theme.dark {
-    --background: 210 10% 5%;
-    --foreground: 210 10% 95%;
-    --card: 210 10% 10%;
-    --card-foreground: 210 10% 95%;
-    --popover: 210 10% 10%;
-    --popover-foreground: 210 10% 95%;
-    --primary: 211 100% 55%;          /* Apple Blue (Lighter for Dark Mode) */
+    --background: 240 3% 11%;         /* #1C1C1E */
+    --foreground: 240 5% 90%;         /* #E5E5EA */
+    --card: 240 2% 18%;               /* #2C2C2E */
+    --card-foreground: 240 5% 90%;
+    --popover: 240 2% 18%;
+    --popover-foreground: 240 5% 90%;
+    --primary: 211 100% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 10% 15%;
-    --secondary-foreground: 210 10% 95%;
-    --muted: 210 10% 15%;
-    --muted-foreground: 210 10% 65%;
-    --accent: 211 50% 15%;            /* Soft dark blue for hovers */
+    --secondary: 240 4% 25%;
+    --secondary-foreground: 240 5% 90%;
+    --muted: 240 4% 25%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 211 50% 25%;
     --accent-foreground: 211 100% 70%;
-    --destructive: #FF453A;           /* Apple Red Dark Mode */
+    --destructive: #FF453A;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 10% 15%;
-    --input: 210 10% 20%;
+    --border: 240 4% 25%;
+    --input: 240 4% 25%;
     --ring: 211 100% 55%;
   }
 }

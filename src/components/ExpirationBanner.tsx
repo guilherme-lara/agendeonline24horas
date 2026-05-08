@@ -27,31 +27,28 @@ const ExpirationBanner = () => {
   // Determina cor e estilo baseado nos dias restantes
   const getBannerStyle = () => {
     if (daysLeft <= 3) {
-      // Últimos 3 dias: Vermelho com pulse
       return {
-        bg: "bg-red-600/15",
-        border: "border-red-600/30",
-        text: "text-red-600",
-        icon: "text-red-600",
+        bg: "bg-system-red/10 dark:bg-system-red/15 backdrop-blur-md",
+        border: "border-system-red/30",
+        text: "text-system-red",
+        icon: "text-system-red",
         animate: "animate-pulse",
       };
     }
     if (daysLeft <= 15) {
-      // Até dia 15: Verde
       return {
-        bg: "bg-emerald-500/15",
-        border: "border-emerald-500/30",
-        text: "text-emerald-500",
-        icon: "text-emerald-500",
+        bg: "bg-system-green/10 dark:bg-system-green/15 backdrop-blur-md",
+        border: "border-system-green/30",
+        text: "text-system-green",
+        icon: "text-system-green",
         animate: "",
       };
     }
-    // Dia 16 ao 27: Laranja
     return {
-      bg: "bg-amber-500/15",
-      border: "border-amber-500/30",
-      text: "text-amber-500",
-      icon: "text-amber-500",
+      bg: "bg-system-orange/10 dark:bg-system-orange/15 backdrop-blur-md",
+      border: "border-system-orange/30",
+      text: "text-system-orange",
+      icon: "text-system-orange",
       animate: "",
     };
   };

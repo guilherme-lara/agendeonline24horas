@@ -560,7 +560,7 @@ const Caixa = () => {
                       {a.status === "completed" ? a.total_price : a.price}
                     </p>
                     {a.has_signal && a.payment_method === "pix_online" && a.status !== "completed" && (
-                      <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1.5 py-0">
+                      <Badge className="bg-system-orange/10 text-system-orange border border-system-orange/20 text-[8px] px-1.5 py-0">
                         - R$ {a.signal_value} (Sinal)
                       </Badge>
                     )}
@@ -841,7 +841,7 @@ const Caixa = () => {
                   {viewDetailsAppt?.client_name}
                 </p>
               </div>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-black tracking-widest text-[9px]">
+              <Badge className="bg-system-green/10 text-system-green border-system-green/20 font-black tracking-widest text-[9px]">
                 PAGO
               </Badge>
             </div>
