@@ -1,14 +1,14 @@
 import { AlertTriangle, ExternalLink, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
 import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 import { useMemo } from "react";
 
 const ExpirationBanner = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { isAdmin } = useAuth();
-  const shop = barbershop as any;
+  const shop = clinic as any;
 
   const daysLeft = useMemo(() => {
     if (!shop || isAdmin) return null;
@@ -92,7 +92,7 @@ const ExpirationBanner = () => {
       <Button
         size="sm"
         onClick={() => openPlanCheckout(shop?.plan_name || "prata", shop?.id)}
-        className="gold-gradient text-primary-foreground font-bold text-xs rounded-xl h-9 px-4 flex-shrink-0"
+        className="premium-gradient text-primary-foreground font-bold text-xs rounded-xl h-9 px-4 flex-shrink-0"
       >
         <ExternalLink className="h-3.5 w-3.5 mr-1" />
         {daysLeft <= 3 ? "Renovar" : "Ver Planos"}

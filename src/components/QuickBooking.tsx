@@ -65,7 +65,7 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+        <Button size="sm" className="premium-gradient text-primary-foreground font-semibold hover:opacity-90">
           <CalendarPlus className="h-3.5 w-3.5 mr-1" /> Agendamento Rápido
         </Button>
       </DialogTrigger>
@@ -101,7 +101,7 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
           <Button
             onClick={handleSubmit}
             disabled={saving || !name.trim() || !serviceId || !date || !time}
-            className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+            className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CalendarPlus className="h-4 w-4 mr-2" />}
             Criar Agendamento

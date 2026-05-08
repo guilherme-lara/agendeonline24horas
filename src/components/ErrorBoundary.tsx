@@ -38,7 +38,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-muted-foreground text-sm mb-6">
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
-            <Button onClick={this.handleReset} className="gold-gradient text-primary-foreground font-semibold">
+            <Button onClick={this.handleReset} className="premium-gradient text-primary-foreground font-semibold">
               <RefreshCw className="mr-2 h-4 w-4" /> Recarregar
             </Button>
           </div>

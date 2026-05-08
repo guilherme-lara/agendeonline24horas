@@ -406,7 +406,7 @@ const PublicBooking = () => {
     return () => { supabase.removeChannel(channel); };
   }, [shop?.id, queryClient]);
 
-  // Categories available for this barbershop's services
+  // Categories available for this clinic's services
   const shopCategories = useMemo(() => {
     if (!shopResources) return [];
     const ids = new Set<string>();
@@ -833,7 +833,7 @@ const PublicBooking = () => {
 
             <button
               onClick={() => setShowCart(false)}
-              className="w-full h-14 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold"
+              className="w-full h-14 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium"
             >
               Continuar
             </button>
@@ -856,7 +856,7 @@ const PublicBooking = () => {
           <div>
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "gold-gradient shadow-gold" : "bg-secondary"}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? "premium-gradient shadow-premium" : "bg-secondary"}`} />
               ))}
             </div>
 
@@ -1126,7 +1126,7 @@ const PublicBooking = () => {
                           </p>
                           <Button
                             onClick={() => setStep(2)}
-                            className="mx-auto h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold"
+                            className="mx-auto h-12 px-8 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium"
                           >
                             <ShoppingBag className="h-4 w-4 mr-2" /> Ajustar Carrinho
                           </Button>
@@ -1281,7 +1281,7 @@ const PublicBooking = () => {
                           <Button
                               onClick={() => bookingMutation.mutate()}
                               disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
-                              className="flex-1 h-16 gold-gradient text-primary-foreground font-black rounded-2xl shadow-gold active:scale-95 transition-all"
+                              className="flex-1 h-16 premium-gradient text-primary-foreground font-black rounded-2xl shadow-premium active:scale-95 transition-all"
                           >
                               {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</>}
                           </Button>
@@ -1322,7 +1322,7 @@ const PublicBooking = () => {
                 </button>
                 <Button
                   onClick={() => setStep(step === 2 ? 3 : 4)}
-                  className="h-12 px-8 rounded-2xl font-black gold-gradient text-primary-foreground shadow-gold whitespace-nowrap shrink-0"
+                  className="h-12 px-8 rounded-2xl font-black premium-gradient text-primary-foreground shadow-premium whitespace-nowrap shrink-0"
                 >
                   {step === 2 ? 'Escolher Profissional' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -1381,7 +1381,7 @@ const PublicBooking = () => {
                     setSelectedTime(null);
                     queryClient.invalidateQueries({ queryKey: ["slots"] });
                   }}
-                  className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full"
+                  className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full"
                 >
                   Escolher Outro Horário
                 </Button>
@@ -1419,7 +1419,7 @@ const PublicBooking = () => {
                 setSelectedTime(null);
                 queryClient.invalidateQueries({ queryKey: ["slots"] });
               }}
-              className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full"
+              className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full"
             >
               Escolher Outro Horário
             </Button>
@@ -1461,7 +1461,7 @@ const PublicBooking = () => {
                   )}
                 </div>
 
-                <Button onClick={() => navigate(`/`)} className="gold-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-gold w-full">Ir para a Página Inicial</Button>
+                <Button onClick={() => navigate(`/`)} className="premium-gradient text-primary-foreground h-14 px-10 rounded-2xl font-black shadow-premium w-full">Ir para a Página Inicial</Button>
             </div>
         )}
       </div>

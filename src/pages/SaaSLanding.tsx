@@ -74,7 +74,7 @@ const SaaSLanding = () => {
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/75 border-b border-border/60">
         <div className="container max-w-6xl px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl gold-gradient flex items-center justify-center">
+            <div className="h-8 w-8 rounded-xl premium-gradient flex items-center justify-center">
               <Flower2 className="h-4 w-4 text-primary-foreground" />
             </div>
             <span className="font-display text-lg font-semibold tracking-tight">AgendeOnline</span>
@@ -118,7 +118,7 @@ const SaaSLanding = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Button
               onClick={() => navigate("/login")}
-              className="h-14 px-9 rounded-full gold-gradient text-primary-foreground text-base font-medium shadow-gold transition-all active:scale-95 group"
+              className="h-14 px-9 rounded-full premium-gradient text-primary-foreground text-base font-medium shadow-premium transition-all active:scale-95 group"
             >
               Começar teste grátis
               <ChevronRight className="ml-1 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -232,7 +232,7 @@ const SaaSLanding = () => {
                 key={f.title}
                 className="rounded-3xl border border-border bg-card p-8 hover:border-primary/30 hover:shadow-card transition-all duration-500"
               >
-                <div className="h-12 w-12 rounded-2xl gold-gradient flex items-center justify-center mb-6 shadow-gold">
+                <div className="h-12 w-12 rounded-2xl premium-gradient flex items-center justify-center mb-6 shadow-premium">
                   <f.icon className="h-5 w-5 text-primary-foreground" strokeWidth={1.8} />
                 </div>
                 <h3 className="font-display text-lg font-medium mb-3 tracking-tight">{f.title}</h3>
@@ -331,7 +331,7 @@ const SaaSLanding = () => {
                 </div>
                 <p className="text-foreground/85 mb-8 text-[15px] leading-relaxed flex-1">"{t.text}"</p>
                 <div className="flex items-center gap-3 pt-6 border-t border-border">
-                  <div className="h-10 w-10 rounded-full gold-gradient flex items-center justify-center font-medium text-primary-foreground text-sm">
+                  <div className="h-10 w-10 rounded-full premium-gradient flex items-center justify-center font-medium text-primary-foreground text-sm">
                     {t.name[0]}
                   </div>
                   <div>
@@ -403,7 +403,7 @@ const SaaSLanding = () => {
       <footer className="border-t border-border py-14">
         <div className="container px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg gold-gradient flex items-center justify-center">
+            <div className="h-7 w-7 rounded-lg premium-gradient flex items-center justify-center">
               <Flower2 className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <span className="font-display font-medium text-sm tracking-tight">AgendeOnline24Horas</span>

@@ -43,7 +43,7 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
               <p className="text-lg font-black text-foreground mt-1">{plan.price}<span className="text-[10px] text-muted-foreground">/mês</span></p>
               <div className={`mt-3 rounded-xl py-2 text-xs font-bold ${
                 plan.popular
-                  ? "gold-gradient text-primary-foreground"
+                  ? "premium-gradient text-primary-foreground"
                   : "bg-secondary text-secondary-foreground"
               }`}>
                 <ExternalLink className="h-3 w-3 inline mr-1" />

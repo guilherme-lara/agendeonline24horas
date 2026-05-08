@@ -6,7 +6,7 @@
  *  {{servico}}   -> Service name
  *  {{data}}       -> Formatted date (DD/MM/YYYY)
  *  {{horario}}    -> Appointment time (HH:MM)
- *  {{barbeiro}}   -> Barber name
+ *  {{profissional}}   -> Barber name
  *  {{preco}}      -> Formatted price (R$ X,XX)
  *  {{valor_falta}}-> Remaining balance to pay at the shop (R$ X,XX)
  */
@@ -21,7 +21,7 @@ export const AVAILABLE_VARIABLES = [
   { key: "{{servico}}", label: "Serviço agendado" },
   { key: "{{data}}", label: "Data (DD/MM/YYYY)" },
   { key: "{{horario}}", label: "Horário (HH:MM)" },
-  { key: "{{barbeiro}}", label: "Nome do barbeiro" },
+  { key: "{{profissional}}", label: "Nome do profissional" },
   { key: "{{preco}}", label: "Valor total (R$)" },
   { key: "{{valor_falta}}", label: "Saldo restante no local (R$)" },
   { key: "{{telefone}}", label: "Telefone com DDD (apenas dígitos)" },
@@ -33,7 +33,7 @@ interface MessageContext {
   servico: string;
   data: string;
   horario: string;
-  barbeiro?: string;
+  profissional?: string;
   preco?: number;
   valor_falta?: number;
   telefone?: string;
@@ -51,7 +51,7 @@ export function fillMessageTemplate(
     .replace(/{{servico}}/g, ctx.servico)
     .replace(/{{data}}/g, ctx.data)
     .replace(/{{horario}}/g, ctx.horario)
-    .replace(/{{barbeiro}}/g, ctx.barbeiro || "Geral")
+    .replace(/{{profissional}}/g, ctx.profissional || "Geral")
     .replace(/{{preco}}/g, formatCurrency(ctx.preco))
     .replace(/{{valor_falta}}/g, formatCurrency(ctx.valor_falta))
     .replace(/{{telefone}}/g, ctx.telefone || "");

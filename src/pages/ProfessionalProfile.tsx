@@ -161,7 +161,7 @@ const BarberProfile = () => {
               <Percent className="h-3 w-3" /> Taxa de Comissão
             </label>
             <Input value={`${barber?.commission_pct || 0}%`} disabled className="bg-muted border-border h-11 opacity-60 font-bold" />
-            <p className="text-[10px] text-muted-foreground">Definida pelo administrador da barbearia.</p>
+            <p className="text-[10px] text-muted-foreground">Definida pelo administrador da clínica.</p>
           </CardContent>
         </Card>
 
@@ -197,7 +197,7 @@ const BarberProfile = () => {
         <Button
           onClick={() => updateMutation.mutate()}
           disabled={updateMutation.isPending || !name.trim()}
-          className="w-full h-12 gold-gradient text-primary-foreground font-black rounded-xl shadow-gold"
+          className="w-full h-12 premium-gradient text-primary-foreground font-black rounded-xl shadow-premium"
         >
           {updateMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Salvar Alterações

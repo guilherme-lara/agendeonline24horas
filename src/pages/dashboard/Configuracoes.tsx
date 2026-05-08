@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Settings, Loader2, Save, AlertTriangle, RefreshCw, Building2, QrCode, Copy, Check } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -27,12 +27,12 @@ const formatCnpjCpf = (value: string) => {
 };
 
 const Configuracoes = () => {
-  const { barbershop, loading: barberLoading, refetch, isError } = useBarbershop() as any;
+  const { clinic, loading: barberLoading, refetch, isError } = useClinic() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Proteção contra loading infinito
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
 
   // Estados locais para controle dos inputs do formulário
   const [companyName, setCompanyName] = useState("");
@@ -54,21 +54,21 @@ const Configuracoes = () => {
     return rawSettings || {};
   };
 
-  // Sincroniza o formulário sempre que os dados da barbearia mudarem
+  // Sincroniza o formulário sempre que os dados da clínica mudarem
   useEffect(() => {
-    if (barbershop) {
-      setCompanyName(barbershop.name || "");
-      setPhone(barbershop.phone || "");
-      setAddress(barbershop.address || "");
+    if (clinic) {
+      setCompanyName(clinic.name || "");
+      setPhone(clinic.phone || "");
+      setAddress(clinic.address || "");
       
-      const parsedSettings = getParsedSettings(barbershop.settings);
+      const parsedSettings = getParsedSettings(clinic.settings);
       
       setCnpjCpf(parsedSettings.cnpj_cpf || "");
       setPixKey(parsedSettings.pix_key || "");
       setPixKeyType(parsedSettings.pix_key_type || "cpf");
       setPixBeneficiary(parsedSettings.pix_beneficiary || "");
     }
-  }, [barbershop]);
+  }, [clinic]);
 
   const handleCopyPix = () => {
     if (!pixKey) return;
@@ -83,7 +83,7 @@ const Configuracoes = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada. Recarregando...");
 
-      const currentSettings = getParsedSettings(barbershop.settings);
+      const currentSettings = getParsedSettings(clinic.settings);
 
       const payload = {
         name: companyName.trim(),
@@ -103,7 +103,7 @@ const Configuracoes = () => {
       const { data, error: updateError } = await supabase
         .from("barbershops")
         .update(payload)
-        .eq("id", barbershop.id)
+        .eq("id", clinic.id)
         .select(); // FORÇA o banco a devolver a linha atualizada
 
       if (updateError) throw updateError;
@@ -116,7 +116,7 @@ const Configuracoes = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       toast({ title: "Configurações Atualizadas!", description: "As mudanças já estão em vigor em todo o sistema." });
     },
     onError: (err: any) => {
@@ -130,7 +130,7 @@ const Configuracoes = () => {
   });
 
   // --- RENDERS DE PROTEÇÃO ---
-  if (barberLoading && queryEnabled && !barbershop) {
+  if (barberLoading && queryEnabled && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -139,20 +139,20 @@ const Configuracoes = () => {
     );
   }
 
-  if (isError && !barbershop) {
+  if (isError && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as configurações da sua empresa.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-3xl mx-auto animate-in fade-in duration-500">
@@ -173,9 +173,9 @@ const Configuracoes = () => {
                 <Building2 className="h-4 w-4" /> Logo da Empresa
             </h2>
             <LogoUpload
-              barbershopId={barbershop.id}
-              currentUrl={(barbershop as any).logo_url || ""}
-              onUploaded={() => queryClient.invalidateQueries({ queryKey: ["current-barbershop"] })}
+              barbershopId={clinic.id}
+              currentUrl={(clinic as any).logo_url || ""}
+              onUploaded={() => queryClient.invalidateQueries({ queryKey: ["current-clinic"] })}
             />
             <p className="text-[10px] text-muted-foreground mt-4 uppercase font-bold text-center">Recomendado: Imagem quadrada (512x512px)</p>
         </div>
@@ -295,7 +295,7 @@ const Configuracoes = () => {
         <Button 
             onClick={() => saveMutation.mutate()} 
             disabled={saveMutation.isPending} 
-            className="w-full gold-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-gold transition-all active:scale-95"
+            className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
         >
           {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Aplicar Alterações no Sistema

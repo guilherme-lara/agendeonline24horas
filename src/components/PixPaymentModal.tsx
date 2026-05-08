@@ -109,13 +109,13 @@ const PixPaymentModal = ({
 
         {paymentConfirmed ? (
           <div className="flex flex-col items-center gap-4 py-4 text-center animate-fade-in">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full gold-gradient shadow-gold">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full premium-gradient shadow-premium">
               <CheckCircle2 className="h-8 w-8 text-primary-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">
               Pagamento de <span className="font-bold text-primary">R$ {price.toFixed(2)}</span> confirmado!
             </p>
-            <Button onClick={onClose} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 mt-2">
+            <Button onClick={onClose} className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90 mt-2">
               Fechar
             </Button>
           </div>
@@ -147,7 +147,7 @@ const PixPaymentModal = ({
                 </div>
                 <Button
                   onClick={handleCopy}
-                  className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+                  className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90"
                   size="sm"
                 >
                   {copied ? (

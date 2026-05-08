@@ -27,7 +27,7 @@ import {
   Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -100,10 +100,19 @@ const navItems = [
   }
 ];
 
-const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
+const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
   const { pathname } = useLocation();
-  const { signOut } = useAuth();
-  const { barbershop } = useBarbershop() as any;
+  const { signOut, isProfessional } = useAuth();
+  const { clinic } = useClinic() as any;
+
+  const visibleNavItems = useMemo(() => {
+    if (isProfessional) {
+      return navItems.filter(item => 
+        ["Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
+      );
+    }
+    return navItems;
+  }, [isProfessional]);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
@@ -123,12 +132,12 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
   };
 
   const trialDaysLeft = useMemo(() => {
-    if (!barbershop) return null;
-    const endDate = barbershop.trial_ends_at || barbershop.plan_ends_at || barbershop.expires_at;
+    if (!clinic) return null;
+    const endDate = clinic.trial_ends_at || clinic.plan_ends_at || clinic.expires_at;
     if (!endDate) return null;
     const diff = Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : null;
-  }, [barbershop]);
+  }, [clinic]);
 
   return (
     <>
@@ -170,7 +179,7 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
         )}
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             if (item.external) {
               return (
                 <a 
@@ -239,7 +248,7 @@ const DashboardSidebar = ({ open, onClose, barbershopSlug }: SidebarProps) => {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all min-w-0", 
                   isActive(item.path) 
-                    ? "gold-gradient text-primary-foreground shadow-lg shadow-primary/10" 
+                    ? "premium-gradient text-primary-foreground shadow-lg shadow-primary/10" 
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >

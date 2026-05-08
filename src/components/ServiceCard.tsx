@@ -23,7 +23,7 @@ const ServiceCard = ({ service, selected, onToggle }: ServiceCardProps) => {
       onClick={onToggle}
       className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
         selected
-          ? "border-primary bg-primary/10 shadow-gold"
+          ? "border-primary bg-primary/10 shadow-premium"
           : "border-border bg-card hover:border-primary/40"
       }`}
     >
@@ -31,7 +31,7 @@ const ServiceCard = ({ service, selected, onToggle }: ServiceCardProps) => {
         <div className="flex items-center gap-3">
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-              selected ? "gold-gradient" : "bg-secondary"
+              selected ? "premium-gradient" : "bg-secondary"
             }`}
           >
             <Icon className={`h-5 w-5 ${selected ? "text-primary-foreground" : "text-primary"}`} />

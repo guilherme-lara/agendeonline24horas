@@ -6,7 +6,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,8 +15,8 @@ import { addDays } from "date-fns";
 const Onboarding = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading, isBarber } = useAuth();
-  const { barbershop, loading: shopLoading } = useBarbershop() as any;
+  const { user, loading: authLoading, isProfessional } = useAuth();
+  const { clinic, loading: shopLoading } = useClinic() as any;
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
@@ -32,22 +32,22 @@ const Onboarding = () => {
       navigate("/login", { replace: true });
       return;
     }
-    if (isBarber) {
+    if (isProfessional) {
       navigate("/barber/dashboard", { replace: true });
       return;
     }
-    if (barbershop?.id) {
-      barbershopIdRef.current = barbershop.id;
-      setBarbershopId(barbershop.id);
-      setName(barbershop.name || "");
-      setSlug(barbershop.slug || "");
-      if (barbershop.setup_completed) {
+    if (clinic?.id) {
+      barbershopIdRef.current = clinic.id;
+      setBarbershopId(clinic.id);
+      setName(clinic.name || "");
+      setSlug(clinic.slug || "");
+      if (clinic.setup_completed) {
         navigate("/dashboard", { replace: true });
       } else {
         setStep(2);
       }
     }
-  }, [user, isBarber, barbershop, authLoading, shopLoading, navigate]);
+  }, [user, isProfessional, clinic, authLoading, shopLoading, navigate]);
 
   const SEED_HOURS = [
     { day_of_week: 0, open_time: "09:00", close_time: "09:00", is_closed: true },
@@ -111,14 +111,14 @@ const Onboarding = () => {
       if (data?.shop) {
         barbershopIdRef.current = data.shop.id;
         setBarbershopId(data.shop.id);
-        queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+        queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       }
       if (data?.finalize) {
         toast({
           title: "Boas-vindas ao time!",
           description: "Seu estabelecimento foi configurado. Aproveite seus 30 dias de Plano PRO!",
         });
-        queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+        queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
         navigate("/dashboard", { replace: true });
       } else if (data?.nextStep) {
         setStep(data.nextStep);
@@ -132,7 +132,7 @@ const Onboarding = () => {
   const generateSlug = (val: string) =>
     val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-  if (authLoading || (shopLoading && !barbershop?.id)) return <div className="min-h-screen bg-[#0b1224] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
+  if (authLoading || (shopLoading && !clinic?.id)) return <div className="min-h-screen bg-[#0b1224] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-500" /></div>;
 
   return (
     <div className="min-h-screen bg-[#0b1224] flex flex-col items-center justify-center px-6 py-12">

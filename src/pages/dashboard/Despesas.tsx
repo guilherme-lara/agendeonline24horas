@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +32,10 @@ const catColors: Record<string, string> = {
 };
 
 const Despesas = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [monthFilter, setMonthFilter] = useState(format(new Date(), "yyyy-MM"));
   const [description, setDescription] = useState("");
@@ -44,21 +44,21 @@ const Despesas = () => {
   const [category, setCategory] = useState("outros");
 
   const { data: expenses = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["expenses", barbershop?.id],
+    queryKey: ["expenses", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
-      const { data, error } = await supabase.from("expenses").select("*").eq("barbershop_id", barbershop.id).order("date", { ascending: false });
+      if (!clinic?.id) return [];
+      const { data, error } = await supabase.from("expenses").select("*").eq("barbershop_id", clinic.id).order("date", { ascending: false });
       if (error) throw error;
       return data as Expense[];
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada.");
-      const { error } = await supabase.from("expenses").insert({ barbershop_id: barbershop?.id, description: description.trim(), amount: Number(amount), date, category });
+      const { error } = await supabase.from("expenses").insert({ barbershop_id: clinic?.id, description: description.trim(), amount: Number(amount), date, category });
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast({ title: "Despesa Lançada!" }); setIsDialogOpen(false); resetForm(); },
@@ -90,14 +90,14 @@ const Despesas = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar o seu financeiro.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">

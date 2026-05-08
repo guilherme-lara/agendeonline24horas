@@ -26,7 +26,7 @@ const Index = () => {
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---
-  // Usa view segura que NÃO expõe email/phone dos barbeiros
+  // Usa view segura que NÃO expõe email/phone dos profissionais
   const { data: barbers = [], isLoading: loadingBarbers } = useQuery({
     queryKey: ["home-barbers"],
     queryFn: async () => {

@@ -11,9 +11,9 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useBarbershop", () => ({
-  useBarbershop: () => ({
-    barbershop: null,
+vi.mock("@/hooks/useClinic", () => ({
+  useClinic: () => ({
+    clinic: null,
   }),
 }));
 

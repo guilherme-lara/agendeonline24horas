@@ -6,7 +6,7 @@ import {
   AlertTriangle, Building2, Bell, RefreshCw, Scissors, Package
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { 
   format, subDays, startOfMonth, endOfMonth, 
@@ -28,7 +28,7 @@ import ExpirationBanner from "@/components/ExpirationBanner";
 const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { barbershop, loading: shopLoading, clearImpersonation } = useBarbershop() as any;
+  const { clinic, loading: shopLoading, clearImpersonation } = useClinic() as any;
   const { toast } = useToast();
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
@@ -47,7 +47,7 @@ const Dashboard = () => {
 
   // --- 2. SISTEMA REALTIME (WEB SOCKETS) ---
   useEffect(() => {
-    if (!barbershop?.id) return;
+    if (!clinic?.id) return;
 
     const channel = supabase
       .channel('dashboard-realtime')
@@ -55,7 +55,7 @@ const Dashboard = () => {
         event: '*', 
         schema: 'public', 
         table: 'appointments', 
-        filter: `barbershop_id=eq.${barbershop.id}` 
+        filter: `barbershop_id=eq.${clinic.id}` 
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
         if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
@@ -66,7 +66,7 @@ const Dashboard = () => {
         event: '*', 
         schema: 'public', 
         table: 'orders', 
-        filter: `barbershop_id=eq.${barbershop.id}` 
+        filter: `barbershop_id=eq.${clinic.id}` 
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
         queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -78,37 +78,37 @@ const Dashboard = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [barbershop?.id, queryClient]);
+  }, [clinic?.id, queryClient]);
 
   // --- 3. QUERIES (BUSCA DE DADOS) ---
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ["dashboard-appointments", barbershop?.id],
+    queryKey: ["dashboard-appointments", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
         .select("id, client_name, scheduled_at, status")
-        .eq("barbershop_id", barbershop.id)
+        .eq("barbershop_id", clinic.id)
         .order("scheduled_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
     staleTime: 0, 
   });
 
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ["dashboard-orders", barbershop?.id],
+    queryKey: ["dashboard-orders", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("barbershop_id", barbershop.id)
+        .eq("barbershop_id", clinic.id)
         .eq("status", "closed")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
     staleTime: 0,
   });
 
@@ -189,7 +189,7 @@ const Dashboard = () => {
 
   // --- RENDERING ---
   if (shopLoading || (loadingAppts && !appointments.length)) return <DashboardSkeleton />;
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
@@ -204,9 +204,9 @@ const Dashboard = () => {
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           <div className="h-20 w-20 rounded-3xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-card ring-1 ring-primary/10">
-            {barbershop.logo_url ? (
+            {clinic.logo_url ? (
               <img
-                src={barbershop.logo_url}
+                src={clinic.logo_url}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -215,7 +215,7 @@ const Dashboard = () => {
           </div>
           <div>
             <h1 className="text-4xl font-black text-foreground tracking-tight font-display">
-              {barbershop.name}
+              {clinic.name}
             </h1>
             <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest mt-1">
               {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
@@ -223,7 +223,7 @@ const Dashboard = () => {
           </div>
         </div>
         <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
-          Plano {barbershop.plan_name || "Premium"}
+          Plano {clinic.plan_name || "Premium"}
         </Badge>
       </div>
 

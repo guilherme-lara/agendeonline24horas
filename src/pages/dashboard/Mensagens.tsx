@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, MessageSquare, Save, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -13,8 +13,8 @@ import {
 } from "@/lib/messageTemplate";
 
 const Mensagens = () => {
-  const { barbershop, loading: barberLoading, refetch, isError } =
-    useBarbershop() as any;
+  const { clinic, loading: barberLoading, refetch, isError } =
+    useClinic() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -23,7 +23,7 @@ const Mensagens = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!barbershop) return;
+    if (!clinic) return;
 
     const loadTemplate = async () => {
       setLoading(true);
@@ -31,7 +31,7 @@ const Mensagens = () => {
         const { data: shopData } = await supabase
           .from("barbershops")
           .select("settings")
-          .eq("id", barbershop.id)
+          .eq("id", clinic.id)
           .single();
 
         const settings = shopData?.settings as Record<string, any> | null;
@@ -49,7 +49,7 @@ const Mensagens = () => {
     };
 
     loadTemplate();
-  }, [barbershop, toast]);
+  }, [clinic, toast]);
 
   // Update preview with sample data
   useEffect(() => {
@@ -58,7 +58,7 @@ const Mensagens = () => {
       servico: "Corte Masculino",
       data: "15/04/2026",
       horario: "14:30",
-      barbeiro: "Roberto",
+      profissional: "Roberto",
       preco: 50,
       valor_falta: 30,
     });
@@ -67,12 +67,12 @@ const Mensagens = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
+      if (!clinic?.id) throw new Error("Estabelecimento não identificado.");
 
       const { data: current } = await supabase
         .from("barbershops")
         .select("settings")
-        .eq("id", barbershop.id)
+        .eq("id", clinic.id)
         .single();
 
       const existingSettings = (current?.settings && typeof current.settings === "object")
@@ -87,12 +87,12 @@ const Mensagens = () => {
       const { error } = await supabase
         .from("barbershops")
         .update({ settings: newSettings })
-        .eq("id", barbershop.id);
+        .eq("id", clinic.id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       toast({
         title: "Mensagem salva!",
         description: "O template de confirmação foi atualizado.",
@@ -114,7 +114,7 @@ const Mensagens = () => {
     });
   };
 
-  if (barberLoading && !barbershop) {
+  if (barberLoading && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -125,19 +125,19 @@ const Mensagens = () => {
     );
   }
 
-  if (isError && !barbershop) {
+  if (isError && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop || loading) {
+  if (!clinic || loading) {
     return (
       <div className="flex justify-center py-10">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -224,7 +224,7 @@ const Mensagens = () => {
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !template.trim()}
-            className="w-full sm:w-auto gold-gradient text-primary-foreground font-black h-14 px-10 rounded-2xl shadow-gold transition-all active:scale-95"
+            className="w-full sm:w-auto premium-gradient text-primary-foreground font-black h-14 px-10 rounded-2xl shadow-premium transition-all active:scale-95"
           >
             {saveMutation.isPending ? (
               <Loader2 className="h-5 w-5 animate-spin mr-2" />

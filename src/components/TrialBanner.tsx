@@ -1,4 +1,4 @@
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Rocket, Sparkles } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -6,23 +6,23 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 
 const TrialBanner = () => {
-  const { barbershop } = useBarbershop() as any;
+  const { clinic } = useClinic() as any;
   const navigate = useNavigate();
 
   // Support multiple field names for backward compatibility
-  const trialEnd = barbershop?.trial_ends_at ||
-    barbershop?.trial_end_date ||
-    barbershop?.plan_ends_at ||
-    barbershop?.expires_at ||
+  const trialEnd = clinic?.trial_ends_at ||
+    clinic?.trial_end_date ||
+    clinic?.plan_ends_at ||
+    clinic?.expires_at ||
     null;
 
   // Show trial banner if plan_status is not active/expired AND trial end date exists
-  const planStatus = barbershop?.plan_status;
+  const planStatus = clinic?.plan_status;
   const isTrial = planStatus === "trialing" ||
     (planStatus === "none" && trialEnd) ||
     (planStatus === "expired" && trialEnd);
 
-  // Also show for any barbershop with a trial_ends_at in the future
+  // Also show for any clinic with a trial_ends_at in the future
   // Handles backfilled data where plan fields may be null
   const hasFutureTrial = trialEnd && new Date(trialEnd) > new Date();
 
@@ -78,7 +78,7 @@ const TrialBanner = () => {
     : "text-yellow-200/90";
 
   return (
-    <div className={`gold-gradient-dark text-primary-foreground rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg border ${borderColor} animate-in fade-in duration-300`}>
+    <div className={`premium-gradient-dark text-primary-foreground rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg border ${borderColor} animate-in fade-in duration-300`}>
       <div className="flex items-center gap-4">
         <Sparkles className={`h-8 w-8 ${urgency === "critical" || urgency === "expired" ? "text-red-300" : "text-yellow-300"} ${urgency === "critical" || urgency === "expired" ? "animate-pulse" : ""}`} />
         <div>

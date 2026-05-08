@@ -97,7 +97,7 @@ const Subscribe = () => {
         <div className="h-20 w-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center mb-8 border border-cyan-500/20"><ShieldCheck className="h-10 w-10 text-cyan-400" /></div>
         <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Falta pouco!</h2>
         <p className="text-slate-500 mb-10 max-w-xs mx-auto">Para continuar, você precisa estar conectado à sua conta.</p>
-        <Button onClick={() => navigate("/login")} className="gold-gradient h-14 px-12 rounded-2xl font-black shadow-xl w-full max-w-sm">Acessar Minha Conta</Button>
+        <Button onClick={() => navigate("/login")} className="premium-gradient h-14 px-12 rounded-2xl font-black shadow-xl w-full max-w-sm">Acessar Minha Conta</Button>
       </div>
     );
   }

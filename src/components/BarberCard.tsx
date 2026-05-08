@@ -13,7 +13,7 @@ const BarberCard = ({ barber, selected, onSelect }: BarberCardProps) => {
       onClick={onSelect}
       className={`w-full p-4 rounded-lg border transition-all duration-200 ${
         selected
-          ? "border-primary bg-primary/10 shadow-gold"
+          ? "border-primary bg-primary/10 shadow-premium"
           : "border-border bg-card hover:border-primary/40"
       }`}
     >
@@ -25,7 +25,7 @@ const BarberCard = ({ barber, selected, onSelect }: BarberCardProps) => {
             className="h-16 w-16 rounded-full object-cover border-2 border-border"
           />
           {selected && (
-            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full gold-gradient">
+            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full premium-gradient">
               <Check className="h-3 w-3 text-primary-foreground" />
             </div>
           )}

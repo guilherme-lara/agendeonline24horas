@@ -1,13 +1,13 @@
 import FinancialTab from "@/components/FinancialTab";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Loader2, AlertTriangle, BarChart3, RefreshCw, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Relatorios = () => {
-  const { barbershop, loading, isError, refetch } = useBarbershop() as any;
-  const queryEnabled = !!barbershop?.id;
+  const { clinic, loading, isError, refetch } = useClinic() as any;
+  const queryEnabled = !!clinic?.id;
 
-  if (loading && queryEnabled && !barbershop) {
+  if (loading && queryEnabled && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -16,20 +16,20 @@ const Relatorios = () => {
     );
   }
 
-  if (isError && !barbershop) {
+  if (isError && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as métricas do seu negócio.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -55,7 +55,7 @@ const Relatorios = () => {
       </div>
 
       <div className="bg-card border border-border rounded-3xl p-2 md:p-6 shadow-card">
-        <FinancialTab barbershopId={barbershop.id} />
+        <FinancialTab barbershopId={clinic.id} />
       </div>
 
       <div className="mt-8 p-4 bg-background/50 border border-border rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">

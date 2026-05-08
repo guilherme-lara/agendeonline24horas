@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-barbershop.jpg";
+import heroImage from "@/assets/hero-clinic.jpg";
 
 const HeroBanner = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const HeroBanner = () => {
           </p>
           <h1 className="mb-4 font-display text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
             Estilo que{" "}
-            <span className="text-gold-gradient">define</span>{" "}
+            <span className="text-premium-gradient">define</span>{" "}
             você
           </h1>
           <p className="mb-8 text-base text-muted-foreground sm:text-lg">
@@ -31,7 +31,7 @@ const HeroBanner = () => {
           <Button
             size="lg"
             onClick={() => navigate("/booking")}
-            className="gold-gradient text-primary-foreground font-semibold shadow-gold hover:opacity-90 transition-all text-base px-8 py-6"
+            className="premium-gradient text-primary-foreground font-semibold shadow-premium hover:opacity-90 transition-all text-base px-8 py-6"
           >
             <CalendarDays className="mr-2 h-5 w-5" />
             Agendar Agora

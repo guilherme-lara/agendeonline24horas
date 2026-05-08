@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 
 const plans = [
@@ -17,14 +17,14 @@ interface TrialBlockModalProps {
 }
 
 const TrialBlockModal = ({ open }: TrialBlockModalProps) => {
-  const { barbershop } = useBarbershop();
-  const shop = barbershop as any;
+  const { clinic } = useClinic();
+  const shop = clinic as any;
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="bg-card border-border text-foreground max-w-2xl rounded-3xl [&>button]:hidden" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader className="text-center">
-          <div className="mx-auto h-16 w-16 rounded-2xl gold-gradient flex items-center justify-center mb-4">
+          <div className="mx-auto h-16 w-16 rounded-2xl premium-gradient flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-primary-foreground" />
           </div>
           <DialogTitle className="text-2xl font-black font-display">Seu período de teste expirou</DialogTitle>
@@ -58,7 +58,7 @@ const TrialBlockModal = ({ open }: TrialBlockModalProps) => {
                 onClick={() => openPlanCheckout(plan.key, shop?.id)}
                 className={`w-full mt-4 rounded-xl font-bold ${
                   plan.popular
-                    ? "gold-gradient text-primary-foreground"
+                    ? "premium-gradient text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
                 }`}
               >

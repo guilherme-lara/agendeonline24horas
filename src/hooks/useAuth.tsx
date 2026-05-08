@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthState {
   user: User | null;
   isAdmin: boolean;
-  isBarber: boolean;
+  isProfessional: boolean;
   loading: boolean;
 }
 
@@ -41,11 +41,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAdmin: false,
-    isBarber: false,
+    isProfessional: false,
     loading: true,
   });
 
-  const stableStateRef = useRef<AuthState>({ user: null, isAdmin: false, isBarber: false, loading: true });
+  const stableStateRef = useRef<AuthState>({ user: null, isAdmin: false, isProfessional: false, loading: true });
   const initializedRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -59,11 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resolveRoles = async (userId: string) => {
-    const [isAdmin, isBarber] = await Promise.all([
+    const [isAdmin, isProfessional] = await Promise.all([
       checkRole(userId, "admin"),
-      checkRole(userId, "barber"),
+      checkRole(userId, "barber"), // Mantendo a role original do DB
     ]);
-    return { isAdmin, isBarber };
+    return { isAdmin, isProfessional };
   };
 
   const handleAuthChange = async (event: AuthChangeEvent, session: Session | null) => {
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       case "SIGNED_OUT":
         if (initializedRef.current) {
-          updateAuthState({ user: null, isAdmin: false, isBarber: false, loading: false });
+          updateAuthState({ user: null, isAdmin: false, isProfessional: false, loading: false });
         }
         break;
     }
@@ -131,12 +131,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      updateAuthState({ user: null, isAdmin: false, isBarber: false, loading: false });
+      updateAuthState({ user: null, isAdmin: false, isProfessional: false, loading: false });
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = "/auth";
     } catch {
-      updateAuthState({ user: null, isAdmin: false, isBarber: false, loading: false });
+      updateAuthState({ user: null, isAdmin: false, isProfessional: false, loading: false });
       window.location.href = "/auth";
     }
   };
@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const contextValue: AuthContextType = {
     user: authState.user,
     isAdmin: authState.isAdmin,
-    isBarber: authState.isBarber,
+    isProfessional: authState.isProfessional,
     loading: authState.loading,
     signOut,
   };

@@ -176,7 +176,7 @@ const CompletionModal = ({ open, onClose, barbershopId, appointmentId, onComplet
             <Button
               onClick={handleConfirm}
               disabled={saving}
-              className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+              className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirmar Conclusão

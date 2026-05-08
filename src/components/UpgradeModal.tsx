@@ -3,7 +3,7 @@ import { Crown, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
@@ -21,7 +21,7 @@ const formatWhatsApp = (value: string) => {
 };
 
 const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModalProps) => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { toast } = useToast();
   const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -33,10 +33,10 @@ const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModal
   const isValid = digits.length === 11;
 
   const handleSubmit = async () => {
-    if (!isValid || !barbershop) return;
+    if (!isValid || !clinic) return;
     setSubmitting(true);
     const { error } = await supabase.from("upgrade_requests").insert({
-      barbershop_id: barbershop.id,
+      barbershop_id: clinic.id,
       requested_plan: requiredPlan.toLowerCase(),
       whatsapp: whatsapp.trim(),
     });
@@ -62,7 +62,7 @@ const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModal
           <X className="h-4 w-4" />
         </button>
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full gold-gradient shadow-gold">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full premium-gradient shadow-premium">
             <Crown className="h-7 w-7 text-primary-foreground" />
           </div>
 
@@ -94,7 +94,7 @@ const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModal
               <Button
                 onClick={handleSubmit}
                 disabled={!isValid || submitting}
-                className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+                className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="mr-2 h-4 w-4" />}
                 Solicitar Upgrade

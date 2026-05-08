@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -14,32 +14,32 @@ interface Package { id: string; name: string; price: number; quantity: number; s
 interface Service { id: string; name: string; }
 
 const Pacotes = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Package | null>(null);
   const [name, setName] = useState(""); const [price, setPrice] = useState(""); const [quantity, setQuantity] = useState("1");
   const [serviceId, setServiceId] = useState("none"); const [description, setDescription] = useState("");
 
   const { data: packages = [], isLoading: loadingPkgs, isError, refetch } = useQuery({
-    queryKey: ["packages", barbershop?.id],
-    queryFn: async () => { if (!barbershop?.id) return []; const { data, error } = await supabase.from("packages").select("*").eq("barbershop_id", barbershop.id).order("name"); if (error) throw error; return data as Package[]; },
-    enabled: !!barbershop?.id,
+    queryKey: ["packages", clinic?.id],
+    queryFn: async () => { if (!clinic?.id) return []; const { data, error } = await supabase.from("packages").select("*").eq("barbershop_id", clinic.id).order("name"); if (error) throw error; return data as Package[]; },
+    enabled: !!clinic?.id,
   });
 
   const { data: services = [] } = useQuery({
-    queryKey: ["services-list", barbershop?.id],
-    queryFn: async () => { const { data, error } = await supabase.from("services").select("id, name").eq("barbershop_id", barbershop?.id).eq("active", true); if (error) throw error; return data as Service[]; },
-    enabled: !!barbershop?.id,
+    queryKey: ["services-list", clinic?.id],
+    queryFn: async () => { const { data, error } = await supabase.from("services").select("id, name").eq("barbershop_id", clinic?.id).eq("active", true); if (error) throw error; return data as Service[]; },
+    enabled: !!clinic?.id,
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada.");
-      const payload = { name: name.trim(), price: Number(price), quantity: Number(quantity), service_id: serviceId === "none" ? null : serviceId, description, barbershop_id: barbershop?.id };
+      const payload = { name: name.trim(), price: Number(price), quantity: Number(quantity), service_id: serviceId === "none" ? null : serviceId, description, barbershop_id: clinic?.id };
       if (editing) { const { error } = await supabase.from("packages").update(payload).eq("id", editing.id); if (error) throw error; }
       else { const { error } = await supabase.from("packages").insert([payload]); if (error) throw error; }
     },
@@ -76,14 +76,14 @@ const Pacotes = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar seus pacotes promocionais.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
@@ -94,7 +94,7 @@ const Pacotes = () => {
           </h1>
           <p className="text-muted-foreground text-sm mt-1 font-medium">Crie ofertas irresistíveis para fidelizar seus clientes recorrentes.</p>
         </div>
-        <Button onClick={openNew} className="gold-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-gold transition-all active:scale-95">
+        <Button onClick={openNew} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95">
           <Plus className="h-5 w-5 mr-2" /> Criar Novo Combo
         </Button>
       </div>
@@ -196,7 +196,7 @@ const Pacotes = () => {
                 </div>
             </div>
             <Button
-              className="w-full gold-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-gold transition-all active:scale-95"
+              className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
               onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !name.trim()}>
               {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PackageCheck className="h-5 w-5 mr-2" />}
               {editing ? "Salvar Alterações" : "Lançar Pacote no Sistema"}

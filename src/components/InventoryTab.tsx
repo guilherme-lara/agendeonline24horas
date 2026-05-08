@@ -229,7 +229,7 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
                 <Input type="number" value={newSell} onChange={(e) => setNewSell(e.target.value)} className="bg-secondary border-border" min="0" step="0.01" />
               </div>
             </div>
-            <Button onClick={handleAddItem} disabled={saving || !newName.trim()} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+            <Button onClick={handleAddItem} disabled={saving || !newName.trim()} className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
               Adicionar Produto
             </Button>

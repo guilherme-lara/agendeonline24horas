@@ -108,7 +108,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
 
       toast({ title: "Configurações salvas!", description: "Os dados de pagamento foram atualizados." });
       setInfinitePayTag(cleanTag);
-      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -300,7 +300,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="h-12 px-10 gold-gradient text-primary-foreground font-black text-sm rounded-xl shadow-gold hover:scale-[0.98] transition-transform"
+          className="h-12 px-10 premium-gradient text-primary-foreground font-black text-sm rounded-xl shadow-premium hover:scale-[0.98] transition-transform"
         >
           {saving ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
           Salvar Configurações

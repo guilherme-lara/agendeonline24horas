@@ -1,4 +1,4 @@
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Globe, ExternalLink, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,19 +6,19 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AgendamentoOnline = () => {
-  const { barbershop, loading, isError } = useBarbershop() as any;
+  const { clinic, loading, isError } = useClinic() as any;
   const [copied, setCopied] = useState(false);
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
 
   const handleCopy = () => {
-    if (!barbershop?.slug) return;
-    const bookingUrl = `${window.location.origin}/agendamentos/${barbershop.slug}`;
+    if (!clinic?.slug) return;
+    const bookingUrl = `${window.location.origin}/agendamentos/${clinic.slug}`;
     navigator.clipboard.writeText(bookingUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading && queryEnabled && !barbershop) {
+  if (loading && queryEnabled && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -27,7 +27,7 @@ const AgendamentoOnline = () => {
     );
   }
 
-  if (isError && !barbershop) {
+  if (isError && !clinic) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400 shadow-lg">
@@ -42,9 +42,9 @@ const AgendamentoOnline = () => {
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
-  const bookingUrl = `${window.location.origin}/agendamentos/${barbershop.slug}`;
+  const bookingUrl = `${window.location.origin}/agendamentos/${clinic.slug}`;
 
   return (
     <div className="p-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -76,7 +76,7 @@ const AgendamentoOnline = () => {
         <div className="pt-4 border-t border-border/50 flex flex-col gap-3">
             <Button 
                 onClick={() => window.open(bookingUrl, "_blank")} 
-                className="w-full gold-gradient text-primary-foreground font-bold shadow-gold"
+                className="w-full premium-gradient text-primary-foreground font-bold shadow-premium"
             >
                 <ExternalLink className="h-4 w-4 mr-2" /> Visualizar Página do Cliente
             </Button>

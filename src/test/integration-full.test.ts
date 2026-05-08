@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 
 describe("Complete Booking Journey", () => {
   // Simulated journey data
-  const barbershop = {
+  const clinic = {
     id: "shop-uuid-123",
     name: "Barber Premium",
     slug: "barber-premium",
@@ -29,8 +29,8 @@ describe("Complete Booking Journey", () => {
   ];
 
   it("should execute the full journey: select -> book -> pay -> confirm", () => {
-    // Step 1: Load barbershop by slug
-    expect(barbershop.slug).toBe("barber-premium");
+    // Step 1: Load clinic by slug
+    expect(clinic.slug).toBe("barber-premium");
 
     // Step 2: Select service
     const selectedService = services[0];
@@ -59,14 +59,14 @@ describe("Complete Booking Journey", () => {
     expect(priceInCents).toBe(5000);
 
     // Step 7: Generate InfinitePay URL
-    const cleanHandle = barbershop.settings.infinitepay_tag.replace(/[@$ ]/g, "");
+    const cleanHandle = clinic.settings.infinitepay_tag.replace(/[@$ ]/g, "");
     expect(cleanHandle).toBe("barber-premium");
 
     const apptId = "appt-generated-uuid";
     const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(
       JSON.stringify([{ name: selectedService.name, price: priceInCents, quantity: 1 }])
     )}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(
-      `https://example.com/agendamentos/${barbershop.slug}?success=true&appt_id=${apptId}`
+      `https://example.com/agendamentos/${clinic.slug}?success=true&appt_id=${apptId}`
     )}`;
 
     expect(checkoutUrl).toContain("order_nsu=appt-generated-uuid");
@@ -74,7 +74,7 @@ describe("Complete Booking Journey", () => {
     expect(checkoutUrl).toContain(encodeURIComponent("appt_id="));
 
     // Step 8: User pays and redirects back
-    const redirectBack = `/agendamentos/${barbershop.slug}?success=true&appt_id=${apptId}`;
+    const redirectBack = `/agendamentos/${clinic.slug}?success=true&appt_id=${apptId}`;
     const urlParams = new URL(redirectBack, "https://example.com").searchParams;
     expect(urlParams.get("success")).toBe("true");
     expect(urlParams.get("appt_id")).toBe("appt-generated-uuid");

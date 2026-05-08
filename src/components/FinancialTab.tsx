@@ -225,7 +225,7 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
             onClick={() => setDateFilter(f.key)}
             className={`flex-1 min-w-[60px] py-2 rounded-md text-xs font-medium transition-all ${
               dateFilter === f.key
-                ? "gold-gradient text-primary-foreground shadow-gold"
+                ? "premium-gradient text-primary-foreground shadow-premium"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >

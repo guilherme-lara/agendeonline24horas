@@ -46,7 +46,7 @@ const InstallAppBanner = () => {
               promptInstall();
             }
           }}
-          className="gold-gradient text-primary-foreground font-bold text-xs rounded-xl h-9 px-4"
+          className="premium-gradient text-primary-foreground font-bold text-xs rounded-xl h-9 px-4"
         >
           {isiOSDevice ? "Como Instalar" : "Instalar"}
         </Button>

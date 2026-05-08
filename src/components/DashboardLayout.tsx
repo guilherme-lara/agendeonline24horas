@@ -4,7 +4,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 
 // 2. Hooks de Estado Global
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
 import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 
@@ -19,19 +19,19 @@ import LicenseOverlay from "@/components/LicenseOverlay";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, isBarber, loading: authLoading } = useAuth();
-  const { barbershop, loading: shopLoading, isImpersonating } = useBarbershop();
+  const { user, isAdmin, isProfessional, loading: authLoading } = useAuth();
+  const { clinic, loading: shopLoading, isImpersonating } = useClinic();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isInitialLoadRef = useRef(true);
 
   // ÉPICO 2: Realtime silencioso — escuta mudanças na tabela appointments
-  useLiveAppointments((barbershop as any)?.id);
+  useLiveAppointments((clinic as any)?.id);
 
   // Bloqueio por expiração de trial
   const isTrialExpired = useMemo(() => {
-    if (!barbershop) return false;
-    const shop = barbershop as any;
+    if (!clinic) return false;
+    const shop = clinic as any;
     // Admin impersonating should never be blocked
     if (isAdmin) return false;
     // If there's an active plan, never block
@@ -42,7 +42,7 @@ const DashboardLayout = () => {
     }
     // No trial date and no active plan = block (legacy data safety)
     return false;
-  }, [barbershop, isAdmin]);
+  }, [clinic, isAdmin]);
 
   useEffect(() => {
     if (isInitialLoadRef.current) {
@@ -51,18 +51,14 @@ const DashboardLayout = () => {
           navigate("/auth", { replace: true });
           return;
         }
-        // Barbeiros devem ir para seu dashboard específico
-        if (isBarber) {
-          navigate("/barber/dashboard", { replace: true });
-          return;
-        }
-        if (isAdmin && !barbershop && !isImpersonating) {
+
+        if (isAdmin && !clinic && !isImpersonating) {
           navigate("/super-admin", { replace: true });
           return;
         }
-        // SEGURANÇA DE ROTA: Se o carregamento terminou e barbershop é nulo,
+        // SEGURANÇA DE ROTA: Se o carregamento terminou e clinic é nulo,
         // redireciona o usuário para o onboarding
-        if (!isAdmin && !barbershop) {
+        if (!isAdmin && !clinic) {
           navigate("/onboarding", { replace: true });
           return;
         }
@@ -72,8 +68,8 @@ const DashboardLayout = () => {
   }, [
     user,
     isAdmin,
-    isBarber,
-    barbershop,
+    isProfessional,
+    clinic,
     isImpersonating,
     authLoading,
     shopLoading,
@@ -86,11 +82,11 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen w-full">
-      {isTrialExpired && <LicenseOverlay barbershopId={(barbershop as any)?.id} />}
+      {isTrialExpired && <LicenseOverlay barbershopId={(clinic as any)?.id} />}
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        barbershopSlug={(barbershop as any)?.slug}
+        clinicSlug={(clinic as any)?.slug}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -102,7 +98,7 @@ const DashboardLayout = () => {
             <Menu className="h-5 w-5" />
           </button>
           <span className="text-sm font-semibold text-muted-foreground">
-            {(barbershop as any)?.name || "Dashboard"}
+            {(clinic as any)?.name || "Painel"}
           </span>
         </div>
 

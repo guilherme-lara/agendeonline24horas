@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useBarbershop } from "./useBarbershop";
+import { useClinic } from "./useClinic";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -32,9 +32,9 @@ function normalizePlanName(raw: string): PlanTier {
 }
 
 export const usePlanGate = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { isAdmin } = useAuth();
-  const shop = barbershop as any;
+  const shop = clinic as any;
 
   const currentPlan = useMemo(() => {
     if (!shop) return "trial" as PlanTier;
@@ -65,7 +65,7 @@ export const usePlanGate = () => {
 
   const limits = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.trial;
 
-  const canAddBarber = true; // Barbeiros ilimitados para todos os planos
+  const canAddBarber = true; // Profissionais ilimitados para todos os planos
   const hasFinanceiro = isAdmin || limits.hasFinanceiro;
   const hasExport = isAdmin || limits.hasExport;
   const hasPacotes = isAdmin || limits.hasPacotes;

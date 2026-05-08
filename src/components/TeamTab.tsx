@@ -202,7 +202,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-secondary border-border" maxLength={20} />
           <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-secondary border-border" maxLength={100} />
         </div>
-        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90">
           {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
           Adicionar
           {activeCount >= limit && <Crown className="h-3 w-3 ml-2" />}
@@ -296,7 +296,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                       size="sm"
                       onClick={() => handleCreateAccess(b)}
                       disabled={creatingAccess === b.id && (!accessEmail || !accessPassword)}
-                      className="w-full h-8 text-xs gold-gradient text-primary-foreground font-bold"
+                      className="w-full h-8 text-xs premium-gradient text-primary-foreground font-bold"
                     >
                       {creatingAccess === b.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Power className="h-3 w-3 mr-1" />}
                       Ativar Acesso

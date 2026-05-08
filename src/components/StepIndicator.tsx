@@ -20,7 +20,7 @@ const StepIndicator = ({ currentStep }: StepIndicatorProps) => {
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
                   isDone
-                    ? "gold-gradient text-primary-foreground"
+                    ? "premium-gradient text-primary-foreground"
                     : isActive
                     ? "border-2 border-primary text-primary"
                     : "border border-border text-muted-foreground"

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Save, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -26,8 +26,8 @@ interface HourEntry {
 }
 
 const Horarios = () => {
-  const { barbershop, loading: barberLoading, refetch, isError } =
-    useBarbershop() as any;
+  const { clinic, loading: barberLoading, refetch, isError } =
+    useClinic() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -35,14 +35,14 @@ const Horarios = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!barbershop?.id) return;
+    if (!clinic?.id) return;
 
     const loadHours = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("business_hours")
         .select("day_of_week, open_time, close_time, is_closed")
-        .eq("barbershop_id", barbershop.id);
+        .eq("barbershop_id", clinic.id);
 
       if (error) {
         toast({
@@ -77,15 +77,15 @@ const Horarios = () => {
     };
 
     loadHours();
-  }, [barbershop?.id, toast]);
+  }, [clinic?.id, toast]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
+      if (!clinic?.id) throw new Error("Estabelecimento não identificado.");
 
       const { error } = await supabase.from("business_hours").upsert(
         hours.map((h) => ({
-          barbershop_id: barbershop.id,
+          barbershop_id: clinic.id,
           day_of_week: h.day_of_week,
           open_time: h.open_time,
           close_time: h.close_time,
@@ -97,8 +97,8 @@ const Horarios = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shopResources", barbershop?.id] });
-      queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
+      queryClient.invalidateQueries({ queryKey: ["shopResources", clinic?.id] });
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       toast({
         title: "Horários salvos!",
         description: "Os novos horários já estão ativos.",
@@ -123,7 +123,7 @@ const Horarios = () => {
     );
   };
 
-  if (barberLoading && !barbershop) {
+  if (barberLoading && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -134,7 +134,7 @@ const Horarios = () => {
     );
   }
 
-  if (isError && !barbershop) {
+  if (isError && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
@@ -144,14 +144,14 @@ const Horarios = () => {
         <p className="text-sm text-muted-foreground mb-8">
           Não foi possível carregar os horários.
         </p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   if (loading) {
     return (
@@ -241,7 +241,7 @@ const Horarios = () => {
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="w-full sm:w-auto gold-gradient text-primary-foreground font-black h-14 px-10 rounded-2xl shadow-gold transition-all active:scale-95"
+          className="w-full sm:w-auto premium-gradient text-primary-foreground font-black h-14 px-10 rounded-2xl shadow-premium transition-all active:scale-95"
         >
           {saveMutation.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin mr-2" />

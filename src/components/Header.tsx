@@ -64,7 +64,7 @@ const Header = () => {
             <Button
               size="sm"
               onClick={() => navigate("/auth")}
-              className="gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+              className="premium-gradient text-primary-foreground font-semibold hover:opacity-90"
             >
               <LogIn className="h-4 w-4 mr-1" /> Entrar
             </Button>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Loader2, AlertTriangle, UserSearch, RefreshCw, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
@@ -39,9 +39,9 @@ interface Customer {
 const PAGE_SIZE = 10;
 
 const Clientes = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const queryClient = useQueryClient();
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
 
   const [currentPage, setCurrentPage] = useState(1);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -57,11 +57,11 @@ const Clientes = () => {
     isError,
     refetch,
   } = useQuery<Customer[]>({
-    queryKey: ["customers", barbershop?.id],
+    queryKey: ["customers", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
+      if (!clinic?.id) return [];
       const { data, error } = await supabase.rpc("get_customers_with_stats", {
-        _barbershop_id: barbershop.id,
+        _barbershop_id: clinic.id,
       });
       if (error) {
         console.error("Erro ao buscar clientes com estatísticas:", error);
@@ -105,11 +105,11 @@ const Clientes = () => {
         .from("customers")
         .update({ name, phone, birth_date: birth_date || null })
         .eq("id", id)
-        .eq("barbershop_id", barbershop!.id);
+        .eq("barbershop_id", clinic!.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers", barbershop?.id] });
+      queryClient.invalidateQueries({ queryKey: ["customers", clinic?.id] });
       setEditingCustomer(null);
     },
     onError: (err) => {
@@ -123,11 +123,11 @@ const Clientes = () => {
         .from("customers")
         .delete()
         .eq("id", id)
-        .eq("barbershop_id", barbershop!.id);
+        .eq("barbershop_id", clinic!.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers", barbershop?.id] });
+      queryClient.invalidateQueries({ queryKey: ["customers", clinic?.id] });
       setDeleteCustomerId(null);
       if (paginated.length === 1 && currentPage > 1) {
         setCurrentPage((p) => p - 1);
@@ -153,7 +153,7 @@ const Clientes = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de Sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar sua lista de clientes.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>

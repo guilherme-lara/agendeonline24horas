@@ -26,7 +26,7 @@ const TimeSlotPicker = ({ slots, selectedTime, onSelect }: TimeSlotPickerProps) 
             !slot.available
               ? "bg-secondary/50 text-muted-foreground/40 cursor-not-allowed line-through"
               : selectedTime === slot.time
-              ? "gold-gradient text-primary-foreground shadow-gold"
+              ? "premium-gradient text-primary-foreground shadow-premium"
               : "bg-secondary text-secondary-foreground hover:border-primary hover:bg-primary/10 border border-transparent"
           }`}
         >

@@ -11,7 +11,7 @@ const FloatingCTA = () => {
   return (
     <button
       onClick={() => navigate("/booking")}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 gold-gradient text-primary-foreground font-semibold px-6 py-3.5 rounded-full shadow-gold animate-gold-pulse transition-transform hover:scale-105 md:hidden"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 premium-gradient text-primary-foreground font-semibold px-6 py-3.5 rounded-full shadow-premium animate-gold-pulse transition-transform hover:scale-105 md:hidden"
     >
       <CalendarDays className="h-5 w-5" />
       Agendar

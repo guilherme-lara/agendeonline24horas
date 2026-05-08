@@ -19,13 +19,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 
 const Booking = () => {
-  const { slug } = useParams(); // Identificador da barbearia na URL
+  const { slug } = useParams(); // Identificador da clínica na URL
   const navigate = useNavigate();
   const booking = useBooking();
   const { toast } = useToast();
 
   // --- BUSCA DE DADOS DA BARBEARIA (INFO MESTRE) ---
-  const { data: barbershop, isLoading: loadingShop } = useQuery({
+  const { data: clinic, isLoading: loadingShop } = useQuery({
     queryKey: ["booking-shop", slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,43 +41,43 @@ const Booking = () => {
 
   // --- BUSCA DE SERVIÇOS REAIS ---
   const { data: services = [], isLoading: loadingServices } = useQuery({
-    queryKey: ["booking-services", barbershop?.id],
+    queryKey: ["booking-services", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .eq("barbershop_id", barbershop?.id)
+        .eq("barbershop_id", clinic?.id)
         .eq("active", true)
         .order("sort_order");
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   // --- BUSCA DE PROFISSIONAIS REAIS ---
   const { data: barbers = [], isLoading: loadingBarbers } = useQuery({
-    queryKey: ["booking-barbers", barbershop?.id],
+    queryKey: ["booking-barbers", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("barbers")
         .select("*")
-        .eq("barbershop_id", barbershop?.id)
+        .eq("barbershop_id", clinic?.id)
         .eq("active", true);
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   // --- MUTAÇÃO: CONFIRMAR AGENDAMENTO (BLINDADA) ---
   const confirmMutation = useMutation({
     mutationFn: async () => {
       // 1. Health Check de disponibilidade (Futuramente você pode checar se o horário ainda está vago)
-      if (!barbershop?.id) throw new Error("Estabelecimento não identificado.");
+      if (!clinic?.id) throw new Error("Estabelecimento não identificado.");
 
       const payload = {
-        barbershop_id: barbershop.id,
+        barbershop_id: clinic.id,
         client_name: booking.customerName,
         client_phone: booking.customerPhone,
         barber_id: booking.selectedBarber?.id,

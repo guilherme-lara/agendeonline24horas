@@ -5,7 +5,7 @@ import {
   Pencil, AlertTriangle, History, ArrowRight, DollarSign, Unlock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +65,7 @@ const AppointmentStatusBadge = ({ appt }: { appt: any }) => {
 };
 
 const Agenda = () => {
-  const { barbershop } = useBarbershop() as any;
+  const { clinic } = useClinic() as any;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -74,15 +74,15 @@ const Agenda = () => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [editModal, setEditModal] = useState({ open: false, appt: null as any });
 
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
 
   const { data: appointments = [], isLoading } = useQuery({
-    queryKey: ["appointments", barbershop?.id],
+    queryKey: ["appointments", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
         .select("*")
-        .eq("barbershop_id", barbershop?.id)
+        .eq("barbershop_id", clinic?.id)
         .order("scheduled_at", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -92,22 +92,22 @@ const Agenda = () => {
   });
 
   useEffect(() => {
-    if (!barbershop?.id) return;
+    if (!clinic?.id) return;
     const channel = supabase
-      .channel(`agenda-realtime-${barbershop.id}`)
+      .channel(`agenda-realtime-${clinic.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'appointments', filter: `barbershop_id=eq.${barbershop.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["appointments", barbershop.id] })
+        { event: '*', schema: 'public', table: 'appointments', filter: `barbershop_id=eq.${clinic.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["appointments", clinic.id] })
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [barbershop?.id, queryClient]);
+  }, [clinic?.id, queryClient]);
 
   const { data: services = [] } = useQuery({
-    queryKey: ["services", barbershop?.id], enabled: queryEnabled,
+    queryKey: ["services", clinic?.id], enabled: queryEnabled,
     queryFn: async () => {
-      const { data } = await supabase.from("services").select("*").eq("barbershop_id", barbershop?.id).eq("active", true).order("sort_order");
+      const { data } = await supabase.from("services").select("*").eq("barbershop_id", clinic?.id).eq("active", true).order("sort_order");
       return data || [];
     }
   });
@@ -135,7 +135,7 @@ const Agenda = () => {
     const serviceName = appt.service_name;
     const date = format(parseISO(appt.scheduled_at), "dd/MM/yyyy", { locale: ptBR });
     const time = format(parseISO(appt.scheduled_at), "HH:mm");
-    const shopName = barbershop.name;
+    const shopName = clinic.name;
 
     const message = `Olá, ${clientName}! Passando para confirmar seu agendamento para o serviço "${serviceName}" no dia ${date} às ${time} na ${shopName}. Estamos te esperando!`;
     
@@ -179,7 +179,7 @@ const Agenda = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-card border border-border p-1 rounded-2xl">
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-xl px-6 ${activeTab === "active" ? "gold-gradient text-primary-foreground shadow-gold" : "text-muted-foreground"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab("active")} className={`rounded-xl px-6 ${activeTab === "active" ? "premium-gradient text-primary-foreground shadow-premium" : "text-muted-foreground"}`}><Clock className="h-4 w-4 mr-2" /> Ativos</Button>
             <Button variant="ghost" size="sm" onClick={() => setActiveTab("completed")} className={`rounded-xl px-6 ${activeTab === "completed" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}><History className="h-4 w-4 mr-2" /> Histórico</Button>
           </div>
           <div className="h-8 w-[1px] bg-border mx-2 hidden xl:block" />
@@ -187,7 +187,7 @@ const Agenda = () => {
             <Button variant="ghost" size="sm" onClick={() => setViewMode("calendar")} className={`rounded-xl ${viewMode === "calendar" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><LayoutGrid className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => setViewMode("list")} className={`rounded-xl ${viewMode === "list" ? "bg-secondary text-primary" : "text-muted-foreground"}`}><List className="h-4 w-4" /></Button>
           </div>
-          <QuickBooking barbershopId={barbershop?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
+          <QuickBooking barbershopId={clinic?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
         </div>
       </div>
 
@@ -252,7 +252,7 @@ const Agenda = () => {
           </div>
         </div>
       ) : (
-        <CalendarView appointments={filtered} barbershopId={barbershop?.id} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} onEventClick={handleOpenEdit} />
+        <CalendarView appointments={filtered} barbershopId={clinic?.id} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} onEventClick={handleOpenEdit} />
       )}
 
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>

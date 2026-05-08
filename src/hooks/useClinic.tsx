@@ -3,8 +3,8 @@ import { useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-// Tipos de Barbearia
-export interface Barbershop {
+// Tipos de Clínica
+export interface Clinic {
   id: string;
   owner_id: string;
   slug: string;
@@ -19,25 +19,28 @@ export interface Barbershop {
   trial_ends_at?: string;
 }
 
-// Hook de Barbearia - ARQUITETURA DE NÍVEL ENTERPRISE
-export const useBarbershop = () => {
-  const { user, isAdmin, isBarber } = useAuth();
+// Hook de Clínica - ARQUITETURA DE NÍVEL ENTERPRISE
+export const useClinic = () => {
+  const { user, isAdmin, isProfessional } = useAuth();
   const queryClient = useQueryClient();
 
   // Estado estável para proteção contra flickering
-  const stableDataRef = useRef<Barbershop | null>(null);
+  const stableDataRef = useRef<Clinic | null>(null);
 
   // ID de impersonação (apenas para admins)
   const impersonateId = isAdmin
     ? localStorage.getItem("impersonate_barbershop_id")
     : null;
 
+  // Estado local pro professionalId (ID do profissional na tabela barbers)
+  const professionalIdRef = useRef<string | null>(null);
+
   // Query Key robusta - inclui todos os fatores que afetam o resultado
-  const queryKey = ["current-barbershop", user?.id, impersonateId];
+  const queryKey = ["current-clinic", user?.id, impersonateId];
 
   // Query principal com lógica de stale-while-revalidate
   const {
-    data: barbershop,
+    data: clinic,
     isLoading,
     isFetching,
     refetch,
@@ -45,30 +48,31 @@ export const useBarbershop = () => {
     error,
   } = useQuery({
     queryKey,
-    queryFn: async (): Promise<Barbershop | null> => {
+    queryFn: async (): Promise<Clinic | null> => {
       if (!user?.id) {
-        console.warn("[useBarbershop] Nenhum usuário autenticado");
+        console.warn("[useClinic] Nenhum usuário autenticado");
         return null;
       }
 
       try {
-        let barbershopId: string | null = null;
+        let clinicId: string | null = null;
 
-        // Se for barbeiro, busca o barbershop_id pela tabela barbers
-        if (isBarber && !impersonateId) {
-          const { data: barberData, error: barberError } = await supabase
+        // Se for profissional, busca o barbershop_id e id pela tabela barbers
+        if (isProfessional && !impersonateId) {
+          const { data: professionalData, error: professionalError } = await supabase
             .from("barbers")
-            .select("barbershop_id")
+            .select("id, barbershop_id")
             .eq("user_id", user.id)
             .maybeSingle();
 
-          if (barberError) {
+          if (professionalError) {
             console.error(
-              "[useBarbershop] Erro ao buscar barbeiro:",
-              barberError,
+              "[useClinic] Erro ao buscar profissional:",
+              professionalError,
             );
           }
-          barbershopId = barberData?.barbershop_id || null;
+          clinicId = professionalData?.barbershop_id || null;
+          professionalIdRef.current = professionalData?.id || null;
         }
 
         // CORREÇÃO: Encadeamento correto da query do Supabase
@@ -77,29 +81,29 @@ export const useBarbershop = () => {
           .select("*, saas_plans(plan_name, status)");
 
         if (impersonateId && isAdmin) {
-          // Modo impersonação - busca barbearia específica
+          // Modo impersonação - busca clínica específica
           baseQuery = baseQuery.eq("id", impersonateId);
-        } else if (isBarber && barbershopId) {
-          // Modo barbeiro - busca barbearia vinculada
-          baseQuery = baseQuery.eq("id", barbershopId);
+        } else if (isProfessional && clinicId) {
+          // Modo profissional - busca clínica vinculada
+          baseQuery = baseQuery.eq("id", clinicId);
         } else {
-          // Modo normal - busca barbearia do proprietário
+          // Modo normal - busca clínica do proprietário
           baseQuery = baseQuery.eq("owner_id", user.id);
         }
 
         const { data, error } = await baseQuery.maybeSingle();
 
         if (error) {
-          console.error("[useBarbershop] Erro na query:", error);
-          throw new Error(`Falha ao buscar barbearia: ${error.message}`);
+          console.error("[useClinic] Erro na query:", error);
+          throw new Error(`Falha ao buscar clínica: ${error.message}`);
         }
 
         if (!data) {
-          console.warn("[useBarbershop] Nenhuma barbearia encontrada");
+          console.warn("[useClinic] Nenhuma clínica encontrada");
           return null;
         }
 
-        // Processa dados da barbearia
+        // Processa dados da clínica
         // saas_plans pode vir como objeto (1:1 via unique constraint) ou array
         const rawPlans = data.saas_plans;
         let activePlan: any = null;
@@ -118,7 +122,7 @@ export const useBarbershop = () => {
           planStatus = "expired";
         }
 
-        const processedBarbershop: Barbershop = {
+        const processedClinic: Clinic = {
           ...data,
           plan_name: activePlan?.plan_name || "trial",
           plan_status: planStatus,
@@ -126,11 +130,11 @@ export const useBarbershop = () => {
         };
 
         // Atualiza estado estável
-        stableDataRef.current = processedBarbershop;
+        stableDataRef.current = processedClinic;
 
-        return processedBarbershop;
+        return processedClinic;
       } catch (error) {
-        console.error("[useBarbershop] Erro na busca:", error);
+        console.error("[useClinic] Erro na busca:", error);
         throw error;
       }
     },
@@ -152,7 +156,7 @@ export const useBarbershop = () => {
   // - Após primeira carga, mantém dados antigos (stale-while-revalidate)
   // - Se já tem dados no cache, NUNCA volta para loading
   // - Se a query retornou null (usuário novo), loading = false imediatamente
-  const isInitialLoading = isLoading && !barbershop && !stableDataRef.current;
+  const isInitialLoading = isLoading && !clinic && !stableDataRef.current;
 
   // Função para limpar impersonação
   const clearImpersonation = useCallback(async () => {
@@ -162,29 +166,30 @@ export const useBarbershop = () => {
       localStorage.removeItem("impersonate_barbershop_id");
 
       // Invalida queries relacionadas
-      await queryClient.invalidateQueries({ queryKey: ["current-barbershop"] });
-      await queryClient.invalidateQueries({ queryKey: ["barbershops"] });
+      await queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
+      await queryClient.invalidateQueries({ queryKey: ["barbershops"] }); // Mantendo a ref pro DB
 
       // Redirect forçado para dashboard
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard/caixa";
     } catch (error) {
-      console.error("[useBarbershop] Erro ao limpar impersonação:", error);
+      console.error("[useClinic] Erro ao limpar impersonação:", error);
     }
   }, [queryClient, isAdmin]);
 
   // Função para forçar refresh
-  const refreshBarbershop = useCallback(async () => {
+  const refreshClinic = useCallback(async () => {
     try {
       await refetch();
     } catch (error) {
-      console.error("[useBarbershop] Erro ao atualizar:", error);
+      console.error("[useClinic] Erro ao atualizar:", error);
     }
   }, [refetch]);
 
   // Retorno otimizado - apenas valores necessários
   return {
     // Dados principais
-    barbershop: barbershop || stableDataRef.current || null,
+    clinic: clinic || stableDataRef.current || null,
+    professionalId: professionalIdRef.current,
 
     // Estados de loading - LÓGICA CRÍTICA
     loading: isInitialLoading, // Só true na primeira carga
@@ -197,7 +202,7 @@ export const useBarbershop = () => {
     isImpersonating: !!impersonateId,
 
     // Ações
-    refetch: refreshBarbershop,
+    refetch: refreshClinic,
     clearImpersonation,
   };
 };

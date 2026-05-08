@@ -1,6 +1,6 @@
 // 1. Core React e Bibliotecas Externas
 import React, { lazy, Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -25,8 +25,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardLayout from "./components/DashboardLayout";
-import BarberDashboard from "./pages/BarberDashboard";
-import BarberProfile from "./pages/BarberProfile";
+import ProfessionalDashboard from "./pages/ProfessionalDashboard";
+import ProfessionalProfile from "./pages/ProfessionalProfile";
 
 // 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
@@ -62,14 +62,14 @@ const Pacotes = lazy(() => import("./pages/dashboard/Pacotes"));
 const Pagamentos = lazy(() => import("./pages/dashboard/Pagamentos"));
 
 
-// 9. Hook da Barbearia (para o PlanGate)
-import { useBarbershop } from "@/hooks/useBarbershop";
+// 9. Hook da Clínica (para o PlanGate)
+import { useClinic } from "@/hooks/useClinic";
 import { usePlanGate, type PlanTier } from "@/hooks/usePlanGate";
 import UpgradeModal from "@/components/UpgradeModal";
 // --- COMPONENTE PORTEIRO DE PLANOS (MONETIZAÇÃO) ---
 const PlanGate = ({ children, minPlan, featureName }: { children: React.ReactNode, minPlan: PlanTier, featureName?: string }) => {
   const { canAccessFeature, getUpgradePlan, currentPlan } = usePlanGate();
-  const { barbershop, loading } = useBarbershop() as any;
+  const { clinic, loading } = useClinic() as any;
   const [showUpgrade, setShowUpgrade] = React.useState(false);
 
   if (loading) {
@@ -104,7 +104,7 @@ const PlanGate = ({ children, minPlan, featureName }: { children: React.ReactNod
           </p>
           <Button
             onClick={() => setShowUpgrade(true)}
-            className="gold-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-gold"
+            className="premium-gradient text-primary-foreground font-black px-10 h-14 rounded-2xl shadow-premium"
           >
             <Rocket className="h-5 w-5 mr-2" /> Fazer Upgrade Agora
           </Button>
@@ -171,19 +171,17 @@ const AppContent = () => {
         <Route path="/super-admin" element={<SuperAdmin />} />
         <Route path="/admin" element={<Admin />} />
 
-        {/* Dashboard do Barbeiro */}
-        <Route path="/barber/dashboard" element={<BarberDashboard />} />
-        <Route path="/barber/perfil" element={<BarberProfile />} />
+        {/* Rotas Legadas / Redirecionamentos */}
+        <Route path="/barber/dashboard" element={<Navigate to="/dashboard/caixa" replace />} />
+        <Route path="/professional/dashboard" element={<Navigate to="/dashboard/caixa" replace />} />
+        <Route path="/professional/perfil" element={<ProfessionalProfile />} />
+        <Route path="/barber/perfil" element={<Navigate to="/professional/perfil" replace />} />
 
         {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route
             index
-            element={
-              <Suspense fallback={<LazyFallback />}>
-                <Dashboard />
-              </Suspense>
-            }
+            element={<Navigate to="caixa" replace />}
           />
           <Route
             path="agenda"

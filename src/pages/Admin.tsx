@@ -102,7 +102,7 @@ const Admin = () => {
       <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
       <h2 className="text-xl font-bold text-white mb-2">Falha na Sincronia</h2>
       <p className="text-sm text-slate-400 mb-8 px-6">Não conseguimos conectar à base de assinantes.</p>
-      <Button onClick={() => refetch()} className="gold-gradient px-8 font-bold">
+      <Button onClick={() => refetch()} className="premium-gradient px-8 font-bold">
         <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
       </Button>
     </div>

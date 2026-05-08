@@ -1,28 +1,28 @@
 import TeamTab from "@/components/TeamTab";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle, Users, RefreshCw, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const Profissionais = () => {
-  const { barbershop, loading: barberLoading, isError: barberError, refetch: refetchBarber } = useBarbershop() as any;
-  const queryEnabled = !!barbershop?.id;
+  const { clinic, loading: barberLoading, isError: barberError, refetch: refetchBarber } = useClinic() as any;
+  const queryEnabled = !!clinic?.id;
 
   const { data: planName = "essential", isLoading: loadingPlan, isError: errorPlan, refetch: refetchPlan } = useQuery({
-    queryKey: ["saas-plan", barbershop?.id],
+    queryKey: ["saas-plan", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return "essential";
-      const { data, error } = await supabase.from("saas_plans").select("plan_name").eq("barbershop_id", barbershop.id).eq("status", "active").maybeSingle();
+      if (!clinic?.id) return "essential";
+      const { data, error } = await supabase.from("saas_plans").select("plan_name").eq("barbershop_id", clinic.id).eq("status", "active").maybeSingle();
       if (error) throw error;
       return data?.plan_name || "essential";
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   const handleRetry = () => { refetchBarber(); refetchPlan(); };
 
-  if ((barberLoading || loadingPlan) && queryEnabled && !barbershop) {
+  if ((barberLoading || loadingPlan) && queryEnabled && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -31,20 +31,20 @@ const Profissionais = () => {
     );
   }
 
-  if ((barberError || errorPlan) && !barbershop) {
+  if ((barberError || errorPlan) && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos verificar as permissões de equipe para o seu plano.</p>
-        <Button onClick={handleRetry} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={handleRetry} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -70,7 +70,7 @@ const Profissionais = () => {
       </div>
 
       <div className="bg-card border border-border rounded-3xl p-6 shadow-card">
-        <TeamTab barbershopId={barbershop.id} planName={planName} />
+        <TeamTab barbershopId={clinic.id} planName={planName} />
       </div>
 
       <p className="text-center text-[10px] text-muted-foreground/50 uppercase font-bold mt-8 tracking-widest">

@@ -22,7 +22,8 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,8 @@ import {
 import confetti from "canvas-confetti";
 
 const Caixa = () => {
-  const { barbershop } = useBarbershop() as any;
+  const { clinic, professionalId } = useClinic() as any;
+  const { isProfessional } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -109,15 +111,15 @@ const Caixa = () => {
     if (!successModal) return;
     const phone = successModal.clientPhone.replace(/\D/g, "");
     const intlPhone = phone.startsWith("55") ? phone : `55${phone}`;
-    const msg = `Olá ${successModal.clientName}, seu pagamento de R$ ${successModal.total.toFixed(2).replace(".", ",")} para o serviço ${successModal.serviceName} no ${barbershop?.name || "nosso estabelecimento"} foi confirmado! ✅ Obrigado pela preferência e até a próxima!`;
+    const msg = `Olá ${successModal.clientName}, seu pagamento de R$ ${successModal.total.toFixed(2).replace(".", ",")} para o serviço ${successModal.serviceName} no ${clinic?.name || "nosso estabelecimento"} foi confirmado! ✅ Obrigado pela preferência e até a próxima!`;
     window.open(
       `https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`,
       "_blank",
     );
-  }, [successModal, barbershop?.name]);
+  }, [successModal, clinic?.name]);
 
   // Parse settings para Pix Estático do PDV
-  const rawSettings = barbershop?.settings;
+  const rawSettings = clinic?.settings;
   let shopSettings: any = {};
   if (typeof rawSettings === "string") {
     try {
@@ -128,7 +130,7 @@ const Caixa = () => {
   }
   const pixKey = shopSettings?.pix_key || "";
   const pixBeneficiary =
-    shopSettings?.pix_beneficiary || barbershop?.name || "";
+    shopSettings?.pix_beneficiary || clinic?.name || "";
   const pixStaticQrUrl = shopSettings?.pix_static_qr_url || "";
   const pixKeyType = shopSettings?.pix_key_type || "";
 
@@ -141,38 +143,44 @@ const Caixa = () => {
   };
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
-    queryKey: ["daily-appointments", barbershop?.id],
+    queryKey: ["daily-appointments", clinic?.id, professionalId],
     queryFn: async () => {
       // Usa horário de Brasília para filtrar "hoje"
       const nowBrt = toBRT(new Date().toISOString());
       const dayStart = startOfDay(nowBrt);
       const dayEnd = endOfDay(nowBrt);
-      const { data, error } = await supabase
+      let query = supabase
         .from("appointments")
         .select("*")
-        .eq("barbershop_id", barbershop.id)
+        .eq("barbershop_id", clinic.id)
         .gte("scheduled_at", dayStart.toISOString())
         .lte("scheduled_at", dayEnd.toISOString())
-        .neq("status", "cancelled")
-        .order("scheduled_at");
+        .neq("status", "cancelled");
+
+      if (isProfessional && professionalId) {
+        query = query.eq("barber_id", professionalId);
+      }
+
+      const { data, error } = await query.order("scheduled_at");
+
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   const { data: inventory = [] } = useQuery({
-    queryKey: ["inventory-pdv", barbershop?.id],
+    queryKey: ["inventory-pdv", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory")
         .select("*")
-        .eq("barbershop_id", barbershop?.id)
+        .eq("barbershop_id", clinic?.id)
         .eq("active", true);
       if (error) throw error;
       return data;
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
   });
 
   const cartTotal = useMemo(() => {
@@ -198,7 +206,7 @@ const Caixa = () => {
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedAppt || !barbershop)
+      if (!selectedAppt || !clinic)
         throw new Error("Dados ausentes. Selecione um agendamento.");
 
       // Verifica sessão antes de qualquer operação
@@ -229,7 +237,7 @@ const Caixa = () => {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
-          barbershop_id: barbershop.id,
+          barbershop_id: clinic.id,
           appointment_id: selectedAppt.id,
           barber_name: selectedAppt.barber_name || "",
           items: cart,
@@ -268,7 +276,7 @@ const Caixa = () => {
           await supabase.functions.invoke("create-pix-charge", {
             body: {
               appointment_id: selectedAppt.id,
-              barbershop_id: barbershop.id,
+              barbershop_id: clinic.id,
               amount: Math.round(finalTotal * 100),
               document_number: "",
               first_name: selectedAppt.client_name?.split(" ")[0] || "Cliente",
@@ -571,7 +579,7 @@ const Caixa = () => {
                   <Button
                     onClick={() => handleSelectAppt(a)}
                     disabled={!!selectedAppt && selectedAppt.id === a.id}
-                    className="gold-gradient text-primary-foreground font-bold rounded-xl h-9 px-6 shadow-gold"
+                    className="premium-gradient text-primary-foreground font-bold rounded-xl h-9 px-6 shadow-premium"
                   >
                     Cobrar
                   </Button>
@@ -796,7 +804,7 @@ const Caixa = () => {
                     </div>
                     <Button
                       onClick={handleCopyPix}
-                      className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl"
+                      className="premium-gradient text-primary-foreground px-4 shrink-0 rounded-xl"
                     >
                       {copiedPix ? (
                         <Check className="h-4 w-4" />
@@ -940,7 +948,7 @@ const Caixa = () => {
                         <div className="flex-1 bg-background rounded-xl px-4 py-3 font-mono text-sm text-foreground break-all border border-border">
                           {pixOnlineModal.pixKey}
                         </div>
-                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.pixKey); setCopiedBrcode(true); toast({ title: "Chave copiada!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
+                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.pixKey); setCopiedBrcode(true); toast({ title: "Chave copiada!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="premium-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
                           {copiedBrcode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </Button>
                       </div>
@@ -969,7 +977,7 @@ const Caixa = () => {
                         <div className="flex-1 bg-background rounded-xl px-3 py-2.5 font-mono text-[10px] text-foreground break-all border border-border max-h-20 overflow-y-auto">
                           {pixOnlineModal.brcode}
                         </div>
-                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.brcode); setCopiedBrcode(true); toast({ title: "Código Pix copiado!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="gold-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
+                        <Button onClick={() => { navigator.clipboard.writeText(pixOnlineModal.brcode); setCopiedBrcode(true); toast({ title: "Código Pix copiado!" }); setTimeout(() => setCopiedBrcode(false), 2000); }} className="premium-gradient text-primary-foreground px-4 shrink-0 rounded-xl">
                           {copiedBrcode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </Button>
                       </div>

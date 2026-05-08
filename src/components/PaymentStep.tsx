@@ -35,13 +35,13 @@ const PaymentStep = () => {
               onClick={() => setPaymentMethod(opt.id)}
               className={`w-full flex items-center gap-4 rounded-lg border p-4 text-left transition-all ${
                 selected
-                  ? "border-primary bg-primary/10 shadow-gold"
+                  ? "border-primary bg-primary/10 shadow-premium"
                   : "border-border bg-card hover:border-primary/50"
               }`}
             >
               <div
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
-                  selected ? "gold-gradient text-primary-foreground" : "bg-secondary text-muted-foreground"
+                  selected ? "premium-gradient text-primary-foreground" : "bg-secondary text-muted-foreground"
                 }`}
               >
                 <opt.icon className="h-6 w-6" />
@@ -51,7 +51,7 @@ const PaymentStep = () => {
                 <p className="text-xs text-muted-foreground">{opt.description}</p>
               </div>
               {selected && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full gold-gradient">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full premium-gradient">
                   <Check className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
               )}

@@ -3,7 +3,7 @@ import {
   Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck, Users, Info, Tag
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ interface Category {
 }
 
 const Servicos = () => {
-  const { barbershop } = useBarbershop();
+  const { clinic } = useClinic();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -67,16 +67,16 @@ const Servicos = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState("");
 
-  const queryEnabled = !!barbershop?.id;
+  const queryEnabled = !!clinic?.id;
 
   const { data: services = [], isLoading, isError, refetch } = useQuery<Service[]>({
-    queryKey: ["services", barbershop?.id],
+    queryKey: ["services", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
+      if (!clinic?.id) return [];
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .eq("barbershop_id", barbershop.id)
+        .eq("barbershop_id", clinic.id)
         .order("sort_order");
       if (error) throw error;
       return data;
@@ -85,13 +85,13 @@ const Servicos = () => {
   });
 
   const { data: barbers = [] } = useQuery<Barber[]>({
-    queryKey: ["barbers", barbershop?.id],
+    queryKey: ["barbers", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
+      if (!clinic?.id) return [];
       const { data, error } = await supabase
         .from("barbers")
         .select("id, name")
-        .eq("barbershop_id", barbershop.id);
+        .eq("barbershop_id", clinic.id);
       if (error) throw error;
       return data;
     },
@@ -99,14 +99,14 @@ const Servicos = () => {
   });
 
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories", barbershop?.id],
+    queryKey: ["categories", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
+      if (!clinic?.id) return [];
       const { data, error } = await supabase
         .from("categories")
         .select("id, name, active")
         .eq("active", true)
-        .eq("barbershop_id", barbershop.id)
+        .eq("barbershop_id", clinic.id)
         .order("name");
       if (error) throw error;
       return data;
@@ -115,12 +115,12 @@ const Servicos = () => {
   });
 
   const { data: allCategories = [] } = useQuery<Category[]>({
-    queryKey: ["categories-admin", barbershop?.id],
+    queryKey: ["categories-admin", clinic?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
         .select("id, name, active")
-        .eq("barbershop_id", barbershop?.id)
+        .eq("barbershop_id", clinic?.id)
         .order("name");
       if (error) throw error;
       return data;
@@ -130,7 +130,7 @@ const Servicos = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!barbershop?.id) throw new Error("Estabelecimento não encontrado.");
+      if (!clinic?.id) throw new Error("Estabelecimento não encontrado.");
 
       const numericPrice = Number(price) || 0;
       const numericAdvanceValue = Number(advanceValue) || 0;
@@ -169,7 +169,7 @@ const Servicos = () => {
           .from("services")
           .insert({
             ...servicePayload,
-            barbershop_id: barbershop?.id,
+            barbershop_id: clinic?.id,
             sort_order: services.length,
           })
           .select("id")
@@ -192,9 +192,9 @@ const Servicos = () => {
           `Falha ao remover vínculos antigos: ${deleteError.message}`,
         );
 
-      if (!barbershop)
+      if (!clinic)
         throw new Error("Sessão expirada. Faça login novamente.");
-      const tenantId = barbershop.id;
+      const tenantId = clinic.id;
 
       // 2. Inserir novos vínculos (apenas os que têm comissão definida)
       const validCommissions = barberCommissions
@@ -346,7 +346,7 @@ const Servicos = () => {
     mutationFn: async () => {
       if (!categoryName.trim())
         throw new Error("Nome da categoria é obrigatório.");
-      if (!barbershop?.id) throw new Error("Estabelecimento não encontrado.");
+      if (!clinic?.id) throw new Error("Estabelecimento não encontrado.");
 
 
       if (editingCategory) {
@@ -354,12 +354,12 @@ const Servicos = () => {
           .from("categories")
           .update({ name: categoryName.trim() })
           .eq("id", editingCategory.id)
-          .eq("barbershop_id", barbershop.id);
+          .eq("barbershop_id", clinic.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("categories")
-          .insert({ name: categoryName.trim(), barbershop_id: barbershop.id});
+          .insert({ name: categoryName.trim(), barbershop_id: clinic.id});
         if (error) throw error;
       }
     },
@@ -407,12 +407,12 @@ const Servicos = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar seu catálogo de serviços.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold"><RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente</Button>
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold"><RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente</Button>
       </div>
     );
   }
 
-  if (!barbershop) return null;
+  if (!clinic) return null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
@@ -421,7 +421,7 @@ const Servicos = () => {
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-primary" /> Catálogo de Serviços</h1>
           <p className="text-muted-foreground text-sm mt-1 font-medium">Defina os preços, tempos e quais profissionais realizam cada serviço.</p>
         </div>
-        <Button onClick={openNew} className="gold-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-gold transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
+        <Button onClick={openNew} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo Serviço</Button>
       </div>
 
       <Tabs defaultValue="services" className="w-full">
@@ -557,7 +557,7 @@ const Servicos = () => {
           </div>
           <div className="pt-6">
             <Button
-              className="w-full gold-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-gold transition-all active:scale-95"
+              className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !name.trim() || !price}
             >
@@ -576,7 +576,7 @@ const Servicos = () => {
               <h2 className="text-xl font-black text-foreground flex items-center gap-2 font-display">Gerencie suas Categorias</h2>
               <p className="text-sm text-muted-foreground mt-1">Organize seus serviços em grupos para facilitar a navegação do cliente.</p>
             </div>
-            <Button onClick={openNewCategory} className="gold-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-gold transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Nova Categoria</Button>
+            <Button onClick={openNewCategory} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Nova Categoria</Button>
           </div>
 
           {allCategories.length === 0 ? (
@@ -616,7 +616,7 @@ const Servicos = () => {
                       <Input placeholder="Ex: Cabelo, Barba, Combo..." value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
                   </div>
                   <Button
-                    className="w-full gold-gradient text-primary-foreground font-black h-12 rounded-xl shadow-gold transition-all active:scale-95"
+                    className="w-full premium-gradient text-primary-foreground font-black h-12 rounded-xl shadow-premium transition-all active:scale-95"
                     onClick={() => saveCategoryMutation.mutate()}
                     disabled={saveCategoryMutation.isPending || !categoryName.trim()}
                   >

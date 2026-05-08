@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBarbershop } from "@/hooks/useBarbershop";
+import { useClinic } from "@/hooks/useClinic";
 import { Loader2, Cake, Phone, MessageCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +10,14 @@ import { ptBR } from "date-fns/locale";
 interface Customer { id: string; name: string; phone: string; birth_date: string; }
 
 const Aniversarios = () => {
-  const { barbershop } = useBarbershop();
-  const queryEnabled = !!barbershop?.id;
+  const { clinic } = useClinic();
+  const queryEnabled = !!clinic?.id;
 
   const { data: customers = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["birthdays", barbershop?.id],
+    queryKey: ["birthdays", clinic?.id],
     queryFn: async () => {
-      if (!barbershop?.id) return [];
-      const { data, error } = await supabase.from("customers").select("id, name, phone, birth_date").eq("barbershop_id", barbershop.id).not("birth_date", "is", null);
+      if (!clinic?.id) return [];
+      const { data, error } = await supabase.from("customers").select("id, name, phone, birth_date").eq("barbershop_id", clinic.id).not("birth_date", "is", null);
       if (error) throw error;
       const currentMonth = new Date().getMonth() + 1;
       const birthdayThisMonth = ((data as Customer[]) || []).filter((c) => {
@@ -26,13 +26,13 @@ const Aniversarios = () => {
       });
       return birthdayThisMonth.sort((a, b) => new Date(a.birth_date + "T00:00").getDate() - new Date(b.birth_date + "T00:00").getDate());
     },
-    enabled: !!barbershop?.id,
+    enabled: !!clinic?.id,
     staleTime: 1000 * 60 * 30,
   });
 
   const sendWhatsApp = (phone: string, name: string) => {
     if (!phone) return;
-    const msg = encodeURIComponent(`🎂 Parabéns, ${name}! Feliz Aniversário! 🎉 Como presente, você tem 10% de desconto no seu próximo corte. Agende já: ${window.location.origin}/agendamentos/${barbershop?.slug}`);
+    const msg = encodeURIComponent(`🎂 Parabéns, ${name}! Feliz Aniversário! 🎉 Como presente, você tem 10% de desconto no seu próximo corte. Agende já: ${window.location.origin}/agendamentos/${clinic?.slug}`);
     const clean = phone.replace(/\D/g, "");
     const full = clean.startsWith("55") ? clean : `55${clean}`;
     window.open(`https://wa.me/${full}?text=${msg}`, "_blank");
@@ -55,7 +55,7 @@ const Aniversarios = () => {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronia</h2>
         <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar a lista de aniversariantes.</p>
-        <Button onClick={() => refetch()} className="gold-gradient text-primary-foreground px-8 font-bold">
+        <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
       </div>
@@ -91,10 +91,10 @@ const Aniversarios = () => {
             const isToday = day === today;
             return (
               <div key={c.id} className={`group rounded-2xl border transition-all duration-300 p-5 flex items-center gap-5 ${
-                isToday ? "bg-primary/10 border-primary/30 shadow-gold scale-[1.02]" : "bg-card border-border hover:border-primary/20"
+                isToday ? "bg-primary/10 border-primary/30 shadow-premium scale-[1.02]" : "bg-card border-border hover:border-primary/20"
               }`}>
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform group-hover:rotate-12 ${
-                  isToday ? "bg-primary text-primary-foreground shadow-gold" : "bg-background border border-border"
+                  isToday ? "bg-primary text-primary-foreground shadow-premium" : "bg-background border border-border"
                 }`}>🎂</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -113,7 +113,7 @@ const Aniversarios = () => {
                 {c.phone && (
                   <Button size="sm" onClick={() => sendWhatsApp(c.phone, c.name)}
                     className={`h-10 rounded-xl px-4 font-bold transition-all ${
-                      isToday ? "gold-gradient text-primary-foreground" : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20"
+                      isToday ? "premium-gradient text-primary-foreground" : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20"
                     }`}>
                     <MessageCircle className="h-4 w-4 mr-2" /> Parabenizar
                   </Button>

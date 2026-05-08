@@ -44,7 +44,7 @@ const SubscriptionPlans = () => {
       <div className="text-center mb-12">
         <p className="text-xs uppercase tracking-[0.2em] text-primary mb-2">Planos Exclusivos</p>
         <h2 className="font-display text-3xl font-bold sm:text-4xl mb-3">
-          Assine e <span className="text-gold-gradient">Economize</span>
+          Assine e <span className="text-premium-gradient">Economize</span>
         </h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
           Escolha o plano ideal para manter seu visual sempre impecável
@@ -57,13 +57,13 @@ const SubscriptionPlans = () => {
             key={plan.id}
             className={`relative rounded-xl border p-6 transition-all animate-fade-in ${
               plan.popular
-                ? "border-primary bg-card shadow-gold scale-[1.02]"
+                ? "border-primary bg-card shadow-premium scale-[1.02]"
                 : "border-border bg-card hover:border-primary/40"
             }`}
             style={{ animationDelay: `${i * 150}ms` }}
           >
             {plan.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 gold-gradient text-primary-foreground text-xs font-semibold px-4 py-1 rounded-full">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 premium-gradient text-primary-foreground text-xs font-semibold px-4 py-1 rounded-full">
                 Mais Popular
               </span>
             )}
@@ -92,7 +92,7 @@ const SubscriptionPlans = () => {
               onClick={() => navigate(`/subscribe/${plan.id}`)}
               className={`w-full font-semibold ${
                 plan.popular
-                  ? "gold-gradient text-primary-foreground hover:opacity-90 shadow-gold"
+                  ? "premium-gradient text-primary-foreground hover:opacity-90 shadow-premium"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >

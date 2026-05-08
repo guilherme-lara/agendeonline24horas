@@ -292,7 +292,7 @@ describe("Message Template Engine", () => {
     servico: "Corte Masculino",
     data: "15/04/2026",
     horario: "14:30",
-    barbeiro: "Roberto",
+    profissional: "Roberto",
     preco: 50,
     valor_falta: 30,
   };
@@ -316,11 +316,11 @@ describe("Message Template Engine", () => {
     expect(result).toBe("Falta: R$ 30,00");
   });
 
-  it("defaults barbeiro to 'Geral' when not provided", () => {
+  it("defaults profissional to 'Geral' when not provided", () => {
     const ctx = { ...sampleCtx };
-    delete (ctx as any).barbeiro;
-    const result = fillMessageTemplate("Barbeiro: {{barbeiro}}", ctx);
-    expect(result).toBe("Barbeiro: Geral");
+    delete (ctx as any).profissional;
+    const result = fillMessageTemplate("Profissional: {{profissional}}", ctx);
+    expect(result).toBe("Profissional: Geral");
   });
 
   it("builds valid WhatsApp link with encoded message", () => {
