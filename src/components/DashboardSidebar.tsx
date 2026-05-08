@@ -165,7 +165,14 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
               <span className="font-bold text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">{clinic?.name}</span>
             </div>
           ) : (
-            <img src={logoAgenda} alt="Logo Padrão" className="h-8 w-auto opacity-90 object-contain" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-lg font-display shadow-sm shrink-0">
+                {clinic?.name?.charAt(0)?.toUpperCase() || "T"}
+              </div>
+              <span className="font-bold text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">
+                {clinic?.name || "TBFlow"}
+              </span>
+            </div>
           )}
           <button onClick={onClose} className="md:hidden p-1.5 text-muted-foreground hover:bg-secondary rounded-xl transition-colors">
             <X className="h-5 w-5 shrink-0" />
