@@ -572,10 +572,10 @@ const PublicBooking = () => {
         name: item.name,
         price: item.price.toString(),
         duration: item.duration.toString(),
-        barber_id: item.barber_id || selectedBarber?.id || null,
-        barber_name: item.barber_name || selectedBarber?.name || null,
+        barber_id: item.barber_id || selectedBarber?.id || undefined,
+        barber_name: item.barber_name || selectedBarber?.name || undefined,
         product_type: item.type === "product",
-        category_id: item.category_id || null,
+        category_id: item.category_id || undefined,
       }));
 
       // O Supabase requer os argumentos antigos de serviço base para resolver a sobrecarga (function overloading)
@@ -592,8 +592,8 @@ const PublicBooking = () => {
           _price: mainItem?.price || 0,
           _scheduled_at: formattedDateForDB,
           _payment_method: "pix_online",
-          _barber_id: selectedBarber?.id || null,
-          _barber_name: selectedBarber?.name || null,
+          _barber_id: selectedBarber?.id || undefined,
+          _barber_name: selectedBarber?.name || undefined,
           _customer_id: customerId,
           _items: rpcItems,
         },
