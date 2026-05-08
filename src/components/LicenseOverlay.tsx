@@ -1,6 +1,10 @@
-import { Shield, Check, Package, Sparkles, Star, ExternalLink, Lock } from "lucide-react";
+import { Shield, Check, Package, Sparkles, Star, ExternalLink, Lock, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { openPlanCheckout } from "@/lib/infinitepay-checkout";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const plans = [
   { key: "bronze", name: "Bronze", price: "R$ 49,90", icon: Package },
@@ -13,8 +17,33 @@ interface LicenseOverlayProps {
 }
 
 const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const extendTrialMutation = useMutation({
+    mutationFn: async () => {
+      if (!barbershopId) return;
+      const newDate = new Date();
+      newDate.setDate(newDate.getDate() + 30);
+      const { error } = await supabase
+        .from("barbershops")
+        .update({ trial_ends_at: newDate.toISOString() })
+        .eq("id", barbershopId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
+      toast({ title: "Trial estendido por 30 dias!", description: "A página será atualizada." });
+      window.location.reload();
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao estender", description: err.message, variant: "destructive" });
+    }
+  });
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
       <div className="max-w-lg w-full text-center space-y-6">
         <div className="mx-auto h-20 w-20 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
           <Lock className="h-10 w-10 text-destructive" />
@@ -57,6 +86,26 @@ const LicenseOverlay = ({ barbershopId }: LicenseOverlayProps) => {
           Pagamento seguro via InfinitePay · Acesso liberado em minutos
         </p>
       </div>
+
+      {isAdmin && (
+        <div className="mt-12 bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl max-w-lg w-full text-center">
+          <div className="flex items-center justify-center gap-2 text-amber-600 mb-3">
+            <Settings className="h-5 w-5" />
+            <p className="font-bold">Controles de Super Admin (Modo Suporte)</p>
+          </div>
+          <p className="text-xs text-amber-600/80 mb-4 font-medium">
+            Você está visualizando a tela de bloqueio do cliente. Ele não pode acessar o sistema sem pagar.
+          </p>
+          <Button 
+            onClick={() => extendTrialMutation.mutate()}
+            disabled={extendTrialMutation.isPending}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold h-11"
+          >
+            {extendTrialMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Estender Trial (+30 dias) e Desbloquear
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

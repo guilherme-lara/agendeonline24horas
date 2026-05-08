@@ -32,8 +32,7 @@ const DashboardLayout = () => {
   const isTrialExpired = useMemo(() => {
     if (!clinic) return false;
     const shop = clinic as any;
-    // Admin impersonating should never be blocked
-    if (isAdmin) return false;
+    // Se for SuperAdmin impersonando, ele também será bloqueado para ver exatamente o que o cliente vê
     // If there's an active plan, never block
     if (shop.plan_status === "active") return false;
     // If trial_ends_at exists and has passed

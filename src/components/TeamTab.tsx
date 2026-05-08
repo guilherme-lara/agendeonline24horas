@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
