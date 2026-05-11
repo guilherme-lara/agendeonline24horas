@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import {
   DollarSign, Loader2, TrendingUp, Clock, Users,
-  AlertTriangle, Building2, Bell, RefreshCw, Scissors, Package
+  AlertTriangle, Building2, Bell, RefreshCw, Scissors, Package, Crown
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
