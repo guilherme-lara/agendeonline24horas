@@ -99,7 +99,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="dashboard-theme flex min-h-screen w-full bg-background selection:bg-primary/20">
+    <div className="dashboard-theme flex min-h-screen w-full bg-background bg-mesh selection:bg-primary/20">
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -107,14 +107,15 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="md:hidden flex items-center gap-3 px-6 py-4 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+        {/* Glass topbar (mobile) */}
+        <div className="md:hidden flex items-center gap-3 px-5 py-3.5 sticky top-0 z-30 glass border-b border-border/60">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-base font-bold tracking-tight text-foreground font-display">
+          <span className="text-base font-semibold tracking-tight text-foreground font-display truncate">
             {(clinic as any)?.name || "Painel"}
           </span>
         </div>

@@ -1,90 +1,57 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  MessageCircle,
-  MessageSquare,
-  CalendarDays,
-  Globe,
-  TrendingDown,
-  BarChart3,
-  Smile,
-  Users,
-  Scissors,
-  ShoppingBag,
-  PackageCheck,
-  Cake,
-  Settings,
-  LogOut,
-  X,
-  ChevronRight,
-  ChevronDown,
-  CreditCard,
-  LayoutDashboard,
-  ShoppingCart,
-  Crown,
-  Clock,
-  Briefcase,
-  Store,
-  Calendar
+  MessageCircle, MessageSquare, CalendarDays, Globe, TrendingDown, BarChart3,
+  Smile, Users, Scissors, ShoppingBag, PackageCheck, Cake, Settings, LogOut,
+  X, ChevronRight, ChevronDown, CreditCard, LayoutDashboard, ShoppingCart,
+  Crown, Clock, Briefcase, Store, Calendar, Sparkles
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Badge } from "@/components/ui/badge";
-import logoAgenda from "@/assets/nova-logo.jpeg";
 import { useMemo, useState } from "react";
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
-  barbershopSlug?: string;
+  clinicSlug?: string;
 }
 
 const navItems = [
   { label: "Caixa", icon: ShoppingCart, path: "/dashboard/caixa" },
   { label: "Painel", icon: LayoutDashboard, path: "/dashboard/painel" },
   {
-    label: "Agenda",
-    icon: Calendar,
-    path: "#",
+    label: "Agenda", icon: Calendar, path: "#",
     subItems: [
       { label: "Agendamentos", icon: CalendarDays, path: "/dashboard/agenda" },
       { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
-    ]
+    ],
   },
   {
-    label: "Equipe & Serviços",
-    icon: Store,
-    path: "#",
+    label: "Equipe & Serviços", icon: Store, path: "#",
     subItems: [
       { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
       { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
       { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
-      { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },  
-    ]
+      { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
+    ],
   },
   {
-    label: "Clientes",
-    icon: Users,
-    path: "#",
+    label: "Clientes", icon: Users, path: "#",
     subItems: [
       { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
       { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
-    ]
+    ],
   },
   {
-    label: "Financeiro",
-    icon: Briefcase,
-    path: "#",
+    label: "Financeiro", icon: Briefcase, path: "#",
     subItems: [
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
       { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
     ],
   },
   {
-    label: "Configurações",
-    icon: Settings,
-    path: "#",
+    label: "Configurações", icon: Settings, path: "#",
     subItems: [
       { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
       { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
@@ -93,21 +60,19 @@ const navItems = [
     ],
   },
   {
-    label: "Suporte",
-    icon: MessageCircle,
-    path: "/dashboard?tab=support",
+    label: "Suporte", icon: MessageCircle, path: "/dashboard?tab=support",
     external: "https://wa.me/5514996850047?text=Ol%C3%A1%2C+preciso+de+suporte!",
-  }
+  },
 ];
 
-const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
+const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
   const { pathname } = useLocation();
   const { signOut, isProfessional } = useAuth();
   const { clinic } = useClinic() as any;
 
   const visibleNavItems = useMemo(() => {
     if (isProfessional) {
-      return navItems.filter(item => 
+      return navItems.filter((item) =>
         ["Caixa", "Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
       );
     }
@@ -118,13 +83,11 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
     "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
     "Equipe & Serviços": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
     "Clientes": pathname.includes("/clientes") || pathname.includes("/aniversarios"),
-    "Financeiro": pathname.includes("/caixa") || pathname.includes("/despesas") || pathname.includes("/relatorios"),
-    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos")
+    "Financeiro": pathname.includes("/despesas") || pathname.includes("/relatorios"),
+    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
   });
 
-  const toggleMenu = (label: string) => {
-    setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }));
-  };
+  const toggleMenu = (label: string) => setOpenMenus((p) => ({ ...p, [label]: !p[label] }));
 
   const isActive = (itemPath: string) => {
     const cleanPath = itemPath.split("?")[0];
@@ -142,159 +105,174 @@ const DashboardSidebar = ({ open, onClose, clinicSlug }: SidebarProps) => {
   return (
     <>
       {open && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden transition-opacity duration-300" 
-          onClick={onClose} 
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm md:hidden transition-opacity duration-300"
+          onClick={onClose}
         />
       )}
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col bg-card border-r border-border shadow-sm transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col transition-transform duration-300 ease-out",
           "w-[85vw] max-w-[300px] md:w-72",
           "md:translate-x-0 md:static md:z-auto",
-          open ? "translate-x-0" : "-translate-x-full",
+          "glass border-r border-border/60",
+          open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/50 shrink-0">
-          {clinic?.logo_url ? (
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl overflow-hidden border border-border shadow-sm shrink-0 bg-background flex items-center justify-center">
-                <img src={clinic.logo_url} alt="Logo da Empresa" className="h-full w-full object-cover" />
+        {/* Brand */}
+        <div className="flex items-center justify-between px-5 py-5 border-b border-border/60 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {clinic?.logo_url ? (
+              <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border elev-1 shrink-0 bg-card">
+                <img src={clinic.logo_url} alt="Logo" className="h-full w-full object-cover" />
               </div>
-              <span className="font-bold text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">{clinic?.name}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-lg font-display shadow-sm shrink-0">
+            ) : (
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-base elev-2 shrink-0">
                 {clinic?.name?.charAt(0)?.toUpperCase() || "T"}
               </div>
-              <span className="font-bold text-[15px] tracking-tight text-foreground truncate max-w-[130px] font-display">
-                {clinic?.name || "TBFlow"}
-              </span>
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-[14px] tracking-tight text-foreground truncate font-display">
+                {clinic?.name || "Painel"}
+              </p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                Workspace
+              </p>
             </div>
-          )}
-          <button onClick={onClose} className="md:hidden p-1.5 text-muted-foreground hover:bg-secondary rounded-xl transition-colors">
-            <X className="h-5 w-5 shrink-0" />
+          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
+        {/* Trial banner */}
         {trialDaysLeft && (
-          <div className="px-5 py-2.5 border-b border-border/50 bg-system-orange/10 shrink-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Crown className="h-3.5 w-3.5 text-system-orange animate-pulse shrink-0" />
-              <span className="text-[10px] font-black text-system-orange uppercase tracking-wider truncate">Pro Trial: {trialDaysLeft}d restantes</span>
+          <div className="mx-3 mt-3 rounded-2xl p-3 bg-gradient-to-br from-amber-500/15 to-orange-500/10 border border-amber-500/20 shrink-0">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                Pro Trial · {trialDaysLeft}d restantes
+              </span>
             </div>
-            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-1000" 
-                style={{ width: `${Math.max(5, (trialDaysLeft / 30) * 100)}%` }} 
+            <div className="h-1.5 rounded-full bg-amber-500/15 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
+                style={{ width: `${Math.max(5, (trialDaysLeft / 30) * 100)}%` }}
               />
             </div>
           </div>
         )}
 
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 custom-scrollbar">
           {visibleNavItems.map((item) => {
-            if (item.external) {
+            if ((item as any).external) {
               return (
-                <a 
-                  key={item.label} 
-                  href={item.external} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-all duration-300 min-w-0 mb-1"
+                <a
+                  key={item.label}
+                  href={(item as any).external}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all duration-300"
                 >
-                  <item.icon className="h-[18px] w-[18px] text-zinc-400 shrink-0" />
-                  <span className="truncate flex-1 text-left">{item.label}</span>
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <span className="truncate flex-1">{item.label}</span>
                 </a>
               );
             }
 
-            if (item.subItems) {
+            if ((item as any).subItems) {
+              const sub = (item as any).subItems as { label: string; icon: any; path: string }[];
               const isMenuOpen = openMenus[item.label];
-              const hasActiveChild = item.subItems.some(sub => isActive(sub.path));
+              const hasActiveChild = sub.some((s) => isActive(s.path));
               return (
-                <div key={item.label} className="space-y-1">
-                  <button 
-                    onClick={() => toggleMenu(item.label)} 
+                <div key={item.label}>
+                  <button
+                    onClick={() => toggleMenu(item.label)}
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 min-w-0 mb-1 relative", 
-                      hasActiveChild && !isMenuOpen ? "bg-zinc-50 text-zinc-900 font-semibold" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                      "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 relative",
+                      hasActiveChild
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild ? "text-zinc-900" : "text-zinc-400")} />
+                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild && "text-primary")} />
                       <span className="truncate text-left">{item.label}</span>
                     </div>
-                    {isMenuOpen ? <ChevronDown className="h-3.5 w-3.5 opacity-50 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 opacity-50 shrink-0" />}
-                    {hasActiveChild && !isMenuOpen && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-zinc-900 rounded-full" />}
+                    {isMenuOpen ? <ChevronDown className="h-3.5 w-3.5 opacity-60" /> : <ChevronRight className="h-3.5 w-3.5 opacity-60" />}
                   </button>
-                  <div 
+                  <div
                     className={cn(
-                      "pl-9 pr-2 space-y-1 overflow-hidden transition-all duration-300 ease-in-out", 
-                      isMenuOpen ? "max-h-[300px] opacity-100 py-1" : "max-h-0 opacity-0"
+                      "pl-4 ml-3 border-l border-border/60 space-y-0.5 overflow-hidden transition-all duration-300 ease-out",
+                      isMenuOpen ? "max-h-[400px] opacity-100 py-1" : "max-h-0 opacity-0"
                     )}
                   >
-                    {item.subItems.map(sub => (
-                      <Link 
-                        key={sub.path} 
-                        to={sub.path} 
-                        onClick={onClose} 
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-300 min-w-0 mb-1 relative", 
-                          isActive(sub.path) 
-                            ? "bg-zinc-100 text-zinc-900 font-semibold" 
-                            : "text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50"
-                        )}
-                      >
-                        <sub.icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate flex-1 text-left">{sub.label}</span>
-                        {isActive(sub.path) && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-zinc-900 rounded-full" />}
-                      </Link>
-                    ))}
+                    {sub.map((s) => {
+                      const active = isActive(s.path);
+                      return (
+                        <Link
+                          key={s.path}
+                          to={s.path}
+                          onClick={onClose}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 relative",
+                            active
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                          )}
+                        >
+                          <s.icon className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate flex-1">{s.label}</span>
+                          {active && <span className="absolute -left-[17px] top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               );
             }
 
+            const active = isActive(item.path);
             return (
-              <Link 
-                key={item.label} 
-                to={item.path} 
-                onClick={onClose} 
+              <Link
+                key={item.label}
+                to={item.path}
+                onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 min-w-0 mb-1 relative", 
-                  isActive(item.path) 
-                    ? "bg-zinc-100 text-zinc-900 font-semibold" 
-                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 relative",
+                  active
+                    ? "bg-primary/10 text-primary font-semibold elev-1"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
                 )}
               >
-                <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive(item.path) ? "text-zinc-900" : "text-zinc-400")} />
+                <item.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
-                {isActive(item.path) && <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-zinc-900 rounded-full" />}
+                {active && <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-zinc-100 p-5 space-y-4 bg-zinc-50/50 shrink-0">
-          <div className="flex items-center justify-between px-2">
+        {/* Footer */}
+        <div className="border-t border-border/60 p-4 space-y-3 bg-card/40 shrink-0">
+          <div className="flex items-center justify-between">
             <ThemeToggle />
-            <button 
-              onClick={signOut} 
-              className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-red-600 transition-colors group"
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-rose-500 transition-colors group px-2 py-1.5 rounded-lg hover:bg-rose-500/5"
             >
-              <LogOut className="h-4 w-4 shrink-0 group-hover:translate-x-0.5 transition-transform" /> 
+              <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               Sair
             </button>
           </div>
-          <div className="px-1 pt-1">
-            <p className="text-[9px] font-medium text-zinc-400 leading-tight truncate">
-              Desenvolvido por Jotatechinfo
-              <br />
-              © 2026 · v1.2.0
-            </p>
+          <div className="flex items-center gap-2 px-1 pt-1 text-[9px] text-muted-foreground/70">
+            <Sparkles className="h-3 w-3 text-primary/60" />
+            <span className="truncate">Desenvolvido por Jotatechinfo · v1.2.0</span>
           </div>
         </div>
       </aside>
