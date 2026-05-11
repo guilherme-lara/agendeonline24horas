@@ -203,8 +203,15 @@ const Dashboard = () => {
   if (shopLoading || (loadingAppts && !appointments.length)) return <DashboardSkeleton />;
   if (!clinic) return null;
 
+  const kpiCards = [
+    { icon: DollarSign, label: "Caixa Hoje", value: kpis.todayRevTotal, gradient: "from-indigo-500 to-violet-600", glow: "shadow-indigo-500/30" },
+    { icon: Scissors, label: "Serviços", value: kpis.todayRevServices, gradient: "from-emerald-500 to-teal-600", glow: "shadow-emerald-500/30" },
+    { icon: TrendingUp, label: "Mês Atual", value: kpis.monthRevTotal, gradient: "from-amber-500 to-orange-600", glow: "shadow-amber-500/30" },
+    { icon: Clock, label: "Ticket Médio", value: kpis.ticketMedio, gradient: "from-rose-500 to-pink-600", glow: "shadow-rose-500/30" },
+  ];
+
   return (
-    <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-700">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-700">
       <UpgradeModal
         open={upgradeModal.open}
         onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })}
@@ -212,194 +219,146 @@ const Dashboard = () => {
         featureName={upgradeModal.feature}
       />
       <ExpirationBanner />
+
       {/* HEADER */}
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <div className="h-16 w-16 rounded-xl bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shadow-sm">
+        <div className="flex items-center gap-5">
+          <div className="h-16 w-16 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden elev-2">
             {clinic.logo_url ? (
-              <img
-                src={clinic.logo_url}
-                className="h-full w-full object-cover"
-              />
+              <img src={clinic.logo_url} className="h-full w-full object-cover" />
             ) : (
-              <Building2 className="h-8 w-8 text-zinc-400" />
+              <Building2 className="h-7 w-7 text-muted-foreground" />
             )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-display">
-              {clinic.name}
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-display">
+              <span className="text-gradient-primary">{clinic.name}</span>
             </h1>
-            <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">
+            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mt-1.5">
               {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </p>
           </div>
         </div>
-        <Badge className="bg-zinc-100 text-zinc-900 border-zinc-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-          Plano {clinic.plan_name || "Premium"}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="pill-success animate-in fade-in slide-in-from-right-2 duration-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Atualizado agora
+            </span>
+          )}
+          <span className="pill-info">
+            <Crown className="h-3 w-3" />
+            Plano {clinic.plan_name || "Premium"}
+          </span>
+        </div>
       </div>
 
-      {/* KPIs GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {[
-          {
-            icon: DollarSign,
-            color: "zinc",
-            label: "Caixa Hoje",
-            value: kpis.todayRevTotal,
-          },
-          {
-            icon: Scissors,
-            color: "zinc",
-            label: "Serviços",
-            value: kpis.todayRevServices,
-          },
-          {
-            icon: TrendingUp,
-            color: "zinc",
-            label: "Mês Atual",
-            value: kpis.monthRevTotal,
-          },
-          {
-            icon: Clock,
-            color: "zinc",
-            label: "Ticket Médio",
-            value: kpis.ticketMedio,
-          },
-        ].map((kpi, i) => (
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        {kpiCards.map((kpi, i) => (
           <div
             key={i}
-            className="rounded-xl border border-zinc-200/60 bg-white p-6 shadow-sm hover:border-zinc-300 transition-all group"
+            className="group relative overflow-hidden rounded-2xl bg-card border border-border/60 p-6 elev-1 lift hover:border-primary/40"
           >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-10 w-10 bg-zinc-50 rounded-lg flex items-center justify-center">
-                <kpi.icon className="h-5 w-5 text-zinc-900" />
+            {/* gradient orb */}
+            <div className={cn("absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br opacity-20 blur-2xl transition-opacity duration-500 group-hover:opacity-40", kpi.gradient)} />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-5">
+                <div className={cn("h-11 w-11 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shadow-lg", kpi.gradient, kpi.glow)}>
+                  <kpi.icon className="h-5 w-5" strokeWidth={2.2} />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  {kpi.label}
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                {kpi.label}
-              </span>
+              <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight font-display">
+                R$ {kpi.value.toFixed(2)}
+              </p>
             </div>
-            <p className="text-2xl font-bold text-zinc-900 tracking-tight">
-              R$ {kpi.value.toFixed(2)}
-            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* GRÁFICO PRINCIPAL */}
-        <div className="lg:col-span-2 rounded-xl border border-zinc-200/60 bg-white p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold flex items-center gap-3 font-display text-zinc-900">
-                <div className="h-2 w-2 rounded-full bg-zinc-900" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* CHART */}
+        <div className="lg:col-span-2 rounded-2xl bg-card border border-border/60 p-7 elev-1">
+          <div className="flex items-center justify-between mb-7">
+            <div>
+              <h2 className="text-lg font-bold font-display text-foreground flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" />
                 Desempenho Semanal
               </h2>
-              {lastUpdated && (
-                <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 text-[9px] font-bold uppercase tracking-wider">
-                  ⚡ Atualizado
-                </Badge>
-              )}
+              <p className="text-xs text-muted-foreground mt-1">Últimos 7 dias · Serviços + Produtos</p>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-primary" /> Serviços</span>
+              <span className="flex items-center gap-1.5 text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-emerald-500" /> Produtos</span>
             </div>
           </div>
-          <div className="h-[350px] w-full">
+          <div className="h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={kpis.chartData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="hsl(var(--border))"
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="day"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "hsl(var(--muted-foreground))",
-                    fontSize: 10,
-                    fontWeight: 900,
-                  }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: "hsl(var(--muted-foreground))",
-                    fontSize: 10,
-                    fontWeight: 900,
-                  }}
-                  tickFormatter={(v) => `R$${v}`}
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 700 }}
+                  tickFormatter={(v) => `R$${v}`} />
                 <Tooltip
-                  cursor={{ fill: "hsla(var(--foreground), 0.05)" }}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
-                    borderRadius: "20px",
+                    borderRadius: "16px",
                     border: "1px solid hsl(var(--border))",
+                    boxShadow: "var(--shadow-elev-3)",
+                    color: "hsl(var(--foreground))",
                   }}
                 />
-                <Bar
-                  dataKey="Serviços"
-                  stackId="a"
-                  fill="hsl(var(--primary))"
-                  radius={[0, 0, 10, 10]}
-                />
-                <Bar
-                  dataKey="Produtos"
-                  stackId="a"
-                  fill="hsl(var(--accent))"
-                  radius={[10, 10, 0, 0]}
-                />
+                <Bar dataKey="Serviços" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 8, 8]} />
+                <Bar dataKey="Produtos" stackId="a" fill="hsl(160 84% 39%)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* TRANSAÇÕES RECENTES */}
-        <div className="rounded-xl border border-zinc-200/60 bg-white p-8 shadow-sm">
-          <h2 className="text-lg font-bold mb-8 font-display flex items-center gap-2 text-zinc-900">
-            <RefreshCw className="h-4 w-4 text-zinc-400" /> Atividade Live
+        {/* LIVE FEED */}
+        <div className="rounded-2xl bg-card border border-border/60 p-7 elev-1">
+          <h2 className="text-lg font-bold mb-6 font-display flex items-center gap-2 text-foreground">
+            <RefreshCw className="h-4 w-4 text-primary" /> Atividade Live
           </h2>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {kpis.lastTransactions.length > 0 ? (
               kpis.lastTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between group"
+                  className="flex items-center justify-between p-3 -mx-2 rounded-xl hover:bg-secondary/60 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="h-9 w-9 rounded-lg bg-zinc-50 flex items-center justify-center font-bold text-[10px] text-zinc-400 uppercase border border-zinc-100">
-                      {tx.method?.slice(0, 2) || "PIX"}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center font-bold text-[10px] text-primary uppercase shrink-0">
+                      {tx.method?.slice(0, 3) || "PIX"}
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900 truncate w-32">
-                        {tx.name}
-                      </p>
-                      <p className="text-[10px] text-zinc-400 font-semibold">
-                        {tx.time}
-                      </p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground truncate">{tx.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{tx.time}</p>
                     </div>
                   </div>
-                  <p className="text-sm font-black text-emerald-500">
-                    R$ {tx.total.toFixed(2)}
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                    +R$ {tx.total.toFixed(2)}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="text-center py-10">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  Aguardando vendas...
-                </p>
+              <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border">
+                <Bell className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-muted-foreground">Aguardando vendas...</p>
               </div>
             )}
             <Button
               variant="ghost"
-              className="w-full rounded-xl text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+              className="w-full rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary"
               onClick={() => navigate("/dashboard/caixa")}
             >
-              Ver Extrato Completo
+              Ver Extrato Completo →
             </Button>
           </div>
         </div>
