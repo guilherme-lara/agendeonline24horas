@@ -7,171 +7,76 @@
 
 @layer base {
   :root {
-    /* ─── LANDING PAGE THEME (Rose Gold / Spa) — INTOCÁVEL ─── */
-    --background: 240 10% 99%;
-    --foreground: 240 10% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 350 35% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 40 45% 95%;
-    --secondary-foreground: 350 35% 30%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 43 65% 53%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 350 35% 58%;
-    --radius: 2rem;
-    --premium-gradient: linear-gradient(135deg, #B76E79, #D4AF37);
-    --shadow-premium: 0 10px 30px -10px rgba(183, 110, 121, 0.3);
-    --font-display: 'Playfair Display', serif;
-    --font-body: 'Inter', sans-serif;
-  }
-
-  .dark {
-    --background: 240 10% 4%;
-    --foreground: 240 10% 98%;
-    --card: 240 10% 6%;
-    --card-foreground: 240 10% 98%;
-    --popover: 240 10% 6%;
-    --popover-foreground: 240 10% 98%;
-    --primary: 350 35% 65%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 40 20% 12%;
-    --secondary-foreground: 350 35% 80%;
-    --muted: 240 5% 12%;
-    --muted-foreground: 240 4% 65%;
-    --accent: 43 65% 53%;
-    --accent-foreground: 0 0% 10%;
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 240 10% 98%;
-    --border: 240 6% 15%;
-    --input: 240 6% 15%;
-    --ring: 350 35% 65%;
-  }
-
-  /* ─── DASHBOARD THEME — Material 3 + Apple ─── */
-  .dashboard-theme {
-    --background: 210 40% 98%;             /* #F8FAFC slate-50 */
-    --foreground: 215 28% 17%;             /* slate-800 */
-    --card: 0 0% 100%;                     /* white */
-    --card-foreground: 215 28% 17%;
-    --card-elevated: 0 0% 100%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
-
-    --primary: 239 84% 60%;                /* indigo-600 vibrante */
-    --primary-foreground: 0 0% 100%;
-    --primary-soft: 239 84% 96%;           /* indigo-50 */
-
-    --secondary: 210 40% 96%;              /* slate-100 */
-    --secondary-foreground: 215 28% 17%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;       /* slate-500 */
-
-    --accent: 239 84% 67%;                 /* indigo-500 */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 350 89% 60%;            /* rose-500 */
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 160 84% 39%;                /* emerald-500 */
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;                 /* amber-500 */
-    --warning-foreground: 0 0% 100%;
-    --info: 217 91% 60%;                   /* blue-500 */
-    --info-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%;                 /* slate-200 */
-    --input: 214 32% 91%;
-    --ring: 239 84% 60%;
-    --radius: 1rem;
-
-    --surface-glass: 0 0% 100% / 0.72;
-    --shadow-elev-1: 0 1px 2px 0 hsl(215 28% 17% / 0.04), 0 1px 3px 0 hsl(215 28% 17% / 0.06);
-    --shadow-elev-2: 0 4px 14px -2px hsl(215 28% 17% / 0.08), 0 2px 6px -2px hsl(215 28% 17% / 0.04);
-    --shadow-elev-3: 0 18px 40px -12px hsl(215 28% 17% / 0.18), 0 6px 14px -6px hsl(215 28% 17% / 0.08);
-    --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 60% / 0.45);
-
-    /* ─── SYS-* SEMANTIC TOKENS (Salesforce Lightning / Amplimed style) ─── */
+    /* ─── SYS-* SEMANTIC TOKENS — GLOBAL (Lightning / Amplimed HealthTech) ─── */
     /* Foundation */
     --sys-bg-base: 210 40% 98%;          /* slate-50 */
     --sys-surface: 0 0% 100%;            /* white */
-    --sys-surface-raised: 210 40% 99%;   /* near-white */
+    --sys-surface-raised: 210 40% 99%;
     --sys-border: 214 32% 91%;           /* slate-200 */
     --sys-border-strong: 215 20% 80%;    /* slate-300 */
     --sys-text-primary: 222 47% 11%;     /* slate-900 */
     --sys-text-muted: 215 16% 47%;       /* slate-500 */
     --sys-text-subtle: 215 20% 65%;      /* slate-400 */
     /* Brand & Status */
-    --sys-brand-primary: 199 89% 38%;    /* sky/teal-medical (sky-700) */
+    --sys-brand-primary: 199 89% 38%;    /* sky-700 (medical) */
     --sys-brand-primary-hover: 199 89% 32%;
     --sys-brand-primary-soft: 199 89% 95%;
     --sys-brand-on-primary: 0 0% 100%;
-    --sys-status-success: 160 84% 39%;   /* emerald-500 */
-    --sys-status-warning: 38 92% 50%;    /* amber-500 */
-    --sys-status-danger: 350 89% 60%;    /* rose-500 */
-    --sys-status-info: 217 91% 60%;      /* blue-500 */
-    /* Focus */
+    --sys-status-success: 160 84% 39%;
+    --sys-status-warning: 38 92% 50%;
+    --sys-status-danger: 350 89% 60%;
+    --sys-status-info: 217 91% 60%;
     --sys-focus-ring: 199 89% 48%;
+
+    /* ─── Shadcn aliases — mapeados para sys-* (mantém compat. com componentes existentes) ─── */
+    --background: var(--sys-bg-base);
+    --foreground: var(--sys-text-primary);
+    --card: var(--sys-surface);
+    --card-foreground: var(--sys-text-primary);
+    --popover: var(--sys-surface);
+    --popover-foreground: var(--sys-text-primary);
+    --primary: var(--sys-brand-primary);
+    --primary-foreground: var(--sys-brand-on-primary);
+    --secondary: 210 40% 96%;
+    --secondary-foreground: var(--sys-text-primary);
+    --muted: 210 40% 96%;
+    --muted-foreground: var(--sys-text-muted);
+    --accent: var(--sys-brand-primary);
+    --accent-foreground: var(--sys-brand-on-primary);
+    --destructive: var(--sys-status-danger);
+    --destructive-foreground: 0 0% 100%;
+    --success: var(--sys-status-success);
+    --warning: var(--sys-status-warning);
+    --info: var(--sys-status-info);
+    --border: var(--sys-border);
+    --input: var(--sys-border);
+    --ring: var(--sys-focus-ring);
+    --radius: 0.75rem;
+
+    /* Elevations & shadows */
+    --surface-glass: 0 0% 100% / 0.78;
+    --shadow-elev-1: 0 1px 2px 0 hsl(215 28% 17% / 0.04), 0 1px 3px 0 hsl(215 28% 17% / 0.06);
+    --shadow-elev-2: 0 4px 14px -2px hsl(215 28% 17% / 0.08), 0 2px 6px -2px hsl(215 28% 17% / 0.04);
+    --shadow-elev-3: 0 18px 40px -12px hsl(215 28% 17% / 0.18), 0 6px 14px -6px hsl(215 28% 17% / 0.08);
+    --shadow-glow-primary: 0 10px 30px -10px hsl(var(--sys-brand-primary) / 0.45);
+
+    /* Legacy decorativos (mantidos para componentes que ainda referenciam) */
+    --premium-gradient: linear-gradient(135deg, hsl(var(--sys-brand-primary)), hsl(var(--sys-status-info)));
+    --shadow-premium: var(--shadow-elev-2);
+    --font-display: 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
-  .dark .dashboard-theme,
-  .dashboard-theme.dark {
-    --background: 222 47% 7%;              /* #0B1120 midnight */
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;                   /* slate-900 */
-    --card-foreground: 210 40% 98%;
-    --card-elevated: 217 33% 14%;          /* slate-800-ish */
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 239 84% 67%;                /* indigo-500 (mais luminoso no escuro) */
-    --primary-foreground: 0 0% 100%;
-    --primary-soft: 239 50% 18%;
-
-    --secondary: 217 33% 17%;              /* slate-800 */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;       /* slate-400 */
-
-    --accent: 239 84% 72%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 350 89% 65%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 160 70% 45%;
-    --warning: 38 92% 55%;
-    --info: 217 91% 65%;
-
-    --border: 215 28% 18%;                 /* slate-800 */
-    --input: 215 28% 18%;
-    --ring: 239 84% 67%;
-
-    --surface-glass: 222 47% 7% / 0.65;
-    --shadow-elev-1: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-    --shadow-elev-2: 0 4px 14px -2px hsl(0 0% 0% / 0.45);
-    --shadow-elev-3: 0 22px 50px -12px hsl(0 0% 0% / 0.6);
-    --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 67% / 0.55);
-
-    /* ─── SYS-* SEMANTIC TOKENS — DARK ─── */
-    --sys-bg-base: 222 47% 7%;             /* slate-900-ish */
-    --sys-surface: 222 47% 11%;            /* slate-800 */
+  .dark {
+    --sys-bg-base: 222 47% 7%;
+    --sys-surface: 222 47% 11%;
     --sys-surface-raised: 217 33% 14%;
-    --sys-border: 215 28% 18%;             /* slate-700 */
+    --sys-border: 215 28% 18%;
     --sys-border-strong: 215 20% 28%;
-    --sys-text-primary: 210 40% 98%;       /* slate-100 */
-    --sys-text-muted: 215 20% 65%;         /* slate-400 */
-    --sys-text-subtle: 215 16% 47%;        /* slate-500 */
-    --sys-brand-primary: 199 89% 55%;      /* sky-400/500 — luminoso no escuro */
+    --sys-text-primary: 210 40% 98%;
+    --sys-text-muted: 215 20% 65%;
+    --sys-text-subtle: 215 16% 47%;
+    --sys-brand-primary: 199 89% 55%;
     --sys-brand-primary-hover: 199 89% 62%;
     --sys-brand-primary-soft: 199 60% 18%;
     --sys-brand-on-primary: 222 47% 7%;
@@ -180,7 +85,19 @@
     --sys-status-danger: 350 89% 65%;
     --sys-status-info: 217 91% 65%;
     --sys-focus-ring: 199 89% 60%;
+
+    --secondary: 217 33% 17%;
+    --muted: 217 33% 14%;
+
+    --surface-glass: 222 47% 7% / 0.7;
+    --shadow-elev-1: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-elev-2: 0 4px 14px -2px hsl(0 0% 0% / 0.45);
+    --shadow-elev-3: 0 22px 50px -12px hsl(0 0% 0% / 0.6);
   }
+
+  /* Compat: .dashboard-theme agora é um no-op (tokens já globais).
+     Mantido como classe wrapper para não quebrar referências existentes. */
+  .dashboard-theme { /* tokens herdados de :root / .dark */ }
 }
 
 @layer base {
