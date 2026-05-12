@@ -28,8 +28,8 @@ const Booking = () => {
   const { data: clinic, isLoading: loadingShop } = useQuery({
     queryKey: ["booking-shop", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("barbershops")
+      const { data, error } = await (supabase as any)
+        .from("barbershops_public")
         .select("id, name, slug")
         .eq("slug", slug)
         .maybeSingle();
