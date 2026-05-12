@@ -137,8 +137,8 @@ const PublicBooking = () => {
       if (!apptId) { setApptStatus("confirmed"); return; }
 
       try {
-        const { data, error } = await supabase
-          .from("appointments")
+        const { data, error } = await (supabase as any)
+          .from("appointments_public")
           .select("status, expires_at")
           .eq("id", apptId)
           .maybeSingle();
@@ -213,8 +213,8 @@ const PublicBooking = () => {
 
     const checkBooking = async () => {
       if (Date.now() > paymentExpiresAt) {
-        const { data } = await supabase
-          .from("appointments")
+        const { data } = await (supabase as any)
+          .from("appointments_public")
           .select("status")
           .eq("id", pendingApptId)
           .maybeSingle();
@@ -365,16 +365,16 @@ const PublicBooking = () => {
     const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
     const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
 
-    let result: any = await supabase
-      .from("appointments")
+    let result: any = await (supabase as any)
+      .from("appointments_public")
       .select(selectWithExpiry)
       .eq("barbershop_id", shop.id)
       .gte("scheduled_at", dayStart)
       .lte("scheduled_at", dayEnd);
 
     if (result.error && result.error.message?.toLowerCase().includes("expires_at")) {
-      result = await supabase
-        .from("appointments")
+      result = await (supabase as any)
+        .from("appointments_public")
         .select(selectFallback)
         .eq("barbershop_id", shop.id)
         .gte("scheduled_at", dayStart)
