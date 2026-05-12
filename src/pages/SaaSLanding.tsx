@@ -97,8 +97,8 @@ const SaaSLanding = () => {
       {/* HERO */}
       <section className="relative pt-24 pb-32 lg:pt-32 lg:pb-40">
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
-          <div className="absolute top-40 right-10 w-[400px] h-[400px] rounded-full bg-accent/15 blur-[100px]" />
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full bg-primary/10 blur-[140px]" />
+          <div className="absolute top-40 right-10 w-[400px] h-[400px] rounded-full bg-info/15 blur-[120px]" />
         </div>
 
         <div className="container px-6 max-w-5xl text-center relative">
@@ -106,19 +106,19 @@ const SaaSLanding = () => {
             <Sparkles className="h-3 w-3" /> 30 dias grátis · sem cartão
           </Pill>
 
-          <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.05] mt-10 mb-8 text-foreground">
-            A gestão elegante para o seu<br />
-            <span className="italic text-primary font-normal">negócio de beleza.</span>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] mt-10 mb-8 text-foreground">
+            A gestão profissional<br />
+            para o seu <span className="text-primary">negócio de beleza.</span>
           </h1>
 
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
-            Agenda online, pagamento por Pix antecipado e relatórios claros — em uma plataforma desenhada para clínicas, salões e spas que valorizam a experiência do cliente.
+            Agenda online, pagamento por Pix antecipado e relatórios claros — uma plataforma corporativa para clínicas, salões e spas que valorizam a experiência do cliente.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8">
             <Button
               onClick={() => navigate("/login")}
-              className="h-14 px-9 rounded-full premium-gradient text-primary-foreground text-base font-medium shadow-premium transition-all active:scale-95 group"
+              className="h-12 px-7 rounded-lg bg-primary text-primary-foreground hover:opacity-90 text-base font-semibold transition-all active:scale-[0.98] group shadow-card"
             >
               Começar teste grátis
               <ChevronRight className="ml-1 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -126,9 +126,9 @@ const SaaSLanding = () => {
             <Button
               variant="ghost"
               onClick={scrollToPricing}
-              className="h-14 px-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 text-base font-medium"
+              className="h-12 px-6 rounded-lg border border-border text-foreground hover:bg-muted text-base font-semibold"
             >
-              Ver planos →
+              Ver planos
             </Button>
           </div>
 
@@ -138,7 +138,7 @@ const SaaSLanding = () => {
               200+ negócios ativos
             </div>
             <span className="h-1 w-1 rounded-full bg-border" />
-            <div className="flex -space-x-2">
+            <div className="flex items-center -space-x-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star key={i} className="h-3.5 w-3.5 text-primary fill-primary" />
               ))}
