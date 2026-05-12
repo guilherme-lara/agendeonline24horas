@@ -99,6 +99,28 @@
     --shadow-elev-2: 0 4px 14px -2px hsl(215 28% 17% / 0.08), 0 2px 6px -2px hsl(215 28% 17% / 0.04);
     --shadow-elev-3: 0 18px 40px -12px hsl(215 28% 17% / 0.18), 0 6px 14px -6px hsl(215 28% 17% / 0.08);
     --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 60% / 0.45);
+
+    /* ─── SYS-* SEMANTIC TOKENS (Salesforce Lightning / Amplimed style) ─── */
+    /* Foundation */
+    --sys-bg-base: 210 40% 98%;          /* slate-50 */
+    --sys-surface: 0 0% 100%;            /* white */
+    --sys-surface-raised: 210 40% 99%;   /* near-white */
+    --sys-border: 214 32% 91%;           /* slate-200 */
+    --sys-border-strong: 215 20% 80%;    /* slate-300 */
+    --sys-text-primary: 222 47% 11%;     /* slate-900 */
+    --sys-text-muted: 215 16% 47%;       /* slate-500 */
+    --sys-text-subtle: 215 20% 65%;      /* slate-400 */
+    /* Brand & Status */
+    --sys-brand-primary: 199 89% 38%;    /* sky/teal-medical (sky-700) */
+    --sys-brand-primary-hover: 199 89% 32%;
+    --sys-brand-primary-soft: 199 89% 95%;
+    --sys-brand-on-primary: 0 0% 100%;
+    --sys-status-success: 160 84% 39%;   /* emerald-500 */
+    --sys-status-warning: 38 92% 50%;    /* amber-500 */
+    --sys-status-danger: 350 89% 60%;    /* rose-500 */
+    --sys-status-info: 217 91% 60%;      /* blue-500 */
+    /* Focus */
+    --sys-focus-ring: 199 89% 48%;
   }
 
   .dark .dashboard-theme,
@@ -139,6 +161,25 @@
     --shadow-elev-2: 0 4px 14px -2px hsl(0 0% 0% / 0.45);
     --shadow-elev-3: 0 22px 50px -12px hsl(0 0% 0% / 0.6);
     --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 67% / 0.55);
+
+    /* ─── SYS-* SEMANTIC TOKENS — DARK ─── */
+    --sys-bg-base: 222 47% 7%;             /* slate-900-ish */
+    --sys-surface: 222 47% 11%;            /* slate-800 */
+    --sys-surface-raised: 217 33% 14%;
+    --sys-border: 215 28% 18%;             /* slate-700 */
+    --sys-border-strong: 215 20% 28%;
+    --sys-text-primary: 210 40% 98%;       /* slate-100 */
+    --sys-text-muted: 215 20% 65%;         /* slate-400 */
+    --sys-text-subtle: 215 16% 47%;        /* slate-500 */
+    --sys-brand-primary: 199 89% 55%;      /* sky-400/500 — luminoso no escuro */
+    --sys-brand-primary-hover: 199 89% 62%;
+    --sys-brand-primary-soft: 199 60% 18%;
+    --sys-brand-on-primary: 222 47% 7%;
+    --sys-status-success: 160 70% 45%;
+    --sys-status-warning: 38 92% 55%;
+    --sys-status-danger: 350 89% 65%;
+    --sys-status-info: 217 91% 65%;
+    --sys-focus-ring: 199 89% 60%;
   }
 }
 
@@ -199,6 +240,53 @@
     box-shadow: var(--shadow-glow-primary);
     @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98];
   }
+
+  /* ─── SYS-* COMPONENT PRIMITIVES (Lightning / Amplimed) ─── */
+  .sys-surface {
+    @apply rounded-xl border;
+    background-color: hsl(var(--sys-surface));
+    border-color: hsl(var(--sys-border));
+    box-shadow: var(--shadow-elev-1);
+  }
+  .sys-surface-flat {
+    @apply rounded-xl border;
+    background-color: hsl(var(--sys-surface));
+    border-color: hsl(var(--sys-border));
+  }
+  .sys-divider { border-color: hsl(var(--sys-border)); }
+
+  /* Buttons */
+  .sys-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-opacity;
+    background-color: hsl(var(--sys-brand-primary));
+    color: hsl(var(--sys-brand-on-primary));
+  }
+  .sys-btn-primary:hover { opacity: 0.9; }
+  .sys-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border bg-transparent transition-colors;
+    color: hsl(var(--sys-text-primary));
+    border-color: hsl(var(--sys-border));
+  }
+  .sys-btn-secondary:hover { background-color: hsl(var(--sys-brand-primary) / 0.06); }
+  .sys-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
+    color: hsl(var(--sys-text-muted));
+  }
+  .sys-btn-ghost:hover { color: hsl(var(--sys-text-primary)); background-color: hsl(var(--sys-bg-base)); }
+
+  /* Status pills (sys) */
+  .sys-pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .sys-pill-success { @apply sys-pill; background-color: hsl(var(--sys-status-success) / 0.12); color: hsl(var(--sys-status-success)); }
+  .sys-pill-warning { @apply sys-pill; background-color: hsl(var(--sys-status-warning) / 0.14); color: hsl(var(--sys-status-warning)); }
+  .sys-pill-danger  { @apply sys-pill; background-color: hsl(var(--sys-status-danger)  / 0.12); color: hsl(var(--sys-status-danger)); }
+  .sys-pill-info    { @apply sys-pill; background-color: hsl(var(--sys-status-info)    / 0.12); color: hsl(var(--sys-status-info)); }
+  .sys-pill-neutral { @apply sys-pill; background-color: hsl(var(--sys-text-muted)     / 0.12); color: hsl(var(--sys-text-muted)); }
+
+  /* Typography */
+  .sys-h1 { @apply text-2xl font-semibold tracking-tight; color: hsl(var(--sys-text-primary)); }
+  .sys-h2 { @apply text-lg font-semibold; color: hsl(var(--sys-text-primary)); }
+  .sys-label { @apply text-xs font-medium uppercase tracking-wide; color: hsl(var(--sys-text-muted)); }
+  .sys-muted { color: hsl(var(--sys-text-muted)); }
 }
 
 @layer utilities {
