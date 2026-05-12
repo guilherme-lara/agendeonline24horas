@@ -57,7 +57,7 @@ const faqs = [
 
 // ─── PILL HEADER ───
 const Pill = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-primary text-[11px] font-medium uppercase tracking-[0.18em]">
+  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-semibold uppercase tracking-[0.16em]">
     {children}
   </span>
 );
@@ -68,16 +68,16 @@ const SaaSLanding = () => {
   const scrollToPricing = () => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 overflow-x-hidden font-body">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 overflow-x-hidden font-body antialiased">
 
-      {/* TOP NAV */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/75 border-b border-border/60">
+      {/* TOP NAV — surface translúcida coerente com o Dashboard */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
         <div className="container max-w-6xl px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl premium-gradient flex items-center justify-center">
-              <Flower2 className="h-4 w-4 text-primary-foreground" />
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-card">
+              <HeartPulse className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
             </div>
-            <span className="font-display text-lg font-semibold tracking-tight">AgendeOnline</span>
+            <span className="text-base font-semibold tracking-tight text-foreground">AgendeOnline</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground font-medium">
             <a href="#beneficios" className="hover:text-foreground transition-colors">Benefícios</a>
@@ -87,7 +87,7 @@ const SaaSLanding = () => {
           </nav>
           <Button
             onClick={() => navigate("/login")}
-            className="h-10 px-5 rounded-full bg-foreground text-background hover:bg-foreground/90 text-sm font-medium"
+            className="h-10 px-5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 text-sm font-semibold"
           >
             Entrar
           </Button>
