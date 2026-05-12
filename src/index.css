@@ -240,6 +240,53 @@
     box-shadow: var(--shadow-glow-primary);
     @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98];
   }
+
+  /* ─── SYS-* COMPONENT PRIMITIVES (Lightning / Amplimed) ─── */
+  .sys-surface {
+    @apply rounded-xl border;
+    background-color: hsl(var(--sys-surface));
+    border-color: hsl(var(--sys-border));
+    box-shadow: var(--shadow-elev-1);
+  }
+  .sys-surface-flat {
+    @apply rounded-xl border;
+    background-color: hsl(var(--sys-surface));
+    border-color: hsl(var(--sys-border));
+  }
+  .sys-divider { border-color: hsl(var(--sys-border)); }
+
+  /* Buttons */
+  .sys-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-opacity;
+    background-color: hsl(var(--sys-brand-primary));
+    color: hsl(var(--sys-brand-on-primary));
+  }
+  .sys-btn-primary:hover { opacity: 0.9; }
+  .sys-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border bg-transparent transition-colors;
+    color: hsl(var(--sys-text-primary));
+    border-color: hsl(var(--sys-border));
+  }
+  .sys-btn-secondary:hover { background-color: hsl(var(--sys-brand-primary) / 0.06); }
+  .sys-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
+    color: hsl(var(--sys-text-muted));
+  }
+  .sys-btn-ghost:hover { color: hsl(var(--sys-text-primary)); background-color: hsl(var(--sys-bg-base)); }
+
+  /* Status pills (sys) */
+  .sys-pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .sys-pill-success { @apply sys-pill; background-color: hsl(var(--sys-status-success) / 0.12); color: hsl(var(--sys-status-success)); }
+  .sys-pill-warning { @apply sys-pill; background-color: hsl(var(--sys-status-warning) / 0.14); color: hsl(var(--sys-status-warning)); }
+  .sys-pill-danger  { @apply sys-pill; background-color: hsl(var(--sys-status-danger)  / 0.12); color: hsl(var(--sys-status-danger)); }
+  .sys-pill-info    { @apply sys-pill; background-color: hsl(var(--sys-status-info)    / 0.12); color: hsl(var(--sys-status-info)); }
+  .sys-pill-neutral { @apply sys-pill; background-color: hsl(var(--sys-text-muted)     / 0.12); color: hsl(var(--sys-text-muted)); }
+
+  /* Typography */
+  .sys-h1 { @apply text-2xl font-semibold tracking-tight; color: hsl(var(--sys-text-primary)); }
+  .sys-h2 { @apply text-lg font-semibold; color: hsl(var(--sys-text-primary)); }
+  .sys-label { @apply text-xs font-medium uppercase tracking-wide; color: hsl(var(--sys-text-muted)); }
+  .sys-muted { color: hsl(var(--sys-text-muted)); }
 }
 
 @layer utilities {
