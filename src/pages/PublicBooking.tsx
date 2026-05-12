@@ -276,13 +276,24 @@ const PublicBooking = () => {
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("barbershops")
-        .select("id, name, slug, address, logo_url, phone, settings")
+      const { data, error } = await (supabase as any)
+        .from("barbershops_public")
+        .select("id, name, slug, address, logo_url, phone, infinitepay_tag, pix_static_qr_url, pix_beneficiary, confirmation_message_template")
         .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      // Normalize to keep .settings.* access patterns working downstream
+      return data
+        ? {
+            ...data,
+            settings: {
+              infinitepay_tag: data.infinitepay_tag,
+              pix_static_qr_url: data.pix_static_qr_url,
+              pix_beneficiary: data.pix_beneficiary,
+              confirmation_message_template: data.confirmation_message_template,
+            },
+          }
+        : null;
     },
     enabled: !!slug,
     staleTime: 0,
