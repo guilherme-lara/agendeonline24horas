@@ -99,6 +99,28 @@
     --shadow-elev-2: 0 4px 14px -2px hsl(215 28% 17% / 0.08), 0 2px 6px -2px hsl(215 28% 17% / 0.04);
     --shadow-elev-3: 0 18px 40px -12px hsl(215 28% 17% / 0.18), 0 6px 14px -6px hsl(215 28% 17% / 0.08);
     --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 60% / 0.45);
+
+    /* ─── SYS-* SEMANTIC TOKENS (Salesforce Lightning / Amplimed style) ─── */
+    /* Foundation */
+    --sys-bg-base: 210 40% 98%;          /* slate-50 */
+    --sys-surface: 0 0% 100%;            /* white */
+    --sys-surface-raised: 210 40% 99%;   /* near-white */
+    --sys-border: 214 32% 91%;           /* slate-200 */
+    --sys-border-strong: 215 20% 80%;    /* slate-300 */
+    --sys-text-primary: 222 47% 11%;     /* slate-900 */
+    --sys-text-muted: 215 16% 47%;       /* slate-500 */
+    --sys-text-subtle: 215 20% 65%;      /* slate-400 */
+    /* Brand & Status */
+    --sys-brand-primary: 199 89% 38%;    /* sky/teal-medical (sky-700) */
+    --sys-brand-primary-hover: 199 89% 32%;
+    --sys-brand-primary-soft: 199 89% 95%;
+    --sys-brand-on-primary: 0 0% 100%;
+    --sys-status-success: 160 84% 39%;   /* emerald-500 */
+    --sys-status-warning: 38 92% 50%;    /* amber-500 */
+    --sys-status-danger: 350 89% 60%;    /* rose-500 */
+    --sys-status-info: 217 91% 60%;      /* blue-500 */
+    /* Focus */
+    --sys-focus-ring: 199 89% 48%;
   }
 
   .dark .dashboard-theme,
