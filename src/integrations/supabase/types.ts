@@ -1246,27 +1246,53 @@ export type Database = {
     Views: {
       appointments_public: {
         Row: {
+          barber_id: string | null
+          barber_name: string | null
           barbershop_id: string | null
+          created_at: string | null
+          expires_at: string | null
           id: string | null
           scheduled_at: string | null
           service_name: string | null
           status: string | null
         }
         Insert: {
+          barber_id?: string | null
+          barber_name?: string | null
           barbershop_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
           id?: string | null
           scheduled_at?: string | null
           service_name?: string | null
           status?: string | null
         }
         Update: {
+          barber_id?: string | null
+          barber_name?: string | null
           barbershop_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
           id?: string | null
           scheduled_at?: string | null
           service_name?: string | null
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_barbershop_id_fkey"
             columns: ["barbershop_id"]
@@ -1325,20 +1351,38 @@ export type Database = {
       barbershops_public: {
         Row: {
           address: string | null
+          confirmation_message_template: string | null
           id: string | null
+          infinitepay_tag: string | null
+          logo_url: string | null
           name: string | null
+          phone: string | null
+          pix_beneficiary: string | null
+          pix_static_qr_url: string | null
           slug: string | null
         }
         Insert: {
           address?: string | null
+          confirmation_message_template?: never
           id?: string | null
+          infinitepay_tag?: never
+          logo_url?: string | null
           name?: string | null
+          phone?: string | null
+          pix_beneficiary?: never
+          pix_static_qr_url?: never
           slug?: string | null
         }
         Update: {
           address?: string | null
+          confirmation_message_template?: never
           id?: string | null
+          infinitepay_tag?: never
+          logo_url?: string | null
           name?: string | null
+          phone?: string | null
+          pix_beneficiary?: never
+          pix_static_qr_url?: never
           slug?: string | null
         }
         Relationships: []
@@ -1398,6 +1442,10 @@ export type Database = {
             }
             Returns: string
           }
+      find_or_create_public_customer: {
+        Args: { _barbershop_id: string; _name: string; _phone: string }
+        Returns: string
+      }
       get_customers_with_stats: {
         Args: { _barbershop_id: string }
         Returns: {
