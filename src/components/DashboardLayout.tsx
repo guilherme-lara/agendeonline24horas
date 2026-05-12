@@ -99,7 +99,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="dashboard-theme flex min-h-screen w-full bg-background bg-mesh selection:bg-primary/20">
+    <div className="dashboard-theme flex min-h-screen w-full bg-sys-bg-base bg-mesh text-sys-text-primary selection:bg-sys-brand-primary/20">
       <DashboardSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -107,21 +107,22 @@ const DashboardLayout = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Glass topbar (mobile) */}
-        <div className="md:hidden flex items-center gap-3 px-5 py-3.5 sticky top-0 z-30 glass border-b border-border/60">
+        {/* Topbar (mobile) — surface + sys tokens */}
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 sticky top-0 z-30 bg-sys-surface/85 backdrop-blur-xl border-b border-sys-border">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="rounded-lg p-2 text-sys-text-muted hover:text-sys-text-primary hover:bg-sys-bg-base transition-colors"
+            aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-base font-semibold tracking-tight text-foreground font-display truncate">
+          <span className="text-base font-semibold tracking-tight text-sys-text-primary truncate">
             {(clinic as any)?.name || "Painel"}
           </span>
         </div>
 
-        <main className="flex-1 p-6 md:p-8 pb-20 md:pb-8">
-          <TrialBanner /> {/* Ponto 2: Renderizando o banner de trial */}
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-8 space-y-4">
+          <TrialBanner />
           <InstallAppBanner />
           <ExpirationBanner />
           <Outlet />
