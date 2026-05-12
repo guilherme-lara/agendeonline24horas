@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
     if (shopErr || !shop) {
       console.error("❌ Barbearia não encontrada:", shopErr);
       return new Response(
-        JSON.stringify({ error: "Barbearia não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Não foi possível processar o pagamento." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -52,8 +52,8 @@ Deno.serve(async (req) => {
     if (apptErr || !appt) {
       console.error("❌ Agendamento não encontrado:", apptErr);
       return new Response(
-        JSON.stringify({ error: "Agendamento não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Não foi possível processar o pagamento." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -197,8 +197,6 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: errorMsg,
-          details: infinitePayData,
-          http_status: infinitePayRes.status,
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -233,7 +231,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("💥 Unhandled error in create-pix-charge:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ error: "Não foi possível processar o pagamento. Tente novamente." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
