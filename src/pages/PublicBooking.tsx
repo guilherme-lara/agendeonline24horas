@@ -545,32 +545,17 @@ const PublicBooking = () => {
         throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
       }
 
-      // 1. Find or create customer
-      const { data: existingCustomer, error: findError } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('barbershop_id', shop!.id)
-        .eq('phone', phoneDigits)
-        .maybeSingle();
-
-      if (findError) throw new Error(`Erro ao buscar cliente: ${findError.message}`);
-
-      let customerId: string;
-      if (existingCustomer) {
-        await supabase
-          .from('customers')
-          .update({ name: clientData.name.trim(), last_seen: new Date().toISOString() })
-          .eq('id', existingCustomer.id);
-        customerId = existingCustomer.id;
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('customers')
-          .insert({ barbershop_id: shop!.id, phone: phoneDigits, name: clientData.name.trim(), last_seen: new Date().toISOString() })
-          .select('id')
-          .single();
-        if (insertError) throw new Error(`Erro ao criar cliente: ${insertError.message}`);
-        customerId = inserted.id;
-      }
+      // 1. Find or create customer via secure RPC
+      const { data: customerIdData, error: custErr } = await (supabase as any).rpc(
+        'find_or_create_public_customer',
+        {
+          _barbershop_id: shop!.id,
+          _phone: phoneDigits,
+          _name: clientData.name.trim(),
+        }
+      );
+      if (custErr) throw new Error(`Erro ao registrar cliente: ${custErr.message}`);
+      const customerId: string = customerIdData as string;
 
       // 2. Criação do Agendamento via RPC com múltiplos itens
       const scheduledAt = new Date(selectedDate!);
