@@ -137,8 +137,8 @@ const PublicBooking = () => {
       if (!apptId) { setApptStatus("confirmed"); return; }
 
       try {
-        const { data, error } = await supabase
-          .from("appointments")
+        const { data, error } = await (supabase as any)
+          .from("appointments_public")
           .select("status, expires_at")
           .eq("id", apptId)
           .maybeSingle();
@@ -213,8 +213,8 @@ const PublicBooking = () => {
 
     const checkBooking = async () => {
       if (Date.now() > paymentExpiresAt) {
-        const { data } = await supabase
-          .from("appointments")
+        const { data } = await (supabase as any)
+          .from("appointments_public")
           .select("status")
           .eq("id", pendingApptId)
           .maybeSingle();
@@ -276,13 +276,24 @@ const PublicBooking = () => {
   const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
     queryKey: ["public-shop", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("barbershops")
-        .select("id, name, slug, address, logo_url, phone, settings")
+      const { data, error } = await (supabase as any)
+        .from("barbershops_public")
+        .select("id, name, slug, address, logo_url, phone, infinitepay_tag, pix_static_qr_url, pix_beneficiary, confirmation_message_template")
         .eq("slug", slug!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      // Normalize to keep .settings.* access patterns working downstream
+      return data
+        ? {
+            ...data,
+            settings: {
+              infinitepay_tag: data.infinitepay_tag,
+              pix_static_qr_url: data.pix_static_qr_url,
+              pix_beneficiary: data.pix_beneficiary,
+              confirmation_message_template: data.confirmation_message_template,
+            },
+          }
+        : null;
     },
     enabled: !!slug,
     staleTime: 0,
@@ -354,16 +365,16 @@ const PublicBooking = () => {
     const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
     const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
 
-    let result: any = await supabase
-      .from("appointments")
+    let result: any = await (supabase as any)
+      .from("appointments_public")
       .select(selectWithExpiry)
       .eq("barbershop_id", shop.id)
       .gte("scheduled_at", dayStart)
       .lte("scheduled_at", dayEnd);
 
     if (result.error && result.error.message?.toLowerCase().includes("expires_at")) {
-      result = await supabase
-        .from("appointments")
+      result = await (supabase as any)
+        .from("appointments_public")
         .select(selectFallback)
         .eq("barbershop_id", shop.id)
         .gte("scheduled_at", dayStart)
@@ -534,32 +545,17 @@ const PublicBooking = () => {
         throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
       }
 
-      // 1. Find or create customer
-      const { data: existingCustomer, error: findError } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('barbershop_id', shop!.id)
-        .eq('phone', phoneDigits)
-        .maybeSingle();
-
-      if (findError) throw new Error(`Erro ao buscar cliente: ${findError.message}`);
-
-      let customerId: string;
-      if (existingCustomer) {
-        await supabase
-          .from('customers')
-          .update({ name: clientData.name.trim(), last_seen: new Date().toISOString() })
-          .eq('id', existingCustomer.id);
-        customerId = existingCustomer.id;
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('customers')
-          .insert({ barbershop_id: shop!.id, phone: phoneDigits, name: clientData.name.trim(), last_seen: new Date().toISOString() })
-          .select('id')
-          .single();
-        if (insertError) throw new Error(`Erro ao criar cliente: ${insertError.message}`);
-        customerId = inserted.id;
-      }
+      // 1. Find or create customer via secure RPC
+      const { data: customerIdData, error: custErr } = await (supabase as any).rpc(
+        'find_or_create_public_customer',
+        {
+          _barbershop_id: shop!.id,
+          _phone: phoneDigits,
+          _name: clientData.name.trim(),
+        }
+      );
+      if (custErr) throw new Error(`Erro ao registrar cliente: ${custErr.message}`);
+      const customerId: string = customerIdData as string;
 
       // 2. Criação do Agendamento via RPC com múltiplos itens
       const scheduledAt = new Date(selectedDate!);
