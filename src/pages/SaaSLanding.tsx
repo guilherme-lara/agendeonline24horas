@@ -151,10 +151,10 @@ const SaaSLanding = () => {
       {/* PAIN POINTS */}
       <section id="beneficios" className="py-24 lg:py-32">
         <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Por que AgendeOnline</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8 mb-5">
-              Resolvemos o que <span className="italic text-primary font-normal">custa o seu tempo</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
+              Resolvemos o que <span className="text-primary">custa o seu tempo</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               Cada recurso pensado para um problema real do seu dia a dia.
@@ -165,15 +165,15 @@ const SaaSLanding = () => {
             {painPoints.map((p) => (
               <div
                 key={p.title}
-                className="group rounded-3xl border border-border bg-card p-8 lg:p-10 hover:shadow-card hover:border-primary/30 transition-all duration-500"
+                className="group rounded-2xl border border-border bg-card p-8 shadow-sm hover:border-primary/40 hover:shadow-card transition-all duration-300"
               >
                 <div className="flex items-start gap-5">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
-                    <p.icon className="h-5 w-5 text-primary" strokeWidth={1.6} />
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+                    <p.icon className="h-5 w-5 text-primary" strokeWidth={1.8} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary mb-2">{p.subtitle}</p>
-                    <h3 className="font-display text-xl lg:text-2xl font-medium tracking-tight mb-3">{p.title}</h3>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary mb-2">{p.subtitle}</p>
+                    <h3 className="text-xl font-semibold tracking-tight mb-2 text-foreground">{p.title}</h3>
                     <p className="text-muted-foreground leading-relaxed text-[15px]">{p.desc}</p>
                   </div>
                 </div>
@@ -184,12 +184,12 @@ const SaaSLanding = () => {
       </section>
 
       {/* NICHES */}
-      <section id="para-quem" className="py-24 lg:py-32 bg-secondary/40">
+      <section id="para-quem" className="py-24 lg:py-32 bg-muted/40">
         <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Para quem é</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8 mb-5">
-              Uma plataforma, <span className="italic text-primary font-normal">muitos mercados</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
+              Uma plataforma, <span className="text-primary">muitos mercados</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               Desenhado para a realidade de negócios de beleza e bem-estar de alto padrão.
@@ -200,12 +200,12 @@ const SaaSLanding = () => {
             {niches.map((n) => (
               <div
                 key={n.title}
-                className="group rounded-3xl bg-card border border-border p-8 hover:border-primary/30 hover:shadow-card transition-all duration-500"
+                className="group rounded-2xl bg-card border border-border p-7 shadow-sm hover:border-primary/40 hover:shadow-card transition-all duration-300"
               >
-                <div className="h-12 w-12 rounded-2xl bg-primary/8 flex items-center justify-center mb-6 group-hover:bg-primary/15 transition-colors">
-                  <n.icon className="h-5 w-5 text-primary" strokeWidth={1.6} />
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/15 transition-colors">
+                  <n.icon className="h-5 w-5 text-primary" strokeWidth={1.8} />
                 </div>
-                <h3 className="font-display text-lg font-medium mb-3 tracking-tight">{n.title}</h3>
+                <h3 className="text-base font-semibold mb-2 tracking-tight text-foreground">{n.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{n.desc}</p>
               </div>
             ))}
@@ -216,10 +216,10 @@ const SaaSLanding = () => {
       {/* FEATURES */}
       <section className="py-24 lg:py-32">
         <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Funcionalidades</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8 mb-5">
-              Tudo o que você precisa <span className="italic text-primary font-normal">para crescer</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
+              Tudo o que você precisa <span className="text-primary">para crescer</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               Recursos que trabalham sozinhos. Foque no atendimento, a plataforma cuida do resto.
@@ -230,12 +230,12 @@ const SaaSLanding = () => {
             {featureBenefits.map((f) => (
               <div
                 key={f.title}
-                className="rounded-3xl border border-border bg-card p-8 hover:border-primary/30 hover:shadow-card transition-all duration-500"
+                className="rounded-2xl border border-border bg-card p-7 shadow-sm hover:border-primary/40 hover:shadow-card transition-all duration-300"
               >
-                <div className="h-12 w-12 rounded-2xl premium-gradient flex items-center justify-center mb-6 shadow-premium">
-                  <f.icon className="h-5 w-5 text-primary-foreground" strokeWidth={1.8} />
+                <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center mb-5 shadow-card">
+                  <f.icon className="h-5 w-5 text-primary-foreground" strokeWidth={1.9} />
                 </div>
-                <h3 className="font-display text-lg font-medium mb-3 tracking-tight">{f.title}</h3>
+                <h3 className="text-base font-semibold mb-2 tracking-tight text-foreground">{f.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
@@ -244,12 +244,12 @@ const SaaSLanding = () => {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="py-24 lg:py-32 bg-secondary/40">
+      <section id="pricing" className="py-24 lg:py-32 bg-muted/40">
         <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Investimento</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8 mb-5">
-              Custa menos que <span className="italic text-primary font-normal">um cancelamento</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
+              Custa menos que <span className="text-primary">um cancelamento</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               30 dias grátis. Sem fidelidade. Sem taxa de cancelamento. Sem surpresas.
@@ -260,44 +260,44 @@ const SaaSLanding = () => {
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative rounded-3xl p-8 lg:p-10 transition-all duration-500 flex flex-col ${
+                className={`relative rounded-2xl p-8 transition-all duration-300 flex flex-col ${
                   plan.popular
-                    ? "bg-foreground text-background shadow-2xl scale-[1.02] border-0"
-                    : "bg-card border border-border hover:border-primary/30 hover:shadow-card"
+                    ? "bg-card border-2 border-primary shadow-card ring-1 ring-primary/20"
+                    : "bg-card border border-border shadow-sm hover:border-primary/40 hover:shadow-card"
                 }`}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground border-0 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] rounded-full">
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground border-0 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] rounded-full">
                     Mais escolhido
                   </Badge>
                 )}
 
                 <div className="mb-8">
-                  <h3 className="font-display text-2xl font-medium tracking-tight">{plan.name}</h3>
-                  <p className={`text-sm mt-2 leading-snug ${plan.popular ? "text-background/60" : "text-muted-foreground"}`}>{plan.desc}</p>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">{plan.name}</h3>
+                  <p className="text-sm mt-2 leading-snug text-muted-foreground">{plan.desc}</p>
 
-                  <div className="mt-8 flex items-baseline gap-1">
-                    <span className={`text-sm font-medium ${plan.popular ? "text-background/60" : "text-muted-foreground"}`}>R$</span>
-                    <span className="font-display text-6xl font-medium tracking-tighter">{plan.price}</span>
-                    <span className="text-2xl font-medium">{plan.cents}</span>
-                    <span className={`text-xs ml-1 ${plan.popular ? "text-background/60" : "text-muted-foreground"}`}>{plan.period}</span>
+                  <div className="mt-6 flex items-baseline gap-1">
+                    <span className="text-sm font-medium text-muted-foreground">R$</span>
+                    <span className="text-5xl font-semibold tracking-tight text-foreground">{plan.price}</span>
+                    <span className="text-2xl font-semibold text-foreground">{plan.cents}</span>
+                    <span className="text-xs ml-1 text-muted-foreground">{plan.period}</span>
                   </div>
                 </div>
 
-                <ul className="space-y-3.5 mb-10 flex-1">
+                <ul className="space-y-3 mb-8 flex-1">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-3 text-sm">
-                      <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${plan.popular ? "bg-primary/20" : "bg-primary/10"}`}>
-                        <Check className={`h-3 w-3 ${plan.popular ? "text-primary" : "text-primary"}`} strokeWidth={3} />
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-3 w-3 text-primary" strokeWidth={3} />
                       </div>
-                      <span className={plan.popular ? "text-background/85" : "text-muted-foreground"}>{f}</span>
+                      <span className="text-muted-foreground">{f}</span>
                     </li>
                   ))}
                 </ul>
 
                 <Button
                   onClick={() => openPlanCheckout(plan.name.toLowerCase())}
-                  className={`w-full h-12 rounded-full font-medium transition-all ${
+                  className={`w-full h-11 rounded-lg font-semibold transition-opacity ${
                     plan.popular
                       ? "bg-primary text-primary-foreground hover:opacity-90"
                       : "bg-foreground text-background hover:opacity-90"
@@ -314,28 +314,28 @@ const SaaSLanding = () => {
       {/* TESTIMONIALS */}
       <section className="py-24 lg:py-32">
         <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Histórias reais</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8 mb-5">
-              Quem usa, <span className="italic text-primary font-normal">cresce</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
+              Quem usa, <span className="text-primary">cresce</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div key={t.name} className="rounded-3xl bg-card border border-border p-8 lg:p-10 flex flex-col hover:shadow-card transition-all duration-500">
-                <div className="flex gap-0.5 mb-6">
+              <div key={t.name} className="rounded-2xl bg-card border border-border p-8 shadow-sm flex flex-col hover:shadow-card transition-shadow duration-300">
+                <div className="flex gap-0.5 mb-5">
                   {Array.from({ length: t.rating }).map((_, j) => (
                     <Star key={j} className="h-3.5 w-3.5 fill-primary text-primary" />
                   ))}
                 </div>
-                <p className="text-foreground/85 mb-8 text-[15px] leading-relaxed flex-1">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-6 border-t border-border">
-                  <div className="h-10 w-10 rounded-full premium-gradient flex items-center justify-center font-medium text-primary-foreground text-sm">
+                <p className="text-foreground/85 mb-6 text-[15px] leading-relaxed flex-1">"{t.text}"</p>
+                <div className="flex items-center gap-3 pt-5 border-t border-border">
+                  <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center font-semibold text-primary-foreground text-sm">
                     {t.name[0]}
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{t.name}</p>
+                    <p className="font-semibold text-sm text-foreground">{t.name}</p>
                     <p className="text-xs text-muted-foreground">{t.shop}</p>
                   </div>
                 </div>
@@ -346,19 +346,19 @@ const SaaSLanding = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 lg:py-32 bg-secondary/40">
+      <section id="faq" className="py-24 lg:py-32 bg-muted/40">
         <div className="container px-6 max-w-3xl">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <Pill>Perguntas frequentes</Pill>
-            <h2 className="font-display text-4xl sm:text-5xl font-medium tracking-tight mt-8">
-              Dúvidas <span className="italic text-primary font-normal">comuns</span>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 text-foreground">
+              Dúvidas <span className="text-primary">comuns</span>
             </h2>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {faqs.map((f) => (
-              <details key={f.q} className="group rounded-2xl bg-card border border-border p-6 lg:p-7 cursor-pointer transition-all hover:border-primary/30">
-                <summary className="flex items-center justify-between font-display text-lg font-medium tracking-tight list-none">
+              <details key={f.q} className="group rounded-xl bg-card border border-border p-6 shadow-sm cursor-pointer transition-all hover:border-primary/40">
+                <summary className="flex items-center justify-between text-base font-semibold tracking-tight text-foreground list-none">
                   {f.q}
                   <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-90" />
                 </summary>
@@ -372,24 +372,24 @@ const SaaSLanding = () => {
       {/* CTA */}
       <section className="py-24 lg:py-32">
         <div className="container px-6 max-w-5xl">
-          <div className="relative rounded-[2rem] overflow-hidden bg-foreground text-background p-12 sm:p-16 lg:p-24 text-center">
+          <div className="relative rounded-2xl overflow-hidden bg-primary text-primary-foreground p-12 sm:p-16 lg:p-20 text-center shadow-card">
             <div className="absolute inset-0 -z-0 opacity-30">
-              <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-primary/40 blur-[100px]" />
-              <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/40 blur-[100px]" />
+              <div className="absolute top-0 left-1/4 w-[400px] h-[400px] rounded-full bg-white/20 blur-[100px]" />
+              <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-white/10 blur-[100px]" />
             </div>
 
             <div className="relative z-10">
-              <Sparkles className="h-10 w-10 text-primary mx-auto mb-8" strokeWidth={1.5} />
-              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-medium mb-6 tracking-tight leading-tight">
+              <Sparkles className="h-9 w-9 text-primary-foreground mx-auto mb-6" strokeWidth={1.6} />
+              <h2 className="text-4xl sm:text-5xl font-semibold mb-5 tracking-tight leading-tight">
                 Pronto para modernizar<br />o seu atendimento?
               </h2>
-              <p className="text-base sm:text-lg text-background/70 mb-12 max-w-lg mx-auto leading-relaxed">
+              <p className="text-base sm:text-lg text-primary-foreground/85 mb-10 max-w-lg mx-auto leading-relaxed">
                 30 dias grátis. Configure em minutos e veja seus clientes agendando sozinhos ainda esta semana.
               </p>
               <Button
                 size="lg"
                 onClick={() => navigate("/login")}
-                className="bg-primary text-primary-foreground hover:opacity-90 h-14 px-10 rounded-full text-base font-medium transition-all active:scale-95 group"
+                className="bg-background text-foreground hover:opacity-90 h-12 px-8 rounded-lg text-base font-semibold transition-all active:scale-[0.98] group"
               >
                 Criar minha conta grátis
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -400,13 +400,13 @@ const SaaSLanding = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-border py-14">
+      <footer className="border-t border-border py-12 bg-card">
         <div className="container px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg premium-gradient flex items-center justify-center">
-              <Flower2 className="h-3.5 w-3.5 text-primary-foreground" />
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <HeartPulse className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
             </div>
-            <span className="font-display font-medium text-sm tracking-tight">AgendeOnline24Horas</span>
+            <span className="font-semibold text-sm tracking-tight text-foreground">AgendeOnline24Horas</span>
           </div>
           <p className="text-xs text-muted-foreground text-center">
             Plataforma de gestão para negócios de beleza & bem-estar · © {new Date().getFullYear()}
