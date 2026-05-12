@@ -161,6 +161,25 @@
     --shadow-elev-2: 0 4px 14px -2px hsl(0 0% 0% / 0.45);
     --shadow-elev-3: 0 22px 50px -12px hsl(0 0% 0% / 0.6);
     --shadow-glow-primary: 0 10px 30px -10px hsl(239 84% 67% / 0.55);
+
+    /* ─── SYS-* SEMANTIC TOKENS — DARK ─── */
+    --sys-bg-base: 222 47% 7%;             /* slate-900-ish */
+    --sys-surface: 222 47% 11%;            /* slate-800 */
+    --sys-surface-raised: 217 33% 14%;
+    --sys-border: 215 28% 18%;             /* slate-700 */
+    --sys-border-strong: 215 20% 28%;
+    --sys-text-primary: 210 40% 98%;       /* slate-100 */
+    --sys-text-muted: 215 20% 65%;         /* slate-400 */
+    --sys-text-subtle: 215 16% 47%;        /* slate-500 */
+    --sys-brand-primary: 199 89% 55%;      /* sky-400/500 — luminoso no escuro */
+    --sys-brand-primary-hover: 199 89% 62%;
+    --sys-brand-primary-soft: 199 60% 18%;
+    --sys-brand-on-primary: 222 47% 7%;
+    --sys-status-success: 160 70% 45%;
+    --sys-status-warning: 38 92% 55%;
+    --sys-status-danger: 350 89% 65%;
+    --sys-status-info: 217 91% 65%;
+    --sys-focus-ring: 199 89% 60%;
   }
 }
 
