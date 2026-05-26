@@ -29,13 +29,13 @@ interface CalendarViewProps {
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
 
-const statusConfig: Record<string, { bg: string; border: string; text: string }> = {
-  confirmed: { bg: "bg-primary/15", border: "border-primary/40", text: "text-primary" },
-  pending: { bg: "bg-muted", border: "border-muted-foreground/30", text: "text-muted-foreground" },
-  completed: { bg: "bg-green-500/15", border: "border-green-500/40", text: "text-green-400" },
-  cancelled: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive" },
-  pending_payment: { bg: "bg-amber-500/15", border: "border-amber-500/40", text: "text-amber-400" },
-  pendente_pagamento: { bg: "bg-amber-500/15", border: "border-amber-500/40", text: "text-amber-400" },
+const statusConfig: Record<string, { bg: string; bar: string; text: string }> = {
+  confirmed:          { bg: "bg-sys-status-info/10",    bar: "border-l-sys-status-info",    text: "text-sys-text-primary" },
+  pending:            { bg: "bg-sys-bg-base",           bar: "border-l-sys-text-muted",     text: "text-sys-text-primary" },
+  completed:          { bg: "bg-sys-status-success/10", bar: "border-l-sys-status-success", text: "text-sys-text-primary" },
+  cancelled:          { bg: "bg-sys-status-danger/10",  bar: "border-l-sys-status-danger",  text: "text-sys-text-muted" },
+  pending_payment:    { bg: "bg-sys-status-warning/10", bar: "border-l-sys-status-warning", text: "text-sys-text-primary" },
+  pendente_pagamento: { bg: "bg-sys-status-warning/10", bar: "border-l-sys-status-warning", text: "text-sys-text-primary" },
 };
 
 const LONG_PRESS_DELAY = 400; // ms
