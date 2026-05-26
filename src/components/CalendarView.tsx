@@ -197,14 +197,14 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
 
   return (
     <div 
-      className="rounded-[2rem] border border-border bg-card overflow-hidden shadow-2xl relative"
+      className="rounded-2xl border border-sys-border bg-sys-surface overflow-hidden shadow-sm relative"
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Touch drag floating indicator */}
       {touchDragActive && touchDragPos && draggingApptId && (
-        <div 
-          className="fixed z-50 pointer-events-none bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-bold shadow-xl"
+        <div
+          className="fixed z-50 pointer-events-none bg-sys-brand-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg"
           style={{ left: touchDragPos.x - 40, top: touchDragPos.y - 30 }}
         >
           Solte para remarcar
@@ -212,58 +212,58 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
       )}
 
       {/* Week navigation */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
-        <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, -7))} className="hover:bg-primary/20 hover:text-primary rounded-xl">
-          <ChevronLeft className="h-5 w-5" />
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-sys-border bg-sys-bg-base">
+        <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, -7))} className="h-8 w-8 p-0 hover:bg-sys-brand-primary/10 hover:text-sys-brand-primary rounded-lg">
+          <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="font-display text-sm font-black tracking-widest uppercase text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-wide text-sys-text-muted">
           {format(days[0], "dd MMM", { locale: ptBR })} — {format(days[6], "dd MMM yyyy", { locale: ptBR })}
         </span>
-        <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, 7))} className="hover:bg-primary/20 hover:text-primary rounded-xl">
-          <ChevronRight className="h-5 w-5" />
+        <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, 7))} className="h-8 w-8 p-0 hover:bg-sys-brand-primary/10 hover:text-sys-brand-primary rounded-lg">
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="overflow-x-auto">
         <div className="min-w-[800px]">
           {/* Day headers */}
-          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border bg-card">
+          <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-sys-border bg-sys-surface sticky top-0 z-10">
             <div className="p-2" />
-            {days.map((day) => (
-              <div
-                key={day.toISOString()}
-                className={`p-3 text-center border-l border-border ${isSameDay(day, new Date()) ? "bg-primary/5" : ""}`}
-              >
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{format(day, "EEE", { locale: ptBR })}</p>
-                <p className={`text-lg font-black mt-1 ${isSameDay(day, new Date()) ? "text-primary" : "text-foreground"}`}>
-                  {format(day, "dd")}
-                </p>
-              </div>
-            ))}
+            {days.map((day) => {
+              const isToday = isSameDay(day, new Date());
+              return (
+                <div key={day.toISOString()} className={`p-2 text-center border-l border-sys-border ${isToday ? "bg-sys-brand-primary/5" : ""}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-sys-text-muted">{format(day, "EEE", { locale: ptBR })}</p>
+                  <p className={`text-base font-bold mt-0.5 ${isToday ? "text-sys-brand-primary" : "text-sys-text-primary"}`}>
+                    {format(day, "dd")}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           {/* Time grid */}
           <div className="relative">
             {HOURS.map((hour) => (
-              <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/50 min-h-[60px] group">
-                <div className="p-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right pr-3 pt-2">
+              <div key={hour} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-sys-border/60 min-h-[56px] group">
+                <div className="p-1.5 text-[10px] font-semibold tabular-nums text-sys-text-muted text-right pr-2 pt-1.5">
                   {String(hour).padStart(2, "0")}:00
                 </div>
-                
+
                 {days.map((day, dayIdx) => {
                   const dayAppts = getAppointmentsForDay(day).filter((a) => new Date(a.scheduled_at).getHours() === hour);
                   const cellKey = `${dayIdx}-${hour}`;
                   const isHighlighted = touchHighlight === cellKey;
-                  
+
                   return (
-                    <div 
-                      key={day.toISOString()} 
+                    <div
+                      key={day.toISOString()}
                       data-cell-key={cellKey}
                       data-day-idx={dayIdx}
                       data-hour={hour}
-                      className={`border-l border-border/50 p-1 relative transition-colors hover:bg-primary/5 
-                        ${isHighlighted ? 'bg-primary/20' : ''}
-                        data-[is-dragover=true]:bg-primary/20`}
+                      className={`border-l border-sys-border/60 p-1 relative transition-colors hover:bg-sys-brand-primary/5
+                        ${isHighlighted ? 'bg-sys-brand-primary/15' : ''}
+                        data-[is-dragover=true]:bg-sys-brand-primary/15`}
                       onDragOver={handleDragOver}
                       onDragEnter={(e) => e.currentTarget.setAttribute('data-is-dragover', 'true')}
                       onDragLeave={(e) => e.currentTarget.removeAttribute('data-is-dragover')}
@@ -275,7 +275,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                       {dayAppts.map((a) => {
                         const cfg = statusConfig[a.status] || statusConfig.pending;
                         const isDraggingThis = draggingApptId === a.id;
-                        
+
                         return (
                           <div
                             key={a.id}
@@ -284,26 +284,30 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                             onDragEnd={() => setDraggingApptId(null)}
                             onTouchStart={(e) => handleTouchStart(e, a.id)}
                             onClick={() => !touchDragActive && onEventClick && onEventClick(a)}
-                            className={`rounded-lg px-2 py-1.5 mb-1 border shadow-sm transition-all
-                              ${cfg.bg} ${cfg.border} ${cfg.text} 
+                            className={`rounded-md px-2 py-1.5 mb-1 border border-sys-border border-l-4 shadow-sm transition-all
+                              ${cfg.bg} ${cfg.bar} ${cfg.text}
                               cursor-grab active:cursor-grabbing
-                              hover:brightness-110 hover:scale-[1.02]
+                              hover:shadow-md hover:-translate-y-0.5
                               ${isDraggingThis ? "opacity-30 scale-95 border-dashed" : "opacity-100"}
                               ${isMobile ? 'select-none' : ''}
                             `}
                             title={`${a.client_name} - ${a.service_name}`}
                           >
-                            <div className="flex items-center justify-between gap-1 mb-0.5 pointer-events-none">
-                              <span className="font-black text-[9px] tracking-widest uppercase bg-background/50 px-1 rounded-sm">
+                            <div className="flex items-center justify-between gap-1 pointer-events-none">
+                              <span className="font-bold text-[10px] tabular-nums text-sys-text-muted">
                                 {format(new Date(a.scheduled_at), "HH:mm")}
                               </span>
+                              {a.has_signal && <DollarSign className="h-3 w-3 text-sys-status-warning" />}
                             </div>
-                            <p className="font-bold text-xs truncate leading-tight pointer-events-none">{a.client_name}</p>
-                            <p className="text-[9px] font-medium truncate opacity-80 pointer-events-none">{a.service_name}</p>
-                            <div className="flex flex-wrap items-center gap-1 mt-1 pointer-events-none">
-                               {a.barber_name && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-foreground/10 text-foreground/60">{a.barber_name.split(' ')[0]}</Badge>}
-                               {a.has_signal && <Badge className="bg-amber-500 text-white text-[8px] px-1 py-0 h-4 border-none flex items-center gap-0.5"><DollarSign className="h-2 w-2"/> Sinal</Badge>}
-                            </div>
+                            <p className="font-semibold text-xs truncate leading-tight pointer-events-none mt-0.5">{a.client_name}</p>
+                            <p className="text-[10px] truncate text-sys-text-muted pointer-events-none">{a.service_name}</p>
+                            {a.barber_name && (
+                              <div className="flex items-center gap-1 mt-1 pointer-events-none">
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-sys-border text-sys-text-muted bg-sys-surface">
+                                  {a.barber_name.split(' ')[0]}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
