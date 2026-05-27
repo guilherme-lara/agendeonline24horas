@@ -14,8 +14,32 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
 
-  // Hide header on public booking pages and dashboard (sidebar-only)
-  if (pathname.startsWith("/book/") || pathname.startsWith("/agendamentos/") || pathname.startsWith("/dashboard")) return null;
+  // Hide global Header on routes that render their own header/navbar.
+  // The landing page (SaaSLanding), public booking, dashboard, super-admin,
+  // professional dashboard/profile and appointments pages all ship their own
+  // top navigation, so the legacy global Header would only duplicate it.
+  const hideHeaderRoutes = [
+    "/",
+    "/dashboard",
+    "/super-admin",
+    "/admin",
+    "/book/",
+    "/agendamentos/",
+    "/meus-agendamentos",
+    "/appointments",
+    "/professional",
+    "/barber",
+    "/onboarding",
+    "/subscribe",
+    "/auth",
+    "/login",
+  ];
+  if (hideHeaderRoutes.some((p) => pathname === p || pathname.startsWith(p + "/") || (p.endsWith("/") && pathname.startsWith(p)))) {
+    return null;
+  }
+  // Effectively the legacy Header is now disabled across the app; pages own
+  // their navigation. Kept as a safety net for unknown routes only.
+  return null;
 
   const navItems = [
     { label: "Início", path: "/" },
