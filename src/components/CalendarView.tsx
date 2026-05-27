@@ -284,26 +284,34 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                             onDragEnd={() => setDraggingApptId(null)}
                             onTouchStart={(e) => handleTouchStart(e, a.id)}
                             onClick={() => !touchDragActive && onEventClick && onEventClick(a)}
-                            className={`rounded-md px-2 py-1.5 mb-1 border border-sys-border border-l-4 shadow-sm transition-all
+                            className={`group relative rounded-lg pl-2.5 pr-2 py-1.5 mb-1 border border-sys-border border-l-[3px] shadow-sm transition-all
                               ${cfg.bg} ${cfg.bar} ${cfg.text}
                               cursor-grab active:cursor-grabbing
-                              hover:shadow-md hover:-translate-y-0.5
+                              hover:shadow-md hover:-translate-y-0.5 hover:border-l-[4px]
+                              ${a.status === 'cancelled' ? 'line-through opacity-70' : ''}
+                              ${a.status === 'pendente_pagamento' || a.status === 'pending_payment' ? 'animate-pulse' : ''}
                               ${isDraggingThis ? "opacity-30 scale-95 border-dashed" : "opacity-100"}
                               ${isMobile ? 'select-none' : ''}
                             `}
-                            title={`${a.client_name} - ${a.service_name}`}
+                            title={`${a.client_name} — ${a.service_name} • ${cfg.label}`}
                           >
-                            <div className="flex items-center justify-between gap-1 pointer-events-none">
-                              <span className="font-bold text-[10px] tabular-nums text-sys-text-muted">
+                            <div className="flex items-center justify-between gap-1 pointer-events-none mb-0.5">
+                              <span className="font-bold text-[10px] tabular-nums text-sys-text-muted tracking-tight">
                                 {format(new Date(a.scheduled_at), "HH:mm")}
                               </span>
-                              {a.has_signal && <DollarSign className="h-3 w-3 text-sys-status-warning" />}
+                              <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide ${cfg.pill}`}>
+                                <span className={`h-1 w-1 rounded-full ${cfg.dot}`} />
+                                {cfg.label}
+                              </span>
                             </div>
-                            <p className="font-semibold text-xs truncate leading-tight pointer-events-none mt-0.5">{a.client_name}</p>
-                            <p className="text-[10px] truncate text-sys-text-muted pointer-events-none">{a.service_name}</p>
+                            <p className="font-semibold text-xs truncate leading-tight pointer-events-none text-sys-text-primary">{a.client_name}</p>
+                            <div className="flex items-center justify-between gap-1 mt-0.5 pointer-events-none">
+                              <p className="text-[10px] truncate text-sys-text-muted flex-1">{a.service_name}</p>
+                              {a.has_signal && <DollarSign className="h-3 w-3 text-sys-status-warning shrink-0" />}
+                            </div>
                             {a.barber_name && (
                               <div className="flex items-center gap-1 mt-1 pointer-events-none">
-                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-sys-border text-sys-text-muted bg-sys-surface">
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-sys-border text-sys-text-muted bg-sys-bg-base font-medium">
                                   {a.barber_name.split(' ')[0]}
                                 </Badge>
                               </div>
