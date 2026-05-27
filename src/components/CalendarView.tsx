@@ -29,13 +29,13 @@ interface CalendarViewProps {
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
 
-const statusConfig: Record<string, { bg: string; bar: string; text: string }> = {
-  confirmed:          { bg: "bg-sys-status-info/10",    bar: "border-l-sys-status-info",    text: "text-sys-text-primary" },
-  pending:            { bg: "bg-sys-bg-base",           bar: "border-l-sys-text-muted",     text: "text-sys-text-primary" },
-  completed:          { bg: "bg-sys-status-success/10", bar: "border-l-sys-status-success", text: "text-sys-text-primary" },
-  cancelled:          { bg: "bg-sys-status-danger/10",  bar: "border-l-sys-status-danger",  text: "text-sys-text-muted" },
-  pending_payment:    { bg: "bg-sys-status-warning/10", bar: "border-l-sys-status-warning", text: "text-sys-text-primary" },
-  pendente_pagamento: { bg: "bg-sys-status-warning/10", bar: "border-l-sys-status-warning", text: "text-sys-text-primary" },
+const statusConfig: Record<string, { bg: string; bar: string; text: string; dot: string; pill: string; label: string }> = {
+  confirmed:          { bg: "bg-sys-surface",        bar: "border-l-sys-status-info",    text: "text-sys-text-primary", dot: "bg-sys-status-info",    pill: "bg-sys-status-info/10 text-sys-status-info",       label: "Confirmado" },
+  pending:            { bg: "bg-sys-surface",        bar: "border-l-sys-text-muted",     text: "text-sys-text-primary", dot: "bg-sys-text-muted",     pill: "bg-sys-bg-base text-sys-text-muted",               label: "Pendente" },
+  completed:          { bg: "bg-sys-surface",        bar: "border-l-sys-status-success", text: "text-sys-text-muted",   dot: "bg-sys-status-success", pill: "bg-sys-status-success/10 text-sys-status-success", label: "Concluído" },
+  cancelled:          { bg: "bg-sys-surface",        bar: "border-l-sys-status-danger",  text: "text-sys-text-muted",   dot: "bg-sys-status-danger",  pill: "bg-sys-status-danger/10 text-sys-status-danger",   label: "Cancelado" },
+  pending_payment:    { bg: "bg-sys-surface",        bar: "border-l-sys-status-warning", text: "text-sys-text-primary", dot: "bg-sys-status-warning", pill: "bg-sys-status-warning/10 text-sys-status-warning", label: "Aguardando" },
+  pendente_pagamento: { bg: "bg-sys-surface",        bar: "border-l-sys-status-warning", text: "text-sys-text-primary", dot: "bg-sys-status-warning", pill: "bg-sys-status-warning/10 text-sys-status-warning", label: "Aguardando" },
 };
 
 const LONG_PRESS_DELAY = 400; // ms
