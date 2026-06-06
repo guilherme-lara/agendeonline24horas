@@ -1397,51 +1397,23 @@ export type Database = {
         }[]
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
-      cleanup_expired_appointments: { Args: never; Returns: undefined }
-      create_public_appointment:
-        | {
-            Args: {
-              _barber_id?: string
-              _barber_name?: string
-              _barbershop_id: string
-              _client_name: string
-              _client_phone: string
-              _customer_id?: string
-              _items?: Json
-              _payment_method?: string
-              _price?: number
-              _scheduled_at?: string
-              _service_name?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _barbershop_id: string
-              _client_name: string
-              _client_phone: string
-              _payment_method?: string
-              _price: number
-              _scheduled_at: string
-              _service_name: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _barber_id?: string
-              _barber_name?: string
-              _barbershop_id: string
-              _client_name: string
-              _client_phone: string
-              _customer_id?: string
-              _payment_method?: string
-              _price: number
-              _scheduled_at: string
-              _service_name: string
-            }
-            Returns: string
-          }
+      cleanup_expired_appointments: { Args: never; Returns: number }
+      create_public_appointment: {
+        Args: {
+          _barber_id?: string
+          _barber_name?: string
+          _barbershop_id: string
+          _client_name: string
+          _client_phone: string
+          _customer_id?: string
+          _items?: Json
+          _payment_method?: string
+          _price?: number
+          _scheduled_at?: string
+          _service_name?: string
+        }
+        Returns: string
+      }
       find_or_create_public_customer: {
         Args: { _barbershop_id: string; _name: string; _phone: string }
         Returns: string
