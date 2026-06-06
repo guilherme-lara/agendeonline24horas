@@ -322,7 +322,7 @@ const PublicBooking = () => {
             .eq("barbershop_id", shop!.id),
           supabase
             .from("barber_services")
-            .select("barber_id, service_id, commission_pct")
+            .select("barber_id, service_id")
             .eq("barbershop_id", shop!.id),
           supabase
             .from("categories")

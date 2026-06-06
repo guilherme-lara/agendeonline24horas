@@ -61,7 +61,7 @@ const Booking = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("barbers")
-        .select("*")
+        .select("id, name, avatar_url, barbershop_id, active")
         .eq("barbershop_id", clinic?.id)
         .eq("active", true);
       if (error) throw error;
