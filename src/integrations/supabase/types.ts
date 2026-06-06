@@ -177,13 +177,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
@@ -234,13 +227,6 @@ export type Database = {
             columns: ["barber_id"]
             isOneToOne: false
             referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers_public"
             referencedColumns: ["id"]
           },
           {
@@ -1090,13 +1076,6 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "stock_movements_inventory_id_fkey"
-            columns: ["inventory_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       subscribers: {
@@ -1294,13 +1273,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "appointments_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
@@ -1309,102 +1281,6 @@ export type Database = {
           },
           {
             foreignKeyName: "appointments_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      barber_services_public: {
-        Row: {
-          barber_id: string | null
-          barbershop_id: string | null
-          id: string | null
-          service_id: string | null
-        }
-        Insert: {
-          barber_id?: string | null
-          barbershop_id?: string | null
-          id?: string | null
-          service_id?: string | null
-        }
-        Update: {
-          barber_id?: string | null
-          barbershop_id?: string | null
-          id?: string | null
-          service_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "barber_services_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_barber_id_fkey"
-            columns: ["barber_id"]
-            isOneToOne: false
-            referencedRelation: "barbers_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barber_services_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      barbers_public: {
-        Row: {
-          active: boolean | null
-          avatar_url: string | null
-          barbershop_id: string | null
-          id: string | null
-          name: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          avatar_url?: string | null
-          barbershop_id?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          avatar_url?: string | null
-          barbershop_id?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "barbers_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "barbers_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
@@ -1450,48 +1326,6 @@ export type Database = {
           slug?: string | null
         }
         Relationships: []
-      }
-      inventory_public: {
-        Row: {
-          active: boolean | null
-          barbershop_id: string | null
-          id: string | null
-          name: string | null
-          quantity: number | null
-          sell_price: number | null
-        }
-        Insert: {
-          active?: boolean | null
-          barbershop_id?: string | null
-          id?: string | null
-          name?: string | null
-          quantity?: number | null
-          sell_price?: number | null
-        }
-        Update: {
-          active?: boolean | null
-          barbershop_id?: string | null
-          id?: string | null
-          name?: string | null
-          quantity?: number | null
-          sell_price?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_barbershop_id_fkey"
-            columns: ["barbershop_id"]
-            isOneToOne: false
-            referencedRelation: "barbershops_public"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Functions: {
