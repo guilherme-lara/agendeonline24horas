@@ -372,7 +372,7 @@ const Clientes = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-sys-status-danger text-white hover:bg-sys-status-danger/90"
               onClick={() => {
                 if (deleteCustomerId) deleteMutation.mutate(deleteCustomerId);
               }}
