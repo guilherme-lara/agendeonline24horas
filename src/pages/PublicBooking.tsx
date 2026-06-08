@@ -563,16 +563,21 @@ const PublicBooking = () => {
       const pad = (n: number) => String(n).padStart(2, '0');
       const formattedDateForDB = `${scheduledAt.getFullYear()}-${pad(scheduledAt.getMonth()+1)}-${pad(scheduledAt.getDate())}T${pad(h)}:${pad(m)}:00-03:00`;
 
-      // Build JSON items for the RPC call
-      const rpcItems = cartItems.map((item: CartItem) => ({
-        name: item.name,
-        price: item.price.toString(),
-        duration: item.duration.toString(),
-        barber_id: item.barber_id || selectedBarber?.id || null,
-        barber_name: item.barber_name || selectedBarber?.name || null,
-        product_type: item.type === "product",
-        category_id: item.category_id || null,
-      }));
+      // Build JSON items for the RPC call.
+      // IMPORTANT: products are NOT tied to a professional. Only services carry a barber_id.
+      const rpcItems = cartItems.map((item: CartItem) => {
+        const isProduct = item.type === "product";
+        return {
+          name: item.name,
+          price: item.price.toString(),
+          duration: isProduct ? "0" : item.duration.toString(),
+          quantity: isProduct ? (item.quantity ?? 1) : 1,
+          barber_id: isProduct ? null : (item.barber_id || selectedBarber?.id || null),
+          barber_name: isProduct ? null : (item.barber_name || selectedBarber?.name || null),
+          product_type: isProduct,
+          category_id: isProduct ? null : (item.category_id || null),
+        };
+      });
 
       // O Supabase requer os argumentos antigos de serviço base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
