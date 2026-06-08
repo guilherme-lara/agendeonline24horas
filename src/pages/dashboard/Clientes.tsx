@@ -161,58 +161,58 @@ const Clientes = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
+    <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500 bg-sys-bg-base min-h-full">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3 tracking-tight font-display">
-          <UserSearch className="h-8 w-8 text-zinc-900" /> Carteira de Clientes
+        <h1 className="text-3xl font-bold text-sys-text-primary flex items-center gap-3 tracking-tight font-display">
+          <UserSearch className="h-8 w-8 text-sys-brand-primary" /> Carteira de Clientes
         </h1>
-        <p className="text-zinc-500 text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
+        <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
       </div>
 
       {customers.length === 0 ? (
-        <div className="bg-white border border-zinc-200 rounded-xl p-16 text-center shadow-sm">
-          <div className="bg-zinc-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-100">
-            <UserSearch className="h-10 w-10 text-zinc-300" />
+        <div className="bg-sys-surface border border-sys-border rounded-2xl p-16 text-center shadow-sm">
+          <div className="bg-sys-bg-base w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-sys-border">
+            <UserSearch className="h-10 w-10 text-sys-text-subtle" />
           </div>
-          <h3 className="text-xl font-bold text-zinc-900 mb-2">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-zinc-500 max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
+          <h3 className="text-xl font-bold text-sys-text-primary mb-2">Nenhum cliente cadastrado</h3>
+          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
-        <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden transition-all">
+        <div className="bg-sys-surface border border-sys-border rounded-2xl shadow-sm overflow-hidden transition-all">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-100">
+              <thead className="bg-sys-bg-base border-b border-sys-border">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Contagem</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-zinc-400 uppercase tracking-wider">Última Visita</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-zinc-400 uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Cliente</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Contagem</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Última Visita</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-sys-border">
                 {paginated.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-zinc-50 transition-colors group">
+                  <tr key={customer.id} className="hover:bg-sys-bg-base transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-bold text-zinc-900">{customer.name}</div>
-                      <div className="text-xs text-zinc-400 font-mono">{formatPhoneNumber(customer.phone)}</div>
+                      <div className="font-bold text-sys-text-primary">{customer.name}</div>
+                      <div className="text-xs text-sys-text-subtle font-mono">{formatPhoneNumber(customer.phone)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant="outline" className="font-mono text-xs">
+                      <Badge variant="outline" className="font-mono text-xs border-sys-border text-sys-text-muted">
                         {customer.appointment_count} {customer.appointment_count === 1 ? 'agendamento' : 'agendamentos'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {customer.last_seen ? (
                         <>
-                          <div className="text-foreground text-xs font-medium capitalize">
+                          <div className="text-sys-text-primary text-xs font-medium capitalize">
                             {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
                           </div>
-                          <div className="text-muted-foreground text-[10px] uppercase tracking-tighter">
+                          <div className="text-sys-text-subtle text-[10px] uppercase tracking-tighter">
                             {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
                           </div>
                         </>
                       ) : (
-                        <div className="text-muted-foreground text-xs">Sem agendamentos</div>
+                        <div className="text-sys-text-muted text-xs">Sem agendamentos</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -220,7 +220,7 @@ const Clientes = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-full shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-500/30 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/80 hover:scale-105 transition-transform"
+                          className="h-10 w-10 rounded-full shadow-sm border-sys-border bg-sys-brand-primary-soft text-sys-brand-primary hover:bg-sys-brand-primary hover:text-sys-brand-on-primary hover:scale-105 transition-transform"
                           onClick={() => handleEditOpen(customer)}
                           title="Editar Cliente"
                         >
@@ -229,7 +229,7 @@ const Clientes = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-10 w-10 rounded-full shadow-sm border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 dark:border-red-500/30 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/80 hover:scale-105 transition-transform"
+                          className="h-10 w-10 rounded-full shadow-sm border-sys-border bg-sys-surface text-sys-status-danger hover:bg-sys-status-danger hover:text-white hover:scale-105 transition-transform"
                           onClick={() => setDeleteCustomerId(customer.id)}
                           disabled={deleteMutation.isPending}
                           title="Excluir Cliente"
@@ -240,7 +240,7 @@ const Clientes = () => {
                           variant="outline"
                           size="sm"
                           asChild
-                          className="h-9 rounded-lg px-4 shadow-sm font-bold border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-900 hover:text-white transition-all"
+                          className="h-9 rounded-lg px-4 shadow-sm font-bold border-sys-border bg-sys-surface text-sys-text-muted hover:bg-sys-brand-primary hover:text-sys-brand-on-primary hover:border-sys-brand-primary transition-all"
                         >
                           <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
                             <MessageSquare className="h-4 w-4 mr-2" /> Conversar
@@ -253,6 +253,7 @@ const Clientes = () => {
               </tbody>
             </table>
           </div>
+
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-secondary/20">
