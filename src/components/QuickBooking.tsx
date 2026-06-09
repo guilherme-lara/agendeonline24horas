@@ -49,7 +49,7 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
       _service_name: selectedService.name,
       _price: selectedService.price,
       _scheduled_at: scheduledAt.toISOString(),
-      _payment_method: "na_loja",
+      _payment_method: "local",
       _barber_id: null as any,
       _barber_name: null as any,
       _customer_id: null as any,
