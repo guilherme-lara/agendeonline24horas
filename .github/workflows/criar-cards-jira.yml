@@ -1,0 +1,73 @@
+name: Criar Cards no Jira
+
+on:
+  push:
+    branches:
+      - main # Ou a branch onde seu software faz o commit do .md
+
+jobs:
+  criar-cards:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Baixa o código do repositório
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Login no Jira
+      - name: Login Jira
+        uses: atlassian/gajira-login@v3
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+
+      # 3. Ler o arquivo .md e criar os cards
+      # Este passo usa um script bash simples para ler linha por linha
+      - name: Processar Markdown e Criar Issues
+        env:
+          JIRA_PROJECT: ${{ secrets.JIRA_PROJECT_KEY }}
+        run: |
+          # Verifica se o arquivo existe
+          if [ ! -f "relatorio.md" ]; then
+            echo "Arquivo relatorio.md não encontrado. Pulando."
+            exit 0
+          fi
+
+          # Lê o arquivo linha por linha (ajuste a lógica conforme seu formato de MD)
+          # Exemplo: Cria um card para cada linha que começa com "- [ ]" ou títulos "##"
+          while IFS= read -r line; do
+            # Ignora linhas vazias
+            if [ -z "$line" ]; then continue; fi
+            
+            # Exemplo: Se a linha começar com "## ", usa como resumo do card
+            if [[ $line == \#\#\ * ]]; then
+              SUMMARY=$(echo "$line" | sed 's/## //')
+              
+              echo "Criando card para: $SUMMARY"
+              
+              # Chama a ação oficial para criar o card
+              ISSUE_OUTPUT=$(gh action create-issue \
+                --project "$JIRA_PROJECT" \
+                --type "Task" \
+                --summary "$SUMMARY" \
+                --description "Criado automaticamente via GitHub Actions a partir do relatorio.md" \
+                || true)
+              
+              # Nota: A ação 'atlassian/gajira-create' abaixo é a forma padrão recomendada
+            fi
+          done < relatorio.md
+
+      # 3.1 Alternativa Robusta: Usando a ação oficial diretamente (Recomendado)
+      # Se você quiser criar apenas UM card com o conteúdo todo do arquivo:
+      - name: Criar Card Único com Relatório
+        uses: atlassian/gajira-create@v3
+        with:
+          project: ${{ secrets.JIRA_PROJECT_KEY }}
+          issuetype: Task
+          summary: "Relatório de Construção Automático"
+          description: |
+            h2. Conteúdo do Relatório
+            {code:markdown}
+            ${{ github.event.head_commit.message }}
+            {code}
+            Veja o arquivo completo: [relatorio.md|https://github.com/${{ github.repository }}/blob/main/relatorio.md]   
