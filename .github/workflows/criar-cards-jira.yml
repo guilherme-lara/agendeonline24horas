@@ -1,73 +1,83 @@
-name: Criar Cards no Jira
+name: Criar Cards no Jira (Manual)
 
+# 1. Habilita o botão "Run workflow"
 on:
-  push:
-    branches:
-      - main # Ou a branch onde seu software faz o commit do .md
+  workflow_dispatch:
 
 jobs:
   criar-cards:
     runs-on: ubuntu-latest
     steps:
-      # 1. Baixa o código do repositório
+      # 2. Baixa o código (para pegar o arquivo relatorio.md)
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2. Login no Jira
-      - name: Login Jira
-        uses: atlassian/gajira-login@v3
+      # 3. Configura o Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 4. Instala a biblioteca para falar com o Jira
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      # 5. Script que lê o MD e cria os cards
+      - name: Processar MD e Criar Issues
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-
-      # 3. Ler o arquivo .md e criar os cards
-      # Este passo usa um script bash simples para ler linha por linha
-      - name: Processar Markdown e Criar Issues
-        env:
-          JIRA_PROJECT: ${{ secrets.JIRA_PROJECT_KEY }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
         run: |
-          # Verifica se o arquivo existe
-          if [ ! -f "relatorio.md" ]; then
-            echo "Arquivo relatorio.md não encontrado. Pulando."
-            exit 0
-          fi
+          python << 'EOF'
+          import os
+          import requests
+          import base64
 
-          # Lê o arquivo linha por linha (ajuste a lógica conforme seu formato de MD)
-          # Exemplo: Cria um card para cada linha que começa com "- [ ]" ou títulos "##"
-          while IFS= read -r line; do
-            # Ignora linhas vazias
-            if [ -z "$line" ]; then continue; fi
-            
-            # Exemplo: Se a linha começar com "## ", usa como resumo do card
-            if [[ $line == \#\#\ * ]]; then
-              SUMMARY=$(echo "$line" | sed 's/## //')
-              
-              echo "Criando card para: $SUMMARY"
-              
-              # Chama a ação oficial para criar o card
-              ISSUE_OUTPUT=$(gh action create-issue \
-                --project "$JIRA_PROJECT" \
-                --type "Task" \
-                --summary "$SUMMARY" \
-                --description "Criado automaticamente via GitHub Actions a partir do relatorio.md" \
-                || true)
-              
-              # Nota: A ação 'atlassian/gajira-create' abaixo é a forma padrão recomendada
-            fi
-          done < relatorio.md
+          # Configurações
+          base_url = os.getenv('JIRA_BASE_URL')
+          email = os.getenv('JIRA_USER_EMAIL')
+          token = os.getenv('JIRA_API_TOKEN')
+          project_key = os.getenv('JIRA_PROJECT_KEY')
+          
+          # Autenticação
+          auth = (email, token)
+          headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
-      # 3.1 Alternativa Robusta: Usando a ação oficial diretamente (Recomendado)
-      # Se você quiser criar apenas UM card com o conteúdo todo do arquivo:
-      - name: Criar Card Único com Relatório
-        uses: atlassian/gajira-create@v3
-        with:
-          project: ${{ secrets.JIRA_PROJECT_KEY }}
-          issuetype: Task
-          summary: "Relatório de Construção Automático"
-          description: |
-            h2. Conteúdo do Relatório
-            {code:markdown}
-            ${{ github.event.head_commit.message }}
-            {code}
-            Veja o arquivo completo: [relatorio.md|https://github.com/${{ github.repository }}/blob/main/relatorio.md]   
+          # Lê o arquivo relatorio.md
+          try:
+              with open('relatorio.md', 'r', encoding='utf-8') as f:
+                  content = f.read()
+          except FileNotFoundError:
+              print("Erro: Arquivo 'relatorio.md' não encontrado no repositório!")
+              exit(1)
+
+          # Extrai títulos que começam com ##
+          lines = content.split('\n')
+          tasks = []
+          current_task = None
+
+          for line in lines:
+              if line.startswith('## '):
+                  if current_task:
+                      tasks.append(current_task)
+                  current_task = {'summary': line.replace('## ', '').strip(), 'description': []}
+              elif current_task and line.strip():
+                  current_task['description'].append(line)
+          
+          if current_task:
+              tasks.append(current_task)
+
+          print(f"Encontradas {len(tasks)} tarefas no arquivo.")
+
+          # Cria os cards no Jira
+          for task in tasks:
+              desc_text = "\n".join(task['description'])
+              payload = {
+                  "fields": {
+                      "project": {"key": project_key},
+                      "summary": task['summary'],
+                      "description": f"Gerado automaticamente via GitHu   
