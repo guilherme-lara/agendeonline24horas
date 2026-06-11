@@ -27,32 +27,60 @@ const LogoUpload = ({ barbershopId, currentUrl, onUploaded }: LogoUploadProps) =
     }
 
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${barbershopId}/logo.${ext}`;
+    try {
+      // Verifica sessão antes do upload (políticas de Storage exigem usuário autenticado/dono)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error("Sessão expirada. Faça login novamente para enviar a logo.");
+      }
 
-    const { error: uploadError } = await supabase.storage.from("logos").upload(path, file, { upsert: true });
-    if (uploadError) {
-      toast({ title: "Erro no upload", description: uploadError.message, variant: "destructive" });
-      setUploading(false);
-      return;
-    }
+      // Sanitiza a extensão para evitar paths inválidos (logo.undefined)
+      const rawExt = file.name.includes(".") ? file.name.split(".").pop() : "";
+      const ext = (rawExt || file.type.split("/").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+      // O primeiro segmento do path DEVE ser o barbershopId (exigido pela RLS do Storage)
+      const path = `${barbershopId}/logo-${Date.now()}.${ext}`;
 
-    const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
-    const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+      const { error: uploadError } = await supabase.storage
+        .from("logos")
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type,
+          cacheControl: "3600",
+        });
 
-    const { error: updateError } = await (supabase
-      .from("barbershops") as any)
-      .update({ logo_url: publicUrl })
-      .eq("id", barbershopId);
+      if (uploadError) {
+        const msg = /policy|permission|unauthorized|row-level/i.test(uploadError.message)
+          ? "Permissão negada. Verifique se você é o dono deste estabelecimento."
+          : uploadError.message;
+        throw new Error(msg);
+      }
 
-    if (updateError) {
-      toast({ title: "Erro", description: updateError.message, variant: "destructive" });
-    } else {
+      const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await (supabase
+        .from("barbershops") as any)
+        .update({ logo_url: publicUrl })
+        .eq("id", barbershopId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
       toast({ title: "Logo atualizada!" });
       onUploaded(publicUrl);
+    } catch (err: any) {
+      toast({
+        title: "Erro no upload",
+        description: err?.message || "Não foi possível enviar a imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
-    setUploading(false);
   };
+
 
   return (
     <div className="flex items-center gap-4">

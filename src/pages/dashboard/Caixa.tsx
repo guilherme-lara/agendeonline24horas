@@ -183,6 +183,22 @@ const Caixa = () => {
     enabled: !!clinic?.id,
   });
 
+  const { data: servicesList = [] } = useQuery({
+    queryKey: ["services-pdv", clinic?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id, name, price")
+        .eq("barbershop_id", clinic?.id)
+        .eq("active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!clinic?.id,
+  });
+
+
   const cartTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.price) * item.qty, 0);
   }, [cart]);
@@ -455,11 +471,27 @@ const Caixa = () => {
     });
   };
 
+  const addExtraServiceToCart = (s: any) => {
+    setCart((prev) => [
+      ...prev,
+      {
+        name: s.name,
+        price: Number(s.price),
+        qty: 1,
+        type: "service",
+        extra: true,
+      },
+    ]);
+  };
+
   const removeFromCart = (idx: number) => {
     const item = cart[idx];
-    if (item.type === "service" || item.type === "discount") return; // não remove serviço base
+    // Não remove o serviço base do agendamento nem o desconto, mas permite remover extras
+    if (item.type === "discount") return;
+    if (item.type === "service" && !item.extra) return;
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
+
 
   const openDetails = async (appt: any) => {
     setViewDetailsAppt(appt);
@@ -636,7 +668,7 @@ const Caixa = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {item.type !== "discount" && item.type !== "service" && (
+                    {item.type !== "discount" && (item.type !== "service" || item.extra) && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -716,6 +748,31 @@ const Caixa = () => {
                 ))}
               </div>
             </div>
+
+            {servicesList.length > 0 && (
+              <div className="mb-8">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
+                  Adicionar Serviço Extra
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                  {servicesList.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => addExtraServiceToCart(s)}
+                      className="flex justify-between items-center p-3 bg-background border border-border/50 rounded-2xl hover:border-primary/40 hover:shadow-sm transition-all text-left w-full overflow-hidden"
+                    >
+                      <p className="text-[11px] font-bold text-foreground truncate flex-1">
+                        {s.name}
+                      </p>
+                      <span className="text-[11px] font-black text-primary shrink-0">
+                        R${Number(s.price).toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
 
             <div className="pt-6 border-t border-border space-y-4">
               <div className="flex justify-between items-center">
