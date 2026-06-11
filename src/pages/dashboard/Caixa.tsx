@@ -471,11 +471,27 @@ const Caixa = () => {
     });
   };
 
+  const addExtraServiceToCart = (s: any) => {
+    setCart((prev) => [
+      ...prev,
+      {
+        name: s.name,
+        price: Number(s.price),
+        qty: 1,
+        type: "service",
+        extra: true,
+      },
+    ]);
+  };
+
   const removeFromCart = (idx: number) => {
     const item = cart[idx];
-    if (item.type === "service" || item.type === "discount") return; // não remove serviço base
+    // Não remove o serviço base do agendamento nem o desconto, mas permite remover extras
+    if (item.type === "discount") return;
+    if (item.type === "service" && !item.extra) return;
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
+
 
   const openDetails = async (appt: any) => {
     setViewDetailsAppt(appt);
