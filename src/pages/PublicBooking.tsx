@@ -946,7 +946,6 @@ const PublicBooking = () => {
                       variant="ghost"
                       onClick={() => {
                         setSelectedCategory(null);
-                        setProductTab(false);
                         setResetCategoryFlag(true); // Flag that we just reset category
                         setStep(1);
                       }}
