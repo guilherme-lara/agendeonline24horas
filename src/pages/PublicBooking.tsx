@@ -900,131 +900,87 @@ const PublicBooking = () => {
                       Adicione quantos quiser de diferentes categorias
                     </p>
 
-                    {/* Tab switcher: Serviços / Produtos */}
-                    <div className="flex gap-2 mb-6">
-                      <button
-                        onClick={() => setProductTab(false)}
-                        className={`shrink-0 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
-                          !productTab
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Serviços
-                      </button>
-                      {(shopResources?.products || []).length > 0 && (
-                        <button
-                          onClick={() => setProductTab(true)}
-                          className={`shrink-0 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
-                            productTab
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          Produtos ({shopResources.products.length})
-                        </button>
-                      )}
-                    </div>
+                    {/* Category sub-switcher for services */}
+                    {shopCategories.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+                        {shopCategories.map((cat: any) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat.id)}
+                            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                              selectedCategory === cat.id
+                                ? "bg-primary/80 text-primary-foreground"
+                                : "bg-secondary text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                    {!productTab ? (
-                      <>
-                        {/* Category sub-switcher for services */}
-                        {shopCategories.length > 0 && (
-                          <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-                            {shopCategories.map((cat: any) => (
-                              <button
-                                key={cat.id}
-                                onClick={() => setSelectedCategory(cat.id)}
-                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
-                                  selectedCategory === cat.id
-                                    ? "bg-primary/80 text-primary-foreground"
-                                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                                }`}
-                              >
-                                {cat.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {loadingResources ? (
-                          <Loader2 className="animate-spin text-primary mx-auto" />
-                        ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length ? (
-                          <div className="grid gap-3">
-                            {shopResources.services
-                              .filter((s: any) => s.category_id === selectedCategory)
-                              .map((s: any) => {
-                                const isInCart = cartItems.some((ci) => ci.id === s.id);
-                                return (
-                                <div key={s.id}
-                                  className={`rounded-2xl border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
-                                    isInCart
-                                      ? "border-emerald-500/30 bg-emerald-500/5"
-                                      : "border-border/60 hover:border-primary/30"
-                                  }`}
-                                >
-                                    <div className="flex justify-between items-start gap-2 min-w-0">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
-                                            <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
-                                        </div>
-                                        <p className="text-base sm:text-xl font-black text-primary text-right whitespace-nowrap shrink-0">
-                                          {s.price_is_starting_at
-                                            ? <span className="text-[10px] sm:text-xs block text-muted-foreground font-extrabold uppercase tracking-wide leading-none mb-0.5">A partir de</span>
-                                            : null}
-                                          R$ {Number(s.price).toFixed(2)}
-                                        </p>
+                    {loadingResources ? (
+                      <Loader2 className="animate-spin text-primary mx-auto" />
+                    ) : shopResources?.services.filter((s: any) => s.category_id === selectedCategory).length ? (
+                      <div className="grid gap-3">
+                        {shopResources.services
+                          .filter((s: any) => s.category_id === selectedCategory)
+                          .map((s: any) => {
+                            const isInCart = cartItems.some((ci) => ci.id === s.id);
+                            return (
+                            <div key={s.id}
+                              className={`rounded-2xl border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
+                                isInCart
+                                  ? "border-emerald-500/30 bg-emerald-500/5"
+                                  : "border-border/60 hover:border-primary/30"
+                              }`}
+                            >
+                                <div className="flex justify-between items-start gap-2 min-w-0">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-bold text-base sm:text-lg text-foreground truncate">{s.name}</p>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-widest">{s.duration} min</p>
                                     </div>
-                                    {isInCart ? (
-                                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                                        <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
-                                          <Check className="h-3 w-3" /> No carrinho
-                                        </span>
-                                        <button
-                                          onClick={() => { removeFromCart(s.id); setCartUpdateTick((t) => t + 1); }}
-                                          className="text-xs font-bold text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors"
-                                        >
-                                          Remover
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => addServiceToCart(s, selectedBarber)}
-                                        className="mt-3 w-full h-10 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1"
-                                      >
-                                        <Plus className="h-3 w-3" /> Adicionar
-                                      </button>
-                                    )}
+                                    <p className="text-base sm:text-xl font-black text-primary text-right whitespace-nowrap shrink-0">
+                                      {s.price_is_starting_at
+                                        ? <span className="text-[10px] sm:text-xs block text-muted-foreground font-extrabold uppercase tracking-wide leading-none mb-0.5">A partir de</span>
+                                        : null}
+                                      R$ {Number(s.price).toFixed(2)}
+                                    </p>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
-                              <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
-                                  <UserX className="h-12 w-12 text-red-500" />
-                              </div>
-                              <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
-                              <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
-                          </div>
-                        )}
-                      </>
+                                {isInCart ? (
+                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                                    <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+                                      <Check className="h-3 w-3" /> No carrinho
+                                    </span>
+                                    <button
+                                      onClick={() => { removeFromCart(s.id); setCartUpdateTick((t) => t + 1); }}
+                                      className="text-xs font-bold text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors"
+                                    >
+                                      Remover
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => addServiceToCart(s, selectedBarber)}
+                                    className="mt-3 w-full h-10 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1"
+                                  >
+                                    <Plus className="h-3 w-3" /> Adicionar
+                                  </button>
+                                )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
-                      /* Products tab */
-                      <>
-                        {shopResources?.products?.length ? (
-                          <div className="grid gap-4">
-                            {shopResources.products.map((product: any) => {
-                              const cartItem = cartItems.find((ci) => ci.id === product.id);
-                              const qty = cartItem?.quantity ?? 1;
-                              return (
-                                <div key={product.id}
-                                  className="rounded-2xl border border-border/60 bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-4"
-                                >
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-base text-foreground truncate">{product.name}</p>
-                                        <p className="text-xs text-muted-foreground">Em estoque: {product.stock}</p>
-                                    </div>
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                          <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
+                              <UserX className="h-12 w-12 text-red-500" />
+                          </div>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
+                          <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
+                      </div>
+                    )}
+
                                     <div className="flex items-center gap-3 shrink-0">
                                       {cartItem ? (
                                         <div className="flex items-center gap-2">
