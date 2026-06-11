@@ -1179,20 +1179,8 @@ const PublicBooking = () => {
                               </div>
                             )}
 
-                            {/* Products section */}
-                            {cartItems.filter((i) => i.type === "product").length > 0 && (
-                              <div className="border-t border-border pt-3">
-                                <p className="text-xs text-muted-foreground uppercase font-black mb-2 flex items-center gap-1">
-                                  <ShoppingBag className="h-3 w-3" /> Produtos ({cartItems.filter((i) => i.type === "product").length})
-                                </p>
-                                {cartItems.filter((i) => i.type === "product").map((item: CartItem) => (
-                                  <div key={item.id} className="flex justify-between items-center py-1.5">
-                                    <span className="text-sm text-foreground">{item.name}</span>
-                                    <span className="text-xs font-bold text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-md">Qtd: {item.quantity ?? 1}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+
+
 
                             {/* Total */}
                             <div className="border-t border-border pt-3">
