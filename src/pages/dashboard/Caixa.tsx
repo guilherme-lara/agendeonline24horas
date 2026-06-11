@@ -668,7 +668,7 @@ const Caixa = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {item.type !== "discount" && item.type !== "service" && (
+                    {item.type !== "discount" && (item.type !== "service" || item.extra) && (
                       <Button
                         variant="ghost"
                         size="icon"
