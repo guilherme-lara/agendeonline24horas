@@ -981,60 +981,6 @@ const PublicBooking = () => {
                       </div>
                     )}
 
-                                    <div className="flex items-center gap-3 shrink-0">
-                                      {cartItem ? (
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            onClick={() => updateItemQuantity(product.id, qty - 1)}
-                                            className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
-                                          >
-                                            <Minus className="h-4 w-4 text-muted-foreground" />
-                                          </button>
-                                          <span className="w-6 text-center font-black text-foreground">{qty}</span>
-                                          <button
-                                            onClick={() => updateItemQuantity(product.id, qty + 1)}
-                                            className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
-                                          >
-                                            <Plus className="h-4 w-4 text-muted-foreground" />
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <button
-                                          onClick={() => {
-                                            addToCart({
-                                              id: product.id,
-                                              name: product.name,
-                                              price: Number(product.price),
-                                              duration: 0,
-                                              type: "product",
-                                              quantity: 1,
-                                            });
-                                            setCartUpdateTick((t) => t + 1);
-                                          }}
-                                          className="h-10 px-4 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-primary-foreground transition-all"
-                                        >
-                                          <Plus className="h-3 w-3 inline mr-1" /> Adicionar
-                                        </button>
-                                      )}
-                                      <p className="text-base font-black text-primary w-20 text-right">
-                                        R$ {(Number(product.price) * (cartItem?.quantity ?? 1)).toFixed(2)}
-                                      </p>
-                                    </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
-                            <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
-                              <UserX className="h-12 w-12 text-red-500" />
-                            </div>
-                            <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem produtos</h1>
-                            <p className="text-muted-foreground text-sm">Nenhum produto disponível para venda.</p>
-                          </div>
-                        )}
-                      </>
-                    )}
 
                     <Button
                       variant="ghost"
