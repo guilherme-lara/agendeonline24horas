@@ -784,31 +784,6 @@ const PublicBooking = () => {
                     </button>
                   </div>
                 ))}
-                {/* Products */}
-                {cartItems.filter((i) => i.type === "product").map((item) => (
-                  <div key={item.id} className="flex items-center justify-between bg-secondary/50 rounded-2xl p-4 border border-border">
-                    <div className="flex-1">
-                      <p className="font-bold text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">Produto</p>
-                    </div>
-                    <div className="flex items-center gap-2 mr-2">
-                      <button
-                        onClick={() => { if (item.quantity! <= 1) removeFromCart(item.id); else updateItemQuantity(item.id, item.quantity! - 1); }}
-                        className="h-7 w-7 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80"
-                      >
-                        <Minus className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                      <span className="w-5 text-center text-sm font-black">{item.quantity ?? 1}</span>
-                      <button
-                        onClick={() => updateItemQuantity(item.id, (item.quantity ?? 1) + 1)}
-                        className="h-7 w-7 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80"
-                      >
-                        <Plus className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                    </div>
-                    <p className="text-sm font-black text-primary w-20 text-right">R$ {(Number(item.price) * (item.quantity ?? 1)).toFixed(2)}</p>
-                  </div>
-                ))}
               </div>
             )}
 
@@ -820,12 +795,7 @@ const PublicBooking = () => {
                     <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} {cartItems.filter((i) => i.type === "service").length === 1 ? 'item' : 'itens'}</span>
                   </div>
                 )}
-                {cartItems.filter((i) => i.type === "product").length > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground uppercase font-black">Produtos</span>
-                    <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "product").length} {cartItems.filter((i) => i.type === "product").length === 1 ? 'item' : 'itens'}</span>
-                  </div>
-                )}
+
                 <div className="flex justify-between">
                   <span className="text-xs text-muted-foreground uppercase font-black">Tempo Estimado</span>
                   <span className="text-sm font-black text-foreground">{totalCartDuration} min</span>
