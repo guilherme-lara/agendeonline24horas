@@ -258,11 +258,14 @@ export type Database = {
           avatar_url: string | null
           barbershop_id: string
           commission_pct: number
+          cpf_cnpj: string | null
           created_at: string
           email: string | null
           id: string
           name: string
           phone: string | null
+          requires_password_change: boolean
+          shift: string | null
           user_id: string | null
         }
         Insert: {
@@ -270,11 +273,14 @@ export type Database = {
           avatar_url?: string | null
           barbershop_id: string
           commission_pct?: number
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
           phone?: string | null
+          requires_password_change?: boolean
+          shift?: string | null
           user_id?: string | null
         }
         Update: {
@@ -282,11 +288,14 @@ export type Database = {
           avatar_url?: string | null
           barbershop_id?: string
           commission_pct?: number
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
           phone?: string | null
+          requires_password_change?: boolean
+          shift?: string | null
           user_id?: string | null
         }
         Relationships: [
