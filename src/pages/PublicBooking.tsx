@@ -302,7 +302,7 @@ const PublicBooking = () => {
   const { data: shopResources, isLoading: loadingResources } = useQuery({
     queryKey: ["shopResources", shop?.id],
     queryFn: async () => {
-      const [servs, hours, barbers, barberServices, cats, inventory] =
+      const [servs, hours, barbers, barberServices, cats] =
         await Promise.all([
           supabase
             .from("services")
@@ -329,11 +329,6 @@ const PublicBooking = () => {
             .select("id, name")
             .eq("active", true)
             .eq("barbershop_id", shop!.id),
-          supabase
-            .from("inventory")
-            .select("id, name, sell_price, quantity, active")
-            .eq("active", true)
-            .eq("barbershop_id", shop!.id),
         ]);
       return {
         services: servs.data || [],
@@ -341,13 +336,8 @@ const PublicBooking = () => {
         barbers: barbers.data || [],
         barberServices: barberServices.data || [],
         categories: cats.data || [],
-        products: (inventory.data || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: p.sell_price,
-          stock: p.quantity
-        })).filter((p: any) => p.stock > 0),
       };
+
     },
     enabled: !!shop?.id,
   });
