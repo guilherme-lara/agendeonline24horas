@@ -183,6 +183,22 @@ const Caixa = () => {
     enabled: !!clinic?.id,
   });
 
+  const { data: servicesList = [] } = useQuery({
+    queryKey: ["services-pdv", clinic?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id, name, price")
+        .eq("barbershop_id", clinic?.id)
+        .eq("active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!clinic?.id,
+  });
+
+
   const cartTotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.price) * item.qty, 0);
   }, [cart]);
