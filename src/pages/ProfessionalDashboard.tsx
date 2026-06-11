@@ -360,7 +360,7 @@ const ProfessionalDashboard = () => {
                                 <MessageSquare className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
                               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Realizado
                             </Button>
                           </div>
