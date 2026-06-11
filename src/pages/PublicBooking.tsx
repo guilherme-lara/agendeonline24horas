@@ -117,7 +117,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [showCart, setShowCart] = useState(false);
-  const [productTab, setProductTab] = useState(false);
+  
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
   const [resetCategoryFlag, setResetCategoryFlag] = useState(false);
 
