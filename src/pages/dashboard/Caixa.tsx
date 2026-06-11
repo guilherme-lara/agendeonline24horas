@@ -749,6 +749,31 @@ const Caixa = () => {
               </div>
             </div>
 
+            {servicesList.length > 0 && (
+              <div className="mb-8">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
+                  Adicionar Serviço Extra
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                  {servicesList.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => addExtraServiceToCart(s)}
+                      className="flex justify-between items-center p-3 bg-background border border-border/50 rounded-2xl hover:border-primary/40 hover:shadow-sm transition-all text-left w-full overflow-hidden"
+                    >
+                      <p className="text-[11px] font-bold text-foreground truncate flex-1">
+                        {s.name}
+                      </p>
+                      <span className="text-[11px] font-black text-primary shrink-0">
+                        R${Number(s.price).toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
             <div className="pt-6 border-t border-border space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground font-bold uppercase text-[10px]">
