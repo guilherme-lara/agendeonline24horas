@@ -1346,6 +1346,7 @@ export type Database = {
         }[]
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
+      check_is_barber_of_shop: { Args: { shop_id: string }; Returns: boolean }
       cleanup_expired_appointments: { Args: never; Returns: number }
       create_public_appointment: {
         Args: {
