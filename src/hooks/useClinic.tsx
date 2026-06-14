@@ -141,8 +141,8 @@ export const useClinic = () => {
     enabled: !!user?.id, // Só executa se houver usuário
     staleTime: 5 * 60 * 1000, // 5 minutos - herda do global
     gcTime: 10 * 60 * 1000, // 10 minutos - mantém em cache
-    refetchOnWindowFocus: true, // Herda do global
-    refetchOnReconnect: true, // Herda do global
+    refetchOnWindowFocus: false, // Evita re-fetch (e re-render em cascata) ao trocar de aba/voltar foco no mobile
+    refetchOnReconnect: true, // Só quando volta conexão
     retry: (failureCount, error: any) => {
       // Retry limitado para erros não-autorização
       if (failureCount >= 3) return false;

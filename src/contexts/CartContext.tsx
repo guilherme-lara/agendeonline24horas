@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 
 export interface CartItem {
   id: string;
@@ -73,28 +73,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }, []);
 
-  const totalPrice = items.reduce((sum, i) => {
-    const qty = i.type === "product" ? (i.quantity ?? 1) : 1;
-    return sum + (i.price ?? 0) * qty;
-  }, 0);
-
-  const totalDuration = items.reduce((sum, i) => sum + (i.duration ?? 0), 0);
-  const totalAdvancePayment = items.reduce(
-    (sum, i) =>
-      sum +
-      (i.advance_payment_value && i.advance_payment_value > 0
-        ? i.advance_payment_value
-        : i.price ?? 0),
-    0
+  const totalPrice = useMemo(
+    () =>
+      items.reduce((sum, i) => {
+        const qty = i.type === "product" ? (i.quantity ?? 1) : 1;
+        return sum + (i.price ?? 0) * qty;
+      }, 0),
+    [items],
   );
 
-  return (
-    <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalPrice, totalDuration, totalAdvancePayment }}
-    >
-      {children}
-    </CartContext.Provider>
+  const totalDuration = useMemo(
+    () => items.reduce((sum, i) => sum + (i.duration ?? 0), 0),
+    [items],
   );
+
+  const totalAdvancePayment = useMemo(
+    () =>
+      items.reduce(
+        (sum, i) =>
+          sum +
+          (i.advance_payment_value && i.advance_payment_value > 0
+            ? i.advance_payment_value
+            : i.price ?? 0),
+        0,
+      ),
+    [items],
+  );
+
+  const value = useMemo(
+    () => ({ items, addItem, removeItem, updateQuantity, clearCart, totalPrice, totalDuration, totalAdvancePayment }),
+    [items, addItem, removeItem, updateQuantity, clearCart, totalPrice, totalDuration, totalAdvancePayment],
+  );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {

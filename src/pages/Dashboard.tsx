@@ -84,45 +84,58 @@ const Dashboard = () => {
   }, [clinic?.id, queryClient]);
 
   // --- 3. QUERIES (BUSCA DE DADOS) ---
-  const { data: appointments = [], isLoading: loadingAppts } = useQuery({
+  // Janela temporal: KPIs só precisam do mês corrente (faturamento mensal, gráfico 7 dias e hoje).
+  // Buscar a tabela inteira estrangulava o banco a cada evento realtime.
+  const monthStartIso = useMemo(() => {
+    const now = toBRT(new Date().toISOString());
+    return `${format(startOfMonth(now), "yyyy-MM-dd")}T00:00:00-03:00`;
+  }, []);
+
+  const { data: appointments = [], isLoading: loadingAppts, isError: errorAppts } = useQuery({
     queryKey: ["dashboard-appointments", clinic?.id, professionalId],
     queryFn: async () => {
       let query = supabase
         .from("appointments")
         .select("id, client_name, scheduled_at, status")
-        .eq("barbershop_id", clinic.id);
-        
+        .eq("barbershop_id", clinic.id)
+        .gte("scheduled_at", monthStartIso);
+
       if (isProfessional && professionalId) {
         query = query.eq("barber_id", professionalId);
       }
-      
-      const { data, error } = await query.order("scheduled_at", { ascending: false });
+
+      const { data, error } = await query
+        .order("scheduled_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       return data;
     },
     enabled: !!clinic?.id,
-    staleTime: 0, 
+    staleTime: 30 * 1000,
   });
 
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({
+  const { data: orders = [], isLoading: loadingOrders, isError: errorOrders } = useQuery({
     queryKey: ["dashboard-orders", clinic?.id, professionalId],
     queryFn: async () => {
       let query = supabase
         .from("orders")
         .select("*")
         .eq("barbershop_id", clinic.id)
-        .eq("status", "closed");
+        .eq("status", "closed")
+        .gte("created_at", monthStartIso);
 
       if (isProfessional && professionalId) {
         query = query.eq("barber_id", professionalId);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1000);
       if (error) throw error;
       return data;
     },
     enabled: !!clinic?.id,
-    staleTime: 0,
+    staleTime: 30 * 1000,
   });
 
   // --- 4. LÓGICA DE NEGÓCIO (CÁLCULO DE KPIs) ---
@@ -203,6 +216,30 @@ const Dashboard = () => {
   // --- RENDERING ---
   if (shopLoading || (loadingAppts && !appointments.length)) return <DashboardSkeleton />;
   if (!clinic) return null;
+
+  // Proteção contra travamento: se as queries falharem (rede/timeout), mostra UI limpa em vez de congelar
+  if (errorAppts || errorOrders) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 animate-in fade-in duration-300">
+        <div className="bg-destructive/10 p-5 rounded-2xl mb-5 border border-destructive/20">
+          <AlertTriangle className="h-9 w-9 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2 font-display">Problema de conexão</h2>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">
+          Não conseguimos carregar os dados agora. Verifique sua conexão e tente recarregar.
+        </p>
+        <Button
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+          }}
+          className="rounded-xl font-semibold"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+        </Button>
+      </div>
+    );
+  }
 
   const kpiCards = [
     { icon: DollarSign, label: "Caixa Hoje", value: kpis.todayRevTotal, gradient: "from-indigo-500 to-violet-600", glow: "shadow-indigo-500/30" },
