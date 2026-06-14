@@ -217,6 +217,30 @@ const Dashboard = () => {
   if (shopLoading || (loadingAppts && !appointments.length)) return <DashboardSkeleton />;
   if (!clinic) return null;
 
+  // Proteção contra travamento: se as queries falharem (rede/timeout), mostra UI limpa em vez de congelar
+  if (errorAppts || errorOrders) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 animate-in fade-in duration-300">
+        <div className="bg-destructive/10 p-5 rounded-2xl mb-5 border border-destructive/20">
+          <AlertTriangle className="h-9 w-9 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2 font-display">Problema de conexão</h2>
+        <p className="text-sm text-muted-foreground max-w-sm mb-6">
+          Não conseguimos carregar os dados agora. Verifique sua conexão e tente recarregar.
+        </p>
+        <Button
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+          }}
+          className="rounded-xl font-semibold"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+
   const kpiCards = [
     { icon: DollarSign, label: "Caixa Hoje", value: kpis.todayRevTotal, gradient: "from-indigo-500 to-violet-600", glow: "shadow-indigo-500/30" },
     { icon: Scissors, label: "Serviços", value: kpis.todayRevServices, gradient: "from-emerald-500 to-teal-600", glow: "shadow-emerald-500/30" },
