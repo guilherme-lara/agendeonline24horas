@@ -44,37 +44,39 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 export const BookingProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<BookingState>(initialState);
 
-  const addService = (service: Service) =>
-    setState((s) => ({ ...s, selectedServices: [...s.selectedServices, service] }));
+  const addService = useCallback((service: Service) =>
+    setState((s) => ({ ...s, selectedServices: [...s.selectedServices, service] })), []);
 
-  const removeService = (serviceId: number) =>
-    setState((s) => ({ ...s, selectedServices: s.selectedServices.filter((sv) => sv.id !== serviceId) }));
+  const removeService = useCallback((serviceId: number) =>
+    setState((s) => ({ ...s, selectedServices: s.selectedServices.filter((sv) => sv.id !== serviceId) })), []);
 
-  const toggleService = (service: Service) => {
-    const exists = state.selectedServices.find((s) => s.id === service.id);
-    if (exists) removeService(service.id);
-    else addService(service);
-  };
+  const toggleService = useCallback((service: Service) => {
+    setState((s) => {
+      const exists = s.selectedServices.find((sv) => sv.id === service.id);
+      return exists
+        ? { ...s, selectedServices: s.selectedServices.filter((sv) => sv.id !== service.id) }
+        : { ...s, selectedServices: [...s.selectedServices, service] };
+    });
+  }, []);
 
-  const setBarber = (barber: Barber) => setState((s) => ({ ...s, selectedBarber: barber }));
-  const setDate = (date: Date) => setState((s) => ({ ...s, selectedDate: date, selectedTime: null }));
-  const setTime = (time: string) => setState((s) => ({ ...s, selectedTime: time }));
-  const setCustomerName = (name: string) => setState((s) => ({ ...s, customerName: name }));
-  const setCustomerPhone = (phone: string) => setState((s) => ({ ...s, customerPhone: phone }));
-  const setPaymentMethod = (method: "pix" | "card") => setState((s) => ({ ...s, paymentMethod: method }));
-  const setStep = (step: number) => setState((s) => ({ ...s, currentStep: step }));
-  const reset = () => setState(initialState);
+  const setBarber = useCallback((barber: Barber) => setState((s) => ({ ...s, selectedBarber: barber })), []);
+  const setDate = useCallback((date: Date) => setState((s) => ({ ...s, selectedDate: date, selectedTime: null })), []);
+  const setTime = useCallback((time: string) => setState((s) => ({ ...s, selectedTime: time })), []);
+  const setCustomerName = useCallback((name: string) => setState((s) => ({ ...s, customerName: name })), []);
+  const setCustomerPhone = useCallback((phone: string) => setState((s) => ({ ...s, customerPhone: phone })), []);
+  const setPaymentMethod = useCallback((method: "pix" | "card") => setState((s) => ({ ...s, paymentMethod: method })), []);
+  const setStep = useCallback((step: number) => setState((s) => ({ ...s, currentStep: step })), []);
+  const reset = useCallback(() => setState(initialState), []);
 
-  const totalPrice = state.selectedServices.reduce((sum, s) => sum + s.price, 0);
-  const totalDuration = state.selectedServices.reduce((sum, s) => sum + s.duration, 0);
+  const totalPrice = useMemo(() => state.selectedServices.reduce((sum, s) => sum + s.price, 0), [state.selectedServices]);
+  const totalDuration = useMemo(() => state.selectedServices.reduce((sum, s) => sum + s.duration, 0), [state.selectedServices]);
 
-  return (
-    <BookingContext.Provider
-      value={{ ...state, addService, removeService, toggleService, setBarber, setDate, setTime, setCustomerName, setCustomerPhone, setPaymentMethod, setStep, totalPrice, totalDuration, reset }}
-    >
-      {children}
-    </BookingContext.Provider>
+  const value = useMemo(
+    () => ({ ...state, addService, removeService, toggleService, setBarber, setDate, setTime, setCustomerName, setCustomerPhone, setPaymentMethod, setStep, totalPrice, totalDuration, reset }),
+    [state, addService, removeService, toggleService, setBarber, setDate, setTime, setCustomerName, setCustomerPhone, setPaymentMethod, setStep, totalPrice, totalDuration, reset],
   );
+
+  return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;
 };
 
 export const useBooking = () => {
