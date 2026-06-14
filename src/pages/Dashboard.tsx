@@ -84,45 +84,58 @@ const Dashboard = () => {
   }, [clinic?.id, queryClient]);
 
   // --- 3. QUERIES (BUSCA DE DADOS) ---
-  const { data: appointments = [], isLoading: loadingAppts } = useQuery({
+  // Janela temporal: KPIs só precisam do mês corrente (faturamento mensal, gráfico 7 dias e hoje).
+  // Buscar a tabela inteira estrangulava o banco a cada evento realtime.
+  const monthStartIso = useMemo(() => {
+    const now = toBRT(new Date().toISOString());
+    return `${format(startOfMonth(now), "yyyy-MM-dd")}T00:00:00-03:00`;
+  }, []);
+
+  const { data: appointments = [], isLoading: loadingAppts, isError: errorAppts } = useQuery({
     queryKey: ["dashboard-appointments", clinic?.id, professionalId],
     queryFn: async () => {
       let query = supabase
         .from("appointments")
         .select("id, client_name, scheduled_at, status")
-        .eq("barbershop_id", clinic.id);
-        
+        .eq("barbershop_id", clinic.id)
+        .gte("scheduled_at", monthStartIso);
+
       if (isProfessional && professionalId) {
         query = query.eq("barber_id", professionalId);
       }
-      
-      const { data, error } = await query.order("scheduled_at", { ascending: false });
+
+      const { data, error } = await query
+        .order("scheduled_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       return data;
     },
     enabled: !!clinic?.id,
-    staleTime: 0, 
+    staleTime: 30 * 1000,
   });
 
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({
+  const { data: orders = [], isLoading: loadingOrders, isError: errorOrders } = useQuery({
     queryKey: ["dashboard-orders", clinic?.id, professionalId],
     queryFn: async () => {
       let query = supabase
         .from("orders")
         .select("*")
         .eq("barbershop_id", clinic.id)
-        .eq("status", "closed");
+        .eq("status", "closed")
+        .gte("created_at", monthStartIso);
 
       if (isProfessional && professionalId) {
         query = query.eq("barber_id", professionalId);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1000);
       if (error) throw error;
       return data;
     },
     enabled: !!clinic?.id,
-    staleTime: 0,
+    staleTime: 30 * 1000,
   });
 
   // --- 4. LÓGICA DE NEGÓCIO (CÁLCULO DE KPIs) ---
