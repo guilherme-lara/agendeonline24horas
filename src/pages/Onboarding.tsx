@@ -469,7 +469,7 @@ const Onboarding = () => {
   }, [form, user?.id, logoFile, hours, queryClient]);
 
   const verifyAndFinish = useCallback(async () => {
-    if (saving || otp.length !== 6 || !user?.email) return;
+    if (saving || otp.length !== 8 || !user?.email) return;
     setSaving(true);
     try {
       const { error: otpError } = await supabase.auth.verifyOtp({
@@ -963,16 +963,18 @@ const Onboarding = () => {
                       </div>
 
                       <div className="flex justify-center">
-                        <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
+                      <InputOTP maxLength={8} value={otp} onChange={setOtp}>
+                        <InputOTPGroup className="flex gap-2 justify-center">
+                          <InputOTPSlot index={0} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={1} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={2} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={3} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={4} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={5} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={6} className="w-10 h-12 text-lg" />
+                          <InputOTPSlot index={7} className="w-10 h-12 text-lg" />
+                        </InputOTPGroup>
+                      </InputOTP>
                       </div>
 
                       <div className="text-center">
@@ -1002,7 +1004,7 @@ const Onboarding = () => {
                         <Button
                           type="button"
                           onClick={verifyAndFinish}
-                          disabled={saving || otp.length !== 6}
+                          disabled={saving || otp.length !== 8}
                         >
                           {saving ? (
                             <>
