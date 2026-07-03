@@ -19,6 +19,7 @@ const statusColors: Record<string, string> = {
   completed: "border-emerald-500/30 bg-emerald-500/5",
   paid: "border-emerald-500/30 bg-emerald-500/5",
   confirmed: "border-blue-500/30 bg-blue-500/5",
+  in_progress: "border-cyan-500/30 bg-cyan-500/5",
   pending: "border-yellow-500/30 bg-yellow-500/5",
   pending_payment: "border-amber-500/30 bg-amber-500/5",
   pendente_pagamento: "border-amber-500/30 bg-amber-500/5",
@@ -28,6 +29,7 @@ const statusLabel: Record<string, { text: string; color: string }> = {
   completed: { text: "Concluído", color: "text-emerald-500" },
   paid: { text: "Pago", color: "text-emerald-500" },
   confirmed: { text: "Agendado", color: "text-blue-500" },
+  in_progress: { text: "Em Atendimento", color: "text-cyan-500" },
   pending: { text: "Pendente", color: "text-yellow-500" },
   pending_payment: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
   pendente_pagamento: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
@@ -159,11 +161,26 @@ const ProfessionalDashboard = () => {
     const todayEarnings = todayGross * (commissionRate / 100);
     const completedTodayCount = completedToday.length;
 
+    // A RECEBER: procedimentos agendados/realizados ainda NÃO pagos
+    const aReceber = confirmedAppointments
+      .filter((a: any) =>
+        ["confirmed", "pending", "in_progress", "completed"].includes(a.status) &&
+        a.payment_status !== "paid"
+      )
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+
+    // SALDO LIBERADO: exclusivamente procedimentos com pagamento "paid"
+    const saldoLiberado = confirmedAppointments
+      .filter((a: any) => a.payment_status === "paid")
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+
     return {
       todayEarnings,
       monthCommission: monthGross * (commissionRate / 100),
       pendingCount: pendingAppts.length,
       completedTodayCount,
+      aReceber,
+      saldoLiberado,
     };
   }, [confirmedAppointments, commissionRate, today]);
 
@@ -200,6 +217,14 @@ const ProfessionalDashboard = () => {
       return format(d, "yyyy-MM-dd") === todayStr && a.status !== "cancelled";
     });
   }, [confirmedAppointments, today]);
+
+  const handleStart = async (appointmentId: string) => {
+    await supabase
+      .from("appointments")
+      .update({ status: "in_progress" })
+      .eq("id", appointmentId);
+    queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+  };
 
   const handleMarkDone = async (appointmentId: string) => {
     await supabase
@@ -249,6 +274,24 @@ const ProfessionalDashboard = () => {
       </div>
 
       <div className="p-4 space-y-6 max-w-lg mx-auto">
+        {/* Comanda: A Receber x Saldo Liberado */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 text-center">
+              <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
+              <p className="text-lg font-black text-foreground">R$ {stats.aReceber.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">A Receber</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 text-center">
+              <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
+              <p className="text-lg font-black text-foreground">R$ {stats.saldoLiberado.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo Liberado</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Financial Cards */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="border-border bg-card">
@@ -360,9 +403,15 @@ const ProfessionalDashboard = () => {
                                 <MessageSquare className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Realizado
-                            </Button>
+                            {appt.status === "in_progress" ? (
+                              <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Finalizar
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => handleStart(appt.id)} className="h-8 text-xs">
+                                <Clock className="h-3.5 w-3.5 mr-1" /> Iniciar
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <span className={`text-[10px] font-bold ${status.color}`}>{status.text}</span>
