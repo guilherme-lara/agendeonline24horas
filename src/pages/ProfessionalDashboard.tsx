@@ -401,9 +401,15 @@ const ProfessionalDashboard = () => {
                                 <MessageSquare className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Realizado
-                            </Button>
+                            {appt.status === "in_progress" ? (
+                              <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Finalizar
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => handleStart(appt.id)} className="h-8 text-xs">
+                                <Clock className="h-3.5 w-3.5 mr-1" /> Iniciar
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <span className={`text-[10px] font-bold ${status.color}`}>{status.text}</span>
