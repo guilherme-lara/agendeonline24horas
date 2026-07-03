@@ -216,6 +216,14 @@ const ProfessionalDashboard = () => {
     });
   }, [confirmedAppointments, today]);
 
+  const handleStart = async (appointmentId: string) => {
+    await supabase
+      .from("appointments")
+      .update({ status: "in_progress" })
+      .eq("id", appointmentId);
+    queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+  };
+
   const handleMarkDone = async (appointmentId: string) => {
     await supabase
       .from("appointments")
