@@ -91,6 +91,7 @@ Cada clínica de estética é um **tenant** isolado. As políticas de **Row Leve
                                         │ Public Booking │
                                         │ /book/:slug    │
                                         └────────────────┘
+```
 
 ### 🗂️ Estrutura de Rotas
 
