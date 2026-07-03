@@ -159,11 +159,26 @@ const ProfessionalDashboard = () => {
     const todayEarnings = todayGross * (commissionRate / 100);
     const completedTodayCount = completedToday.length;
 
+    // A RECEBER: procedimentos agendados/realizados ainda NÃO pagos
+    const aReceber = confirmedAppointments
+      .filter((a: any) =>
+        ["confirmed", "pending", "in_progress", "completed"].includes(a.status) &&
+        a.payment_status !== "paid"
+      )
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+
+    // SALDO LIBERADO: exclusivamente procedimentos com pagamento "paid"
+    const saldoLiberado = confirmedAppointments
+      .filter((a: any) => a.payment_status === "paid")
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+
     return {
       todayEarnings,
       monthCommission: monthGross * (commissionRate / 100),
       pendingCount: pendingAppts.length,
       completedTodayCount,
+      aReceber,
+      saldoLiberado,
     };
   }, [confirmedAppointments, commissionRate, today]);
 
