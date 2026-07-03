@@ -29,6 +29,7 @@ const statusLabel: Record<string, { text: string; color: string }> = {
   completed: { text: "Concluído", color: "text-emerald-500" },
   paid: { text: "Pago", color: "text-emerald-500" },
   confirmed: { text: "Agendado", color: "text-blue-500" },
+  in_progress: { text: "Em Atendimento", color: "text-cyan-500" },
   pending: { text: "Pendente", color: "text-yellow-500" },
   pending_payment: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
   pendente_pagamento: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
