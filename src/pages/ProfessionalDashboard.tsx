@@ -19,6 +19,7 @@ const statusColors: Record<string, string> = {
   completed: "border-emerald-500/30 bg-emerald-500/5",
   paid: "border-emerald-500/30 bg-emerald-500/5",
   confirmed: "border-blue-500/30 bg-blue-500/5",
+  in_progress: "border-cyan-500/30 bg-cyan-500/5",
   pending: "border-yellow-500/30 bg-yellow-500/5",
   pending_payment: "border-amber-500/30 bg-amber-500/5",
   pendente_pagamento: "border-amber-500/30 bg-amber-500/5",
