@@ -272,6 +272,24 @@ const ProfessionalDashboard = () => {
       </div>
 
       <div className="p-4 space-y-6 max-w-lg mx-auto">
+        {/* Comanda: A Receber x Saldo Liberado */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 text-center">
+              <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
+              <p className="text-lg font-black text-foreground">R$ {stats.aReceber.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">A Receber</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 text-center">
+              <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
+              <p className="text-lg font-black text-foreground">R$ {stats.saldoLiberado.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo Liberado</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Financial Cards */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="border-border bg-card">
