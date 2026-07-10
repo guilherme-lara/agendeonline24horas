@@ -676,15 +676,15 @@ const PublicBooking = () => {
     const slots: string[] = [];
     const [openH, openM] = bh.open_time.split(":").map(Number);
     const [closeH, closeM] = bh.close_time.split(":").map(Number);
-    const now = new Date();
+    const nowBrtMinutes = getNowBrtMinutes();
 
     for (let h = openH; h <= closeH; h++) {
       for (let m = (h === openH ? openM : 0); m < 60; m += 30) {
         if (h === closeH && m >= closeM) break;
-        const slotStart = new Date(selectedDate);
-        slotStart.setHours(h, m, 0, 0);
-        if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotStartMinutes = h * 60 + m;
+        // Blindagem de fuso: bloqueia horários passados usando o relógio de Brasília,
+        // não o fuso local do dispositivo do cliente.
+        if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
 
         const hasConflict = existingAppts.some((appt: any) => {
