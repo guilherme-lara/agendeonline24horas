@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
+import { format, addMinutes, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 
