@@ -89,6 +89,13 @@ const matchesSelectedBarber = (appointment: any, barber: any) => {
   return false;
 };
 
+// Minuto-do-dia atual no fuso de Brasília (UTC-3), independente do fuso do navegador.
+const getNowBrtMinutes = () => {
+  const now = new Date();
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return (((utcMinutes - 180) % 1440) + 1440) % 1440;
+};
+
 const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
   const date = new Date(scheduledAt);
   const totalUtcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
