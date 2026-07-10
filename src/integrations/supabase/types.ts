@@ -97,6 +97,9 @@ export type Database = {
           client_id: string | null
           client_name: string
           client_phone: string | null
+          commission_approved: boolean
+          commission_approved_at: string | null
+          commission_approved_by: string | null
           created_at: string | null
           customer_id: string | null
           expires_at: string | null
@@ -123,6 +126,9 @@ export type Database = {
           client_id?: string | null
           client_name: string
           client_phone?: string | null
+          commission_approved?: boolean
+          commission_approved_at?: string | null
+          commission_approved_by?: string | null
           created_at?: string | null
           customer_id?: string | null
           expires_at?: string | null
@@ -149,6 +155,9 @@ export type Database = {
           client_id?: string | null
           client_name?: string
           client_phone?: string | null
+          commission_approved?: boolean
+          commission_approved_at?: string | null
+          commission_approved_by?: string | null
           created_at?: string | null
           customer_id?: string | null
           expires_at?: string | null
@@ -1344,6 +1353,10 @@ export type Database = {
           email: string
           user_id: string
         }[]
+      }
+      approve_appointment_commission: {
+        Args: { _appointment_id: string }
+        Returns: undefined
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
       check_is_barber_of_shop: { Args: { shop_id: string }; Returns: boolean }
