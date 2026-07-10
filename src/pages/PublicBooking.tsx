@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMinutes, isBefore, isToday, startOfDay } from "date-fns";
+import { format, addMinutes, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 
@@ -87,6 +87,13 @@ const matchesSelectedBarber = (appointment: any, barber: any) => {
   if (appointment?.barber_id) return appointment.barber_id === barber.id;
   if (appointment?.barber_name) return appointment.barber_name === barber.name;
   return false;
+};
+
+// Minuto-do-dia atual no fuso de Brasília (UTC-3), independente do fuso do navegador.
+const getNowBrtMinutes = () => {
+  const now = new Date();
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return (((utcMinutes - 180) % 1440) + 1440) % 1440;
 };
 
 const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
@@ -669,15 +676,15 @@ const PublicBooking = () => {
     const slots: string[] = [];
     const [openH, openM] = bh.open_time.split(":").map(Number);
     const [closeH, closeM] = bh.close_time.split(":").map(Number);
-    const now = new Date();
+    const nowBrtMinutes = getNowBrtMinutes();
 
     for (let h = openH; h <= closeH; h++) {
       for (let m = (h === openH ? openM : 0); m < 60; m += 30) {
         if (h === closeH && m >= closeM) break;
-        const slotStart = new Date(selectedDate);
-        slotStart.setHours(h, m, 0, 0);
-        if (isToday(selectedDate) && isBefore(slotStart, now)) continue;
         const slotStartMinutes = h * 60 + m;
+        // Blindagem de fuso: bloqueia horários passados usando o relógio de Brasília,
+        // não o fuso local do dispositivo do cliente.
+        if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
 
         const hasConflict = existingAppts.some((appt: any) => {
