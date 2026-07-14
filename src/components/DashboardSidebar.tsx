@@ -46,6 +46,7 @@ const navItems = [
   {
     label: "Financeiro", icon: Briefcase, path: "#",
     subItems: [
+      { label: "Aprovação de Comandas", icon: PackageCheck, path: "/dashboard/aprovacoes" },
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
       { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
     ],
