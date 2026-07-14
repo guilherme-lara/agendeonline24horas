@@ -1078,7 +1078,7 @@ const PublicBooking = () => {
                               mode="single"
                               selected={selectedDate || undefined}
                               onSelect={(d) => d && setSelectedDate(d)}
-                              disabled={disabledDates || ((d) => d < startOfDay(new Date()))}
+                              disabled={disabledDates || ((d) => d < getTodayStartBrt())}
                               locale={ptBR}
                               className="mx-auto"
                             />
