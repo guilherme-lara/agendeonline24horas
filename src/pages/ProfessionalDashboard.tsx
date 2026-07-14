@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User, Target, Send, MessageSquare } from "lucide-react";
+import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User, Target, Send, MessageSquare, Plus, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,10 @@ import { toBRT, nowBRT } from "@/lib/timezone";
 import BarberStatementPDF from "@/components/BarberStatementPDF";
 import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import confetti from "canvas-confetti";
+import AddToComandaModal from "@/components/AddToComandaModal";
+import PixPaymentModal from "@/components/PixPaymentModal";
+import { createInfinitePayCharge } from "@/services/infinitepay";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   completed: "border-emerald-500/30 bg-emerald-500/5",
