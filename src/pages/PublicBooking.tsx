@@ -102,6 +102,13 @@ const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
   return (((totalUtcMinutes - 180) % 1440) + 1440) % 1440;
 };
 
+// Início do dia atual em BRT (UTC-3), independente do fuso do navegador.
+const getTodayStartBrt = () => {
+  const now = new Date();
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return new Date(Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate()));
+};
+
 const hasTimeOverlap = (
   slotStartMinutes: number,
   slotEndMinutes: number,
