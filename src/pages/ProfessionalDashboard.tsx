@@ -47,6 +47,15 @@ const ProfessionalDashboard = () => {
   const navigate = useNavigate();
   const [showStatement, setShowStatement] = useState(false);
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
+  const [comandaAppt, setComandaAppt] = useState<any | null>(null);
+  const [finalizingId, setFinalizingId] = useState<string | null>(null);
+  const [pixModal, setPixModal] = useState<{
+    open: boolean;
+    appointmentId?: string;
+    pixCode: string;
+    price: number;
+    serviceName: string;
+  }>({ open: false, pixCode: "", price: 0, serviceName: "" });
   const today = nowBRT();
   const { playCaching } = useSoundFeedback();
   const prevCountRef = useRef<number | null>(null);
