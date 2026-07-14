@@ -289,6 +289,14 @@ const AppContent = () => {
             }
           />
           <Route
+            path="aprovacoes"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Aprovacoes />
+              </Suspense>
+            }
+          />
+          <Route
             path="produtos"
             element={
               <Suspense fallback={<LazyFallback />}>
