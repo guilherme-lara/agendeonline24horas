@@ -617,6 +617,31 @@ const ProfessionalDashboard = () => {
           onClose={() => setShowStatement(false)}
         />
       )}
+
+      {/* Adicionar à Comanda */}
+      {comandaAppt && (
+        <AddToComandaModal
+          open={!!comandaAppt}
+          onClose={() => setComandaAppt(null)}
+          appointment={comandaAppt}
+          professional={barber}
+        />
+      )}
+
+      {/* QR Code Pix Dinâmico */}
+      <PixPaymentModal
+        open={pixModal.open}
+        onClose={() => setPixModal((s) => ({ ...s, open: false }))}
+        paymentUrl=""
+        pixCode={pixModal.pixCode}
+        price={pixModal.price}
+        serviceName={pixModal.serviceName}
+        appointmentId={pixModal.appointmentId}
+        onPaymentConfirmed={() => {
+          queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+          setPixModal((s) => ({ ...s, open: false }));
+        }}
+      />
     </div>
   );
 };
