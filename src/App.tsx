@@ -31,6 +31,7 @@ import ProfessionalProfile from "./pages/ProfessionalProfile";
 // 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Subscribe from "./pages/Subscribe";
 import PublicBooking from "./pages/PublicBooking";
