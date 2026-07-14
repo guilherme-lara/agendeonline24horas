@@ -254,6 +254,7 @@ const Login = () => {
                 {!isSignUp && (
                   <button
                     type="button"
+                    onClick={handleForgotPassword}
                     className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors"
                   >
                     Esqueceu a senha?
