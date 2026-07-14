@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User, Target, Send, MessageSquare } from "lucide-react";
+import { Loader2, DollarSign, Calendar, Clock, CheckCircle2, LogOut, FileText, User, Target, Send, MessageSquare, Plus, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,10 @@ import { toBRT, nowBRT } from "@/lib/timezone";
 import BarberStatementPDF from "@/components/BarberStatementPDF";
 import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import confetti from "canvas-confetti";
+import AddToComandaModal from "@/components/AddToComandaModal";
+import PixPaymentModal from "@/components/PixPaymentModal";
+import { createInfinitePayCharge } from "@/services/infinitepay";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   completed: "border-emerald-500/30 bg-emerald-500/5",
@@ -43,6 +47,15 @@ const ProfessionalDashboard = () => {
   const navigate = useNavigate();
   const [showStatement, setShowStatement] = useState(false);
   const [activeTab, setActiveTab] = useState<"agenda" | "ganhos">("agenda");
+  const [comandaAppt, setComandaAppt] = useState<any | null>(null);
+  const [finalizingId, setFinalizingId] = useState<string | null>(null);
+  const [pixModal, setPixModal] = useState<{
+    open: boolean;
+    appointmentId?: string;
+    pixCode: string;
+    price: number;
+    serviceName: string;
+  }>({ open: false, pixCode: "", price: 0, serviceName: "" });
   const today = nowBRT();
   const { playCaching } = useSoundFeedback();
   const prevCountRef = useRef<number | null>(null);
@@ -161,18 +174,17 @@ const ProfessionalDashboard = () => {
     const todayEarnings = todayGross * (commissionRate / 100);
     const completedTodayCount = completedToday.length;
 
-    // A RECEBER: procedimentos agendados/realizados ainda NÃO pagos
+    // A RECEBER: procedimentos concluídos aguardando aprovação de comissão pelo gerente
     const aReceber = confirmedAppointments
       .filter((a: any) =>
-        ["confirmed", "pending", "in_progress", "completed"].includes(a.status) &&
-        a.payment_status !== "paid"
+        a.status === "completed" && !a.commission_approved
       )
-      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0) * (commissionRate / 100), 0);
 
-    // SALDO LIBERADO: exclusivamente procedimentos com pagamento "paid"
+    // SALDO LIBERADO: procedimentos com comissão já aprovada pelo gerente via RPC
     const saldoLiberado = confirmedAppointments
-      .filter((a: any) => a.payment_status === "paid")
-      .reduce((sum: number, a: any) => sum + Number(a.price || 0), 0);
+      .filter((a: any) => a.status === "completed" && a.commission_approved === true)
+      .reduce((sum: number, a: any) => sum + Number(a.price || 0) * (commissionRate / 100), 0);
 
     return {
       todayEarnings,
@@ -226,12 +238,60 @@ const ProfessionalDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
   };
 
-  const handleMarkDone = async (appointmentId: string) => {
-    await supabase
-      .from("appointments")
-      .update({ status: "completed" })
-      .eq("id", appointmentId);
-    queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+  const handleFinalizeAndCharge = async (appt: any) => {
+    try {
+      setFinalizingId(appt.id);
+      // Marca como concluído (trigger recalc já garantiu o total via appointment_items)
+      const { error: upErr } = await supabase
+        .from("appointments")
+        .update({ status: "completed" })
+        .eq("id", appt.id);
+      if (upErr) throw upErr;
+
+      // Recarrega valor atualizado (após triggers)
+      const { data: fresh } = await supabase
+        .from("appointments")
+        .select("id, price, total_price, service_name, client_name, client_phone")
+        .eq("id", appt.id)
+        .maybeSingle();
+
+      const totalReais = Number(fresh?.total_price ?? fresh?.price ?? appt.price ?? 0);
+      const amountCents = Math.round(totalReais * 100);
+
+      if (amountCents <= 0) {
+        toast.success("Atendimento finalizado.");
+        queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+        return;
+      }
+
+      const [first, ...rest] = String(fresh?.client_name || appt.client_name || "Cliente").trim().split(" ");
+      const res = await createInfinitePayCharge({
+        amount: amountCents,
+        document_number: "",
+        first_name: first || "Cliente",
+        last_name: rest.join(" ") || "N",
+        appointment_id: appt.id,
+        barbershop_id: appt.barbershop_id,
+      });
+
+      if (!res.success) {
+        toast.error(res.error || "Falha ao gerar cobrança Pix");
+        return;
+      }
+
+      setPixModal({
+        open: true,
+        appointmentId: appt.id,
+        pixCode: res.brcode || res.pix_key || "",
+        price: totalReais,
+        serviceName: String(fresh?.service_name || appt.service_name || "Atendimento"),
+      });
+      queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível finalizar o atendimento");
+    } finally {
+      setFinalizingId(null);
+    }
   };
 
   if (barberLoading || apptLoading) {
@@ -404,9 +464,30 @@ const ProfessionalDashboard = () => {
                               </Button>
                             )}
                             {appt.status === "in_progress" ? (
-                              <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Finalizar
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setComandaAppt(appt)}
+                                  className="h-8 text-xs"
+                                  title="Adicionar item à comanda"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  disabled={finalizingId === appt.id}
+                                  onClick={() => handleFinalizeAndCharge(appt)}
+                                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50"
+                                >
+                                  {finalizingId === appt.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                  ) : (
+                                    <QrCode className="h-3.5 w-3.5 mr-1" />
+                                  )}
+                                  Finalizar
+                                </Button>
+                              </>
                             ) : (
                               <Button size="sm" variant="outline" onClick={() => handleStart(appt.id)} className="h-8 text-xs">
                                 <Clock className="h-3.5 w-3.5 mr-1" /> Iniciar
@@ -536,6 +617,31 @@ const ProfessionalDashboard = () => {
           onClose={() => setShowStatement(false)}
         />
       )}
+
+      {/* Adicionar à Comanda */}
+      {comandaAppt && (
+        <AddToComandaModal
+          open={!!comandaAppt}
+          onClose={() => setComandaAppt(null)}
+          appointment={comandaAppt}
+          professional={barber}
+        />
+      )}
+
+      {/* QR Code Pix Dinâmico */}
+      <PixPaymentModal
+        open={pixModal.open}
+        onClose={() => setPixModal((s) => ({ ...s, open: false }))}
+        paymentUrl=""
+        pixCode={pixModal.pixCode}
+        price={pixModal.price}
+        serviceName={pixModal.serviceName}
+        appointmentId={pixModal.appointmentId}
+        onPaymentConfirmed={() => {
+          queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+          setPixModal((s) => ({ ...s, open: false }));
+        }}
+      />
     </div>
   );
 };

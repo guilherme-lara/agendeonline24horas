@@ -60,6 +60,7 @@ const Produtos = lazy(() => import("./pages/dashboard/Produtos"));
 const Aniversarios = lazy(() => import("./pages/dashboard/Aniversarios"));
 const Pacotes = lazy(() => import("./pages/dashboard/Pacotes"));
 const Pagamentos = lazy(() => import("./pages/dashboard/Pagamentos"));
+const Aprovacoes = lazy(() => import("./pages/dashboard/Aprovacoes"));
 
 
 // 9. Hook da Clínica (para o PlanGate)
@@ -284,6 +285,14 @@ const AppContent = () => {
                 <PlanGate minPlan="prata" featureName="Despesas">
                   <Despesas />
                 </PlanGate>
+              </Suspense>
+            }
+          />
+          <Route
+            path="aprovacoes"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <Aprovacoes />
               </Suspense>
             }
           />
