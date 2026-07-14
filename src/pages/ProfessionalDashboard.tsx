@@ -238,12 +238,60 @@ const ProfessionalDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
   };
 
-  const handleMarkDone = async (appointmentId: string) => {
-    await supabase
-      .from("appointments")
-      .update({ status: "completed" })
-      .eq("id", appointmentId);
-    queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+  const handleFinalizeAndCharge = async (appt: any) => {
+    try {
+      setFinalizingId(appt.id);
+      // Marca como concluído (trigger recalc já garantiu o total via appointment_items)
+      const { error: upErr } = await supabase
+        .from("appointments")
+        .update({ status: "completed" })
+        .eq("id", appt.id);
+      if (upErr) throw upErr;
+
+      // Recarrega valor atualizado (após triggers)
+      const { data: fresh } = await supabase
+        .from("appointments")
+        .select("id, price, total_price, service_name, client_name, client_phone")
+        .eq("id", appt.id)
+        .maybeSingle();
+
+      const totalReais = Number(fresh?.total_price ?? fresh?.price ?? appt.price ?? 0);
+      const amountCents = Math.round(totalReais * 100);
+
+      if (amountCents <= 0) {
+        toast.success("Atendimento finalizado.");
+        queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+        return;
+      }
+
+      const [first, ...rest] = String(fresh?.client_name || appt.client_name || "Cliente").trim().split(" ");
+      const res = await createInfinitePayCharge({
+        amount: amountCents,
+        document_number: "",
+        first_name: first || "Cliente",
+        last_name: rest.join(" ") || "N",
+        appointment_id: appt.id,
+        barbershop_id: appt.barbershop_id,
+      });
+
+      if (!res.success) {
+        toast.error(res.error || "Falha ao gerar cobrança Pix");
+        return;
+      }
+
+      setPixModal({
+        open: true,
+        appointmentId: appt.id,
+        pixCode: res.brcode || res.pix_key || "",
+        price: totalReais,
+        serviceName: String(fresh?.service_name || appt.service_name || "Atendimento"),
+      });
+      queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível finalizar o atendimento");
+    } finally {
+      setFinalizingId(null);
+    }
   };
 
   if (barberLoading || apptLoading) {
