@@ -156,7 +156,8 @@ const AppContent = () => {
         {/* Rotas Públicas */}
         <Route path="/" element={<SaaSLanding />} />
         <Route path="/auth" element={<Login />} />
-        <Route path="/login" element={<Login />} />
+       <Route path="/login" element={<Login />} />
+       <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/subscribe/:planId" element={<Subscribe />} />
 
