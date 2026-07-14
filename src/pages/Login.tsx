@@ -44,38 +44,50 @@ const Login = () => {
       const password = formData.password.trim();
 
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { name: formData.name.trim() },
-          },
-        });
-        if (error) throw error;
-        return { type: "signup", data };
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/onboarding`,
+              data: { name: formData.name.trim() },
+            },
+          });
+          if (error) throw error;
+          return { type: "signup" as const, data };
+        } catch (err: any) {
+          throw err;
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        return { type: "login", data };
+        return { type: "login" as const, data };
       }
     },
     onSuccess: async (res) => {
-      // 1. Limpa qualquer lixo de memória de outro usuário que logou antes
-      queryClient.clear();
-
       if (res.type === "signup") {
+        // NÃO limpar cache aqui — usuário ainda pode precisar navegar
+        // Se confirmação de e-mail está ativa, sessão vem null
+        const needsConfirm = !res.data.session;
         toast({
-          title: "Conta criada!",
-          description: "Verifique seu e-mail para confirmar o acesso.",
+          title: needsConfirm ? "Confirme seu e-mail para continuar." : "Conta criada!",
+          description: needsConfirm
+            ? "Enviamos um link de confirmação para o seu e-mail."
+            : "Redirecionando para o onboarding...",
         });
-        setIsSignUp(false);
+        if (!needsConfirm) {
+          window.location.href = "/onboarding";
+        } else {
+          setIsSignUp(false);
+        }
         return;
       }
 
+      // Login: limpa cache de usuário anterior APÓS a autenticação estar consolidada
+      queryClient.clear();
       toast({ title: "Acesso autorizado. Carregando painel..." });
 
       const loggedUser = res.data.user;
@@ -123,15 +135,43 @@ const Login = () => {
       }
     },
     onError: (err: any) => {
+      const raw = String(err?.message || "").toLowerCase();
       let msg = "Falha na autenticação. Verifique os dados.";
-      if (err.message.includes("rate limit"))
-        msg = "Muitas tentativas. Aguarde um pouco.";
-      if (err.message.includes("Invalid login"))
+
+      if (raw.includes("already registered") || raw.includes("already exists") || raw.includes("user already")) {
+        msg = "Este e-mail já está cadastrado.";
+      } else if (raw.includes("password") && (raw.includes("6 characters") || raw.includes("weak") || raw.includes("short"))) {
+        msg = "A senha precisa ter pelo menos 6 caracteres.";
+      } else if (raw.includes("email not confirmed") || raw.includes("confirm")) {
+        msg = "Confirme seu e-mail para continuar.";
+      } else if (raw.includes("invalid login") || raw.includes("invalid credentials")) {
         msg = "E-mail ou senha incorretos.";
+      } else if (raw.includes("rate limit") || raw.includes("too many")) {
+        msg = "Muitas tentativas. Aguarde alguns minutos.";
+      } else if (raw.includes("network") || raw.includes("failed to fetch")) {
+        msg = "Sem conexão. Verifique sua internet.";
+      }
 
       toast({ title: "Erro", description: msg, variant: "destructive" });
     },
   });
+
+  const handleForgotPassword = async () => {
+    const email = formData.email.trim();
+    if (!email) {
+      toast({ title: "Informe seu e-mail", description: "Digite o e-mail cadastrado antes.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+    } catch (err: any) {
+      toast({ title: "Não foi possível enviar", description: err?.message || "Tente novamente.", variant: "destructive" });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +254,7 @@ const Login = () => {
                 {!isSignUp && (
                   <button
                     type="button"
+                    onClick={handleForgotPassword}
                     className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors"
                   >
                     Esqueceu a senha?

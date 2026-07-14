@@ -70,9 +70,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isMountedRef.current) return;
     const currentUser = session?.user ?? null;
 
+    console.info(`[Auth] Event: ${event}`, { hasSession: !!session, userId: currentUser?.id });
+
+    // PASSWORD_RECOVERY: usuário clicou no link do e-mail de reset.
+    // NÃO deslogar. Redirecionar imediatamente para tela segura.
+    if (event === "PASSWORD_RECOVERY") {
+      updateAuthState({ user: currentUser, loading: false });
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/reset-password")) {
+        window.location.replace("/reset-password");
+      }
+      return;
+    }
+
     if (
-      (event === "INITIAL_SESSION" || event === "SIGNED_IN") &&
-      stableStateRef.current.user?.id === currentUser?.id
+      (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+      stableStateRef.current.user?.id === currentUser?.id &&
+      currentUser
     ) {
       if (stableStateRef.current.loading) updateAuthState({ loading: false });
       return;
@@ -81,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     switch (event) {
       case "INITIAL_SESSION":
       case "SIGNED_IN":
+      case "TOKEN_REFRESHED":
       case "USER_UPDATED":
         if (currentUser) {
           const roles = await resolveRoles(currentUser.id);
@@ -90,8 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           updateAuthState({ loading: false });
         }
         break;
-      case "TOKEN_REFRESHED":
-        return;
       case "SIGNED_OUT":
         if (initializedRef.current) {
           updateAuthState({ user: null, isAdmin: false, isProfessional: false, loading: false });

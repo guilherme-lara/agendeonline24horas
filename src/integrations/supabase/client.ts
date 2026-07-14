@@ -15,6 +15,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true, // Crucial: captura tokens de recovery / OAuth do #hash da URL
+    flowType: "pkce",
     lock: (_name: string, _acquireTimeout: number, fn: () => Promise<any>) =>
       fn(),
   },

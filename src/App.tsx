@@ -31,6 +31,7 @@ import ProfessionalProfile from "./pages/ProfessionalProfile";
 // 6. Páginas Públicas e Autenticação
 import SaaSLanding from "./pages/SaaSLanding";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Subscribe from "./pages/Subscribe";
 import PublicBooking from "./pages/PublicBooking";
@@ -155,7 +156,8 @@ const AppContent = () => {
         {/* Rotas Públicas */}
         <Route path="/" element={<SaaSLanding />} />
         <Route path="/auth" element={<Login />} />
-        <Route path="/login" element={<Login />} />
+       <Route path="/login" element={<Login />} />
+       <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/subscribe/:planId" element={<Subscribe />} />
 
