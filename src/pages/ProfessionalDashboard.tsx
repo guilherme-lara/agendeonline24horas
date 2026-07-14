@@ -464,9 +464,30 @@ const ProfessionalDashboard = () => {
                               </Button>
                             )}
                             {appt.status === "in_progress" ? (
-                              <Button size="sm" onClick={() => handleMarkDone(appt.id)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50">
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Finalizar
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setComandaAppt(appt)}
+                                  className="h-8 text-xs"
+                                  title="Adicionar item à comanda"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  disabled={finalizingId === appt.id}
+                                  onClick={() => handleFinalizeAndCharge(appt)}
+                                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-emerald-50"
+                                >
+                                  {finalizingId === appt.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                  ) : (
+                                    <QrCode className="h-3.5 w-3.5 mr-1" />
+                                  )}
+                                  Finalizar
+                                </Button>
+                              </>
                             ) : (
                               <Button size="sm" variant="outline" onClick={() => handleStart(appt.id)} className="h-8 text-xs">
                                 <Clock className="h-3.5 w-3.5 mr-1" /> Iniciar
