@@ -177,16 +177,20 @@ const AppContent = () => {
         <Route path="/admin" element={<Admin />} />
 
         {/* Rotas Legadas / Redirecionamentos */}
-        <Route path="/barber/dashboard" element={<Navigate to="/dashboard/caixa" replace />} />
-        <Route path="/professional/dashboard" element={<Navigate to="/dashboard/caixa" replace />} />
+        <Route path="/barber/dashboard" element={<Navigate to="/pdv" replace />} />
+        <Route path="/professional/dashboard" element={<Navigate to="/pdv" replace />} />
         <Route path="/professional/perfil" element={<ProfessionalProfile />} />
         <Route path="/barber/perfil" element={<Navigate to="/professional/perfil" replace />} />
 
+        {/* PDV (Frente de Caixa) */}
+        <Route path="/pdv" element={<Suspense fallback={<LazyFallback />}><PDV /></Suspense>} />
+        <Route path="/pdv/historico" element={<Suspense fallback={<LazyFallback />}><PDVHistorico /></Suspense>} />
+        
         {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route
             index
-            element={<Navigate to="caixa" replace />}
+            element={<Navigate to="/pdv" replace />}
           />
           <Route
             path="agenda"
