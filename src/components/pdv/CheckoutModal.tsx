@@ -80,11 +80,11 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
             <span className="text-3xl font-black">R$ {total.toFixed(2).replace(".", ",")}</span>
           </div>
           
-          <div className={\`col-span-2 md:col-span-1 rounded-xl p-4 border flex flex-col items-center justify-center transition-colors \${isPaid ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800'}\`}>
-            <span className={\`text-sm font-medium mb-1 \${isPaid ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}\`}>
+          <div className={`col-span-2 md:col-span-1 rounded-xl p-4 border flex flex-col items-center justify-center transition-colors ${isPaid ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800'}`}>
+            <span className={`text-sm font-medium mb-1 ${isPaid ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
               {isPaid ? 'Total Pago' : 'Falta Pagar'}
             </span>
-            <span className={\`text-3xl font-black \${isPaid ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500'}\`}>
+            <span className={`text-3xl font-black ${isPaid ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500'}`}>
               R$ {isPaid ? totalPaid.toFixed(2).replace(".", ",") : remaining.toFixed(2).replace(".", ",")}
             </span>
           </div>

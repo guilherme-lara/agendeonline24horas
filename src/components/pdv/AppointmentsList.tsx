@@ -71,11 +71,11 @@ export function AppointmentsList({ onSelect }: AppointmentsListProps) {
           return (
             <div 
               key={appt.id} 
-              className={\`flex flex-col p-4 rounded-xl border transition-all \${
+              className={`flex flex-col p-4 rounded-xl border transition-all ${
                 isFinished 
                   ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60" 
                   : "bg-white dark:bg-slate-900 border-slate-200 shadow-sm hover:shadow hover:border-primary/50 cursor-pointer"
-              }\`}
+              }`}
               onClick={() => !isFinished && onSelect(appt)}
             >
               <div className="flex justify-between items-start mb-3">

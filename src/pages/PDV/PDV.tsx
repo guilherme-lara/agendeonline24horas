@@ -114,7 +114,7 @@ export default function PDV() {
         origin_id: sale.id,
         payment_method: payment.method,
         created_by: user.id,
-        description: \`Venda #\${sale.id.substring(0,6)}\`
+        description: `Venda #${sale.id.substring(0,6)}`
       }));
 
       const { error: movementsError } = await supabase.from("cash_movements").insert(movementsToInsert as any);
