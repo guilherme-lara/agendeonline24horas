@@ -311,31 +311,6 @@ export default function PDV() {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col">
-      <Dialog open={!isRegisterOpen}>
-        <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Lock className="w-5 h-5 text-amber-500" /> Caixa Fechado
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Para iniciar as operações do PDV, informe o Fundo de Caixa.
-            </p>
-            <form onSubmit={handleOpenRegister} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Troco Inicial (R$)</label>
-                <Input type="number" step="0.01" required value={initialBalance} onChange={(e) => setInitialBalance(e.target.value)} className="text-lg" />
-              </div>
-              <Button type="submit" className="w-full h-11" disabled={openRegisterMutation.isPending}>
-                {openRegisterMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Store className="w-4 h-4 mr-2" />}
-                Abrir Caixa Agora
-              </Button>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <div className="mb-4 bg-white dark:bg-slate-900 p-2 rounded-xl border shadow-sm w-max">
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-[340px]">
            <TabsList className="grid w-full grid-cols-2 h-10">
@@ -346,50 +321,75 @@ export default function PDV() {
       </div>
 
       {viewMode === "pdv" ? (
-      <div className="flex-1 flex gap-4 min-h-0">
-        <div className="w-2/3 flex flex-col gap-4">
-          <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
-             <h2 className="text-lg font-semibold tracking-tight">Fila do Dia</h2>
-             <div className="flex gap-2">
-               <Button variant="outline" className="font-semibold" onClick={() => setShowRegisterMgmt(true)}>
-                  <Settings2 className="w-4 h-4 mr-2" /> Caixa
-               </Button>
-               <Button variant="default" className="font-semibold shadow-md" onClick={() => setShowAddItem(true)}>
-                  + Venda Avulsa
-               </Button>
-             </div>
+        !isRegisterOpen ? (
+          <div className="flex-1 flex items-center justify-center min-h-0 bg-white dark:bg-slate-900 border rounded-xl shadow-sm">
+            <div className="max-w-md w-full p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Caixa Fechado</h2>
+              <p className="text-muted-foreground mb-6">
+                O operacional está desabilitado. Para iniciar as operações do PDV e realizar vendas, você precisa abrir o caixa.
+              </p>
+              
+              <form onSubmit={handleOpenRegister} className="w-full space-y-4 text-left">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Troco Inicial / Fundo de Caixa (R$)</label>
+                  <Input type="number" step="0.01" required value={initialBalance} onChange={(e) => setInitialBalance(e.target.value)} className="text-lg" placeholder="Ex: 100,00" />
+                </div>
+                <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={openRegisterMutation.isPending}>
+                  {openRegisterMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Store className="w-5 h-5 mr-2" />}
+                  Abrir Caixa Agora
+                </Button>
+              </form>
+            </div>
           </div>
-          <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
-             <Tabs defaultValue="agendadas" className="w-full h-full flex flex-col">
-                <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 px-4 h-12">
-                   <TabsTrigger value="agendadas" className="data-[state=active]:bg-background">Agendadas</TabsTrigger>
-                   <TabsTrigger value="abertas" className="data-[state=active]:bg-background">Abertas</TabsTrigger>
-                   <TabsTrigger value="fechadas" className="data-[state=active]:bg-background">Fechadas</TabsTrigger>
-                </TabsList>
-                <TabsContent value="agendadas" className="flex-1 overflow-y-auto p-4 mt-0">
-                    <AppointmentsList onSelect={handleSelectAppointment} professionalId={isProfessional ? professionalId : undefined} />
-                </TabsContent>
-                <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
-                    <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
-                </TabsContent>
-                <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
-                    <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
-                </TabsContent>
-             </Tabs>
-          </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex gap-4 min-h-0">
+            <div className="w-2/3 flex flex-col gap-4">
+              <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
+                 <h2 className="text-lg font-semibold tracking-tight">Fila do Dia</h2>
+                 <div className="flex gap-2">
+                   <Button variant="outline" className="font-semibold" onClick={() => setShowRegisterMgmt(true)}>
+                      <Settings2 className="w-4 h-4 mr-2" /> Caixa
+                   </Button>
+                   <Button variant="default" className="font-semibold shadow-md" onClick={() => setShowAddItem(true)}>
+                      + Venda Avulsa
+                   </Button>
+                 </div>
+              </div>
+              <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+                 <Tabs defaultValue="agendadas" className="w-full h-full flex flex-col">
+                    <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 px-4 h-12">
+                       <TabsTrigger value="agendadas" className="data-[state=active]:bg-background">Agendadas</TabsTrigger>
+                       <TabsTrigger value="abertas" className="data-[state=active]:bg-background">Abertas</TabsTrigger>
+                       <TabsTrigger value="fechadas" className="data-[state=active]:bg-background">Fechadas</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="agendadas" className="flex-1 overflow-y-auto p-4 mt-0">
+                        <AppointmentsList onSelect={handleSelectAppointment} professionalId={isProfessional ? professionalId : undefined} />
+                    </TabsContent>
+                    <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
+                        <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
+                    </TabsContent>
+                    <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
+                        <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
+                    </TabsContent>
+                 </Tabs>
+              </div>
+            </div>
 
-        <div className="w-1/3 bg-white dark:bg-slate-900 border rounded-xl shadow-sm flex flex-col overflow-hidden">
-          <CartPanel 
-            items={cartItems} 
-            customerName={customerName}
-            onRemoveItem={handleRemoveItem}
-            onClear={() => { setCartItems([]); setCustomerName(""); setCustomerId(null); setCurrentSaleId(null); }}
-            onCheckout={() => setShowCheckout(true)}
-            onSaveOpenSale={handleSaveOpenSale}
-          />
-        </div>
-      </div>
+            <div className="w-1/3 bg-white dark:bg-slate-900 border rounded-xl shadow-sm flex flex-col overflow-hidden">
+              <CartPanel 
+                items={cartItems} 
+                customerName={customerName}
+                onRemoveItem={handleRemoveItem}
+                onClear={() => { setCartItems([]); setCustomerName(""); setCustomerId(null); setCurrentSaleId(null); }}
+                onCheckout={() => setShowCheckout(true)}
+                onSaveOpenSale={handleSaveOpenSale}
+              />
+            </div>
+          </div>
+        )
       ) : (
         <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4">
           <CashRegisterPanel />
