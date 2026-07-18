@@ -57,6 +57,7 @@ const ProfessionalDashboard = () => {
     price: number;
     serviceName: string;
   }>({ open: false, pixCode: "", price: 0, serviceName: "" });
+  const [splitPaymentAppt, setSplitPaymentAppt] = useState<any | null>(null);
   const today = nowBRT();
   const { playCaching } = useSoundFeedback();
   const prevCountRef = useRef<number | null>(null);
