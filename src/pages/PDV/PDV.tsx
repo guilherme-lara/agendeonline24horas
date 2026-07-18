@@ -87,32 +87,7 @@ export default function PDV() {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 dark:bg-background">
-      {/* Header do PDV */}
-      <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b shadow-sm shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight">PDV / Frente de Caixa</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {isRegisterOpen ? (
-            <div className="flex items-center gap-2 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-3 py-1.5 rounded-full text-sm font-medium border border-green-200 dark:border-green-800">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Caixa Aberto {openRegister?.opened_at && `(Aberto às ${new Date(openRegister.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 px-3 py-1.5 rounded-full text-sm font-medium border border-amber-200 dark:border-amber-800">
-              <Lock className="w-3.5 h-3.5" />
-              Caixa Fechado
-            </div>
-          )}
-          {user && (
-            <Button variant="ghost" size="sm" onClick={() => supabase.auth.signOut()} className="text-muted-foreground ml-2">
-              Sair
-            </Button>
-          )}
-        </div>
-      </header>
-      
+    <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* Modal Inadiável de Abrir Caixa */}
       <Dialog open={!isRegisterOpen}>
         <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
@@ -153,7 +128,7 @@ export default function PDV() {
       </Dialog>
 
       {/* Interface do PDV (Tela dividida) */}
-      <div className="flex-1 flex overflow-hidden p-4 gap-4">
+      <div className="flex-1 flex gap-4">
         {/* Coluna Esquerda: Fila do Dia & Ações */}
         <div className="w-2/3 flex flex-col gap-4">
           <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center">

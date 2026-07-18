@@ -182,12 +182,12 @@ const AppContent = () => {
         <Route path="/professional/perfil" element={<ProfessionalProfile />} />
         <Route path="/barber/perfil" element={<Navigate to="/professional/perfil" replace />} />
 
-        {/* PDV (Frente de Caixa) */}
-        <Route path="/pdv" element={<Suspense fallback={<LazyFallback />}><PDV /></Suspense>} />
-        <Route path="/pdv/historico" element={<Suspense fallback={<LazyFallback />}><PDVHistorico /></Suspense>} />
-        
-        {/* Dashboard e Sub-páginas com Sidebar (Lazy Loaded) */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        {/* Sistema Integrado com Sidebar (Dashboard e PDV) */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/pdv" element={<Suspense fallback={<LazyFallback />}><PDV /></Suspense>} />
+          <Route path="/pdv/historico" element={<Suspense fallback={<LazyFallback />}><PDVHistorico /></Suspense>} />
+          
+          <Route path="/dashboard">
           <Route
             index
             element={<Navigate to="/pdv" replace />}

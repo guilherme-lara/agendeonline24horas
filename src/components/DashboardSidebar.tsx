@@ -10,6 +10,9 @@ import { useClinic } from "@/hooks/useClinic";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Lock } from "lucide-react";
 
 interface SidebarProps {
   open: boolean;
