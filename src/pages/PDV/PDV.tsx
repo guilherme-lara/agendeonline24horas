@@ -12,6 +12,8 @@ import { AppointmentsList } from "@/components/pdv/AppointmentsList";
 import { CartPanel, CartItem } from "@/components/pdv/CartPanel";
 import { CheckoutModal, PaymentSplit } from "@/components/pdv/CheckoutModal";
 import { AddItemModal } from "@/components/pdv/AddItemModal";
+import { RegisterManagementModal } from "@/components/pdv/RegisterManagementModal";
+import { Settings2 } from "lucide-react";
 
 export default function PDV() {
   const { clinic, loading: clinicLoading } = useClinic();
@@ -25,6 +27,7 @@ export default function PDV() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showRegisterMgmt, setShowRegisterMgmt] = useState(false);
 
   const { data: openRegister, isLoading: registerLoading } = useQuery({
     queryKey: ["active-cash-register", clinic?.id],
@@ -244,9 +247,14 @@ export default function PDV() {
         <div className="w-2/3 flex flex-col gap-4">
           <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
              <h2 className="text-lg font-semibold tracking-tight">Fila do Dia</h2>
-             <Button variant="default" size="lg" className="font-semibold shadow-md" onClick={() => setShowAddItem(true)}>
-                + Venda Avulsa
-             </Button>
+             <div className="flex gap-2">
+               <Button variant="outline" className="font-semibold" onClick={() => setShowRegisterMgmt(true)}>
+                  <Settings2 className="w-4 h-4 mr-2" /> Caixa
+               </Button>
+               <Button variant="default" className="font-semibold shadow-md" onClick={() => setShowAddItem(true)}>
+                  + Venda Avulsa
+               </Button>
+             </div>
           </div>
           <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 overflow-hidden flex flex-col">
              <AppointmentsList onSelect={handleSelectAppointment} />
@@ -278,6 +286,15 @@ export default function PDV() {
         onOpenChange={setShowAddItem}
         onAdd={handleAddManualItem}
       />
+
+      {openRegister && clinic?.id && (
+        <RegisterManagementModal
+          open={showRegisterMgmt}
+          onOpenChange={setShowRegisterMgmt}
+          activeRegister={openRegister}
+          clinicId={clinic.id}
+        />
+      )}
     </div>
   );
 }
