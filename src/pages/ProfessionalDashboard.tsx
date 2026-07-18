@@ -642,6 +642,17 @@ const ProfessionalDashboard = () => {
           setPixModal((s) => ({ ...s, open: false }));
         }}
       />
+
+      <SplitPaymentModal
+        open={!!splitPaymentAppt}
+        appointment={splitPaymentAppt}
+        onClose={() => setSplitPaymentAppt(null)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+          playCaching();
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+        }}
+      />
     </div>
   );
 };
