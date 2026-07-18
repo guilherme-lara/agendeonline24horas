@@ -89,8 +89,93 @@ export type Database = {
           },
         ]
       }
+      appointment_payments: {
+        Row: {
+          amount: number
+          appointment_id: string
+          barbershop_id: string
+          created_at: string
+          created_by: string | null
+          external_reference: string | null
+          id: string
+          installments: number
+          notes: string | null
+          payment_method: string
+          register_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          barbershop_id: string
+          created_at?: string
+          created_by?: string | null
+          external_reference?: string | null
+          id?: string
+          installments?: number
+          notes?: string | null
+          payment_method: string
+          register_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          barbershop_id?: string
+          created_at?: string
+          created_by?: string | null
+          external_reference?: string | null
+          id?: string
+          installments?: number
+          notes?: string | null
+          payment_method?: string
+          register_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
+          advance_payment_amount: number
           barber_id: string | null
           barber_name: string | null
           barbershop_id: string
@@ -100,6 +185,8 @@ export type Database = {
           commission_approved: boolean
           commission_approved_at: string | null
           commission_approved_by: string | null
+          confirmation_sent_at: string | null
+          confirmation_status: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at: string | null
           customer_id: string | null
           expires_at: string | null
@@ -120,6 +207,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          advance_payment_amount?: number
           barber_id?: string | null
           barber_name?: string | null
           barbershop_id: string
@@ -129,6 +217,8 @@ export type Database = {
           commission_approved?: boolean
           commission_approved_at?: string | null
           commission_approved_by?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_status?: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at?: string | null
           customer_id?: string | null
           expires_at?: string | null
@@ -149,6 +239,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          advance_payment_amount?: number
           barber_id?: string | null
           barber_name?: string | null
           barbershop_id?: string
@@ -158,6 +249,8 @@ export type Database = {
           commission_approved?: boolean
           commission_approved_at?: string | null
           commission_approved_by?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_status?: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at?: string | null
           customer_id?: string | null
           expires_at?: string | null
@@ -461,6 +554,168 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_movements: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          barbershop_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          order_id: string | null
+          payment_method: string | null
+          register_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          appointment_id?: string | null
+          barbershop_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          register_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          barbershop_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          register_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_registers: {
+        Row: {
+          barbershop_id: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          expected_balance: number | null
+          final_balance: number | null
+          id: string
+          initial_balance: number
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          barbershop_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          expected_balance?: number | null
+          final_balance?: number | null
+          id?: string
+          initial_balance?: number
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          barbershop_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          expected_balance?: number | null
+          final_balance?: number | null
+          id?: string
+          initial_balance?: number
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_registers_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "barbers"
             referencedColumns: ["id"]
           },
         ]
@@ -1401,6 +1656,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "barber"
+      appointment_confirmation_status: "pending" | "confirmed" | "timeout"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1529,6 +1785,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "barber"],
+      appointment_confirmation_status: ["pending", "confirmed", "timeout"],
     },
   },
 } as const
