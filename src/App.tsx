@@ -347,6 +347,7 @@ const AppContent = () => {
             }
           />
         </Route>
+        </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>
