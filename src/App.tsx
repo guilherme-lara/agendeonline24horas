@@ -54,7 +54,6 @@ const Configuracoes = lazy(() => import("./pages/dashboard/Configuracoes"));
 const Horarios = lazy(() => import("./pages/dashboard/Horarios"));
 const Mensagens = lazy(() => import("./pages/dashboard/Mensagens"));
 const AgendamentoOnline = lazy(() => import("./pages/dashboard/AgendamentoOnline"));
-const Caixa = lazy(() => import("./pages/dashboard/Caixa"));
 const PDV = lazy(() => import("./pages/PDV/PDV"));
 const PDVHistorico = lazy(() => import("./pages/PDV/Historico"));
 const Relatorios = lazy(() => import("./pages/dashboard/Relatorios"));

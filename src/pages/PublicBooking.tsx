@@ -474,6 +474,13 @@ const PublicBooking = () => {
       if (closedDays.includes(date.getDay())) return true;
       return false;
     };
+  }, [shopResources?.hours]);
+
+  // Countdown timer — reset when paymentExpiresAt changes (e.g. after redirect)
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (!paymentExpiresAt) {
       setTimeLeft(0);
       return;
     }
