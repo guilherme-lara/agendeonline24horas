@@ -554,7 +554,12 @@ const Caixa = () => {
         )}
       </div>
 
+      <div className="mb-6">
+        <CashRegisterPanel />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
