@@ -827,17 +827,7 @@ const PublicBooking = () => {
       )}
 
       <div className="container max-w-2xl mt-8 px-4">
-        {!isPaymentConfigured ? (
-           <div className="animate-in fade-in-50 text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
-              <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
-                  <WifiOff className="h-12 w-12 text-amber-500" />
-              </div>
-              <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Agendamentos Indisponíveis</h1>
-              <p className="text-muted-foreground text-sm">Este estabelecimento está configurando os pagamentos e não pode receber agendamentos no momento. Tente novamente mais tarde.</p>
-            </div>
-        ) :
-
-        !success && !cancelled ? (
+        {!success && !cancelled ? (
           <div>
             <div className="flex gap-2 mb-10">
               {[1, 2, 3, 4].map(i => (

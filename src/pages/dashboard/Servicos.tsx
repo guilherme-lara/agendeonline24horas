@@ -132,16 +132,17 @@ const Servicos = () => {
     mutationFn: async () => {
       if (!clinic?.id) throw new Error("Estabelecimento não encontrado.");
 
+      const isPaymentConfigured = !!(clinic as any)?.infinitepay_tag;
       const numericPrice = Number(price) || 0;
-      const numericAdvanceValue = Number(advanceValue) || 0;
+      const numericAdvanceValue = isPaymentConfigured ? (Number(advanceValue) || 0) : 0;
 
       if (numericAdvanceValue > numericPrice) {
         throw new Error(
           "O valor do adiantamento não pode ser maior que o preço final.",
         );
       }
-      if (numericAdvanceValue <= 0) {
-        throw new Error("O valor do adiantamento deve ser maior que R$ 0,00.");
+      if (numericAdvanceValue < 0) {
+        throw new Error("O valor do adiantamento não pode ser negativo.");
       }
 
       const servicePayload = {
@@ -513,14 +514,29 @@ const Servicos = () => {
                       <span className="text-sm font-bold text-foreground">Preço "A partir de"</span>
                   </label>
               </div>
-              <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-2xl p-4 space-y-2 md:col-span-2">
-                  <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" /><p className="text-xs font-bold text-emerald-300 uppercase tracking-tight">Sinal Obrigatório (Pagamento Online)</p></div>
-                  <p className="text-[10px] text-emerald-500/80 font-medium -mt-1">O cliente paga um adiantamento online para garantir o horário.</p>
-                  <div className="pt-2">
-                      <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Valor do Sinal (R$)</label>
-                      <Input type="number" placeholder="0.00" value={advanceValue} onChange={(e) => setAdvanceValue(e.target.value)} className="bg-background border-emerald-500/30 h-11 font-mono text-emerald-400 font-bold" />
-                  </div>
-              </div>
+              {/* Payment Gateway Configuration Check */}
+              {(() => {
+                  const isPaymentConfigured = !!(clinic as any)?.infinitepay_tag;
+                  return isPaymentConfigured ? (
+                      <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-2xl p-4 space-y-2 md:col-span-2">
+                          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" /><p className="text-xs font-bold text-emerald-300 uppercase tracking-tight">Sinal Obrigatório (Pagamento Online)</p></div>
+                          <p className="text-[10px] text-emerald-500/80 font-medium -mt-1">O cliente paga um adiantamento online para garantir o horário.</p>
+                          <div className="pt-2">
+                              <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Valor do Sinal (R$)</label>
+                              <Input type="number" placeholder="0.00" value={advanceValue} onChange={(e) => setAdvanceValue(e.target.value)} className="bg-background border-emerald-500/30 h-11 font-mono text-emerald-400 font-bold" />
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="bg-zinc-100 border border-zinc-200 rounded-2xl p-4 space-y-2 md:col-span-2 opacity-70">
+                          <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-zinc-400 flex-shrink-0" /><p className="text-xs font-bold text-zinc-500 uppercase tracking-tight">Sinal Obrigatório (Indisponível)</p></div>
+                          <p className="text-[10px] text-zinc-500 font-medium -mt-1">Configure o recebimento via InfinitePay nas configurações para habilitar o adiantamento online.</p>
+                          <div className="pt-2">
+                              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Valor do Sinal (R$)</label>
+                              <Input type="number" placeholder="0.00" disabled value="" className="bg-zinc-50 border-zinc-200 h-11 font-mono text-zinc-400 font-bold cursor-not-allowed" />
+                          </div>
+                      </div>
+                  );
+              })()}
 
               {/* NOVA SEÇÃO DE PROFISSIONAIS E COMISSÕES */}
               <div className="md:col-span-2 space-y-4 pt-4 border-t border-border/50">

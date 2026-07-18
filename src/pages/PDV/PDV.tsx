@@ -15,6 +15,10 @@ import { AddItemModal } from "@/components/pdv/AddItemModal";
 import { RegisterManagementModal } from "@/components/pdv/RegisterManagementModal";
 import { Settings2 } from "lucide-react";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SalesList } from "@/components/pdv/SalesList";
+
+
 export default function PDV() {
   const { clinic, loading: clinicLoading } = useClinic();
   const { user } = useAuth();
@@ -25,6 +29,7 @@ export default function PDV() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showRegisterMgmt, setShowRegisterMgmt] = useState(false);
@@ -78,18 +83,39 @@ export default function PDV() {
       
       const total = cartItems.reduce((acc, item) => acc + item.total_price, 0);
 
-      // 1. Create Sale
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert({
-          barbershop_id: clinic.id,
-          customer_id: customerId,
-          total_amount: total,
-          status: "paid",
-          created_by: user.id,
-        })
-        .select()
-        .single();
+      // 1. Create or Update Sale
+      let sale;
+      if (currentSaleId) {
+        const { data, error: saleError } = await supabase
+          .from("sales")
+          .update({
+            total_amount: total,
+            status: "paid",
+            customer_id: customerId,
+          })
+          .eq("id", currentSaleId)
+          .select()
+          .single();
+        if (saleError) throw saleError;
+        sale = data;
+
+        // delete old items to recreate
+        await supabase.from("sales_items").delete().eq("sale_id", currentSaleId);
+      } else {
+        const { data, error: saleError } = await supabase
+          .from("sales")
+          .insert({
+            barbershop_id: clinic.id,
+            customer_id: customerId,
+            total_amount: total,
+            status: "paid",
+            created_by: user.id,
+          })
+          .select()
+          .single();
+        if (saleError) throw saleError;
+        sale = data;
+      }
 
       if (saleError) throw saleError;
 
@@ -139,6 +165,7 @@ export default function PDV() {
       setCartItems([]);
       setCustomerName("");
       setCustomerId(null);
+      setCurrentSaleId(null);
       setShowCheckout(false);
       queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
@@ -204,6 +231,71 @@ export default function PDV() {
     }]);
   };
 
+  
+  const handleSelectSale = (sale: any) => {
+    setCurrentSaleId(sale.id);
+    setCustomerName(sale.customer_id || "Cliente"); // We might need to fetch customer name, but for now just "Cliente"
+    setCustomerId(sale.customer_id);
+    setCartItems(sale.sales_items.map((i: any) => ({
+      id: i.id,
+      item_type: i.item_type,
+      item_id: i.item_id,
+      name: i.name,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      total_price: i.total_price,
+    })));
+  };
+
+  const handleSaveOpenSale = async () => {
+    if (!clinic?.id || !user?.id) return;
+    const total = cartItems.reduce((acc, item) => acc + item.total_price, 0);
+    
+    if (currentSaleId) {
+       await supabase.from("sales").update({ total_amount: total, customer_id: customerId }).eq("id", currentSaleId);
+       await supabase.from("sales_items").delete().eq("sale_id", currentSaleId);
+       if (cartItems.length > 0) {
+           const itemsToInsert = cartItems.map(item => ({
+            sale_id: currentSaleId,
+            item_type: item.item_type,
+            item_id: item.item_id || item.id,
+            name: item.name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+          }));
+          await supabase.from("sales_items").insert(itemsToInsert);
+       }
+    } else {
+        const { data: sale } = await supabase.from("sales").insert({
+            barbershop_id: clinic.id,
+            customer_id: customerId,
+            total_amount: total,
+            status: "open",
+            created_by: user.id,
+        }).select().single();
+
+        if (sale && cartItems.length > 0) {
+            const itemsToInsert = cartItems.map(item => ({
+                sale_id: sale.id,
+                item_type: item.item_type,
+                item_id: item.item_id || item.id,
+                name: item.name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price,
+            }));
+            await supabase.from("sales_items").insert(itemsToInsert);
+        }
+    }
+    toast({ title: "Comanda Salva em Aberto" });
+    setCartItems([]);
+    setCustomerName("");
+    setCustomerId(null);
+    setCurrentSaleId(null);
+    queryClient.invalidateQueries({ queryKey: ["sales"] });
+  };
+
   const isLoading = clinicLoading || registerLoading;
   const isRegisterOpen = !!openRegister;
 
@@ -256,8 +348,23 @@ export default function PDV() {
                </Button>
              </div>
           </div>
-          <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 overflow-hidden flex flex-col">
-             <AppointmentsList onSelect={handleSelectAppointment} />
+          <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+             <Tabs defaultValue="agendadas" className="w-full h-full flex flex-col">
+                <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 px-4 h-12">
+                   <TabsTrigger value="agendadas" className="data-[state=active]:bg-background">Agendadas</TabsTrigger>
+                   <TabsTrigger value="abertas" className="data-[state=active]:bg-background">Abertas</TabsTrigger>
+                   <TabsTrigger value="fechadas" className="data-[state=active]:bg-background">Fechadas</TabsTrigger>
+                </TabsList>
+                <TabsContent value="agendadas" className="flex-1 overflow-y-auto p-4 mt-0">
+                    <AppointmentsList onSelect={handleSelectAppointment} />
+                </TabsContent>
+                <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
+                    <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} />
+                </TabsContent>
+                <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
+                    <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} />
+                </TabsContent>
+             </Tabs>
           </div>
         </div>
 
@@ -266,8 +373,9 @@ export default function PDV() {
             items={cartItems} 
             customerName={customerName}
             onRemoveItem={handleRemoveItem}
-            onClear={() => { setCartItems([]); setCustomerName(""); setCustomerId(null); }}
+            onClear={() => { setCartItems([]); setCustomerName(""); setCustomerId(null); setCurrentSaleId(null); }}
             onCheckout={() => setShowCheckout(true)}
+            onSaveOpenSale={handleSaveOpenSale}
           />
         </div>
       </div>

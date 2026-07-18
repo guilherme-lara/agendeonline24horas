@@ -23,9 +23,10 @@ interface CartPanelProps {
   onRemoveItem: (id: string) => void;
   onCheckout: () => void;
   onClear: () => void;
+  onSaveOpenSale?: () => void;
 }
 
-export function CartPanel({ items, customerName, onRemoveItem, onCheckout, onClear }: CartPanelProps) {
+export function CartPanel({ items, customerName, onRemoveItem, onCheckout, onClear, onSaveOpenSale }: CartPanelProps) {
   const total = items.reduce((acc, item) => acc + item.total_price, 0);
 
   return (
@@ -84,15 +85,28 @@ export function CartPanel({ items, customerName, onRemoveItem, onCheckout, onCle
           <span>Total</span>
           <span>R$ {total.toFixed(2).replace(".", ",")}</span>
         </div>
-        <Button 
-          size="lg" 
-          className="w-full h-14 text-lg font-bold shadow-md" 
-          disabled={items.length === 0}
-          onClick={onCheckout}
-        >
-          <CreditCard className="w-5 h-5 mr-2" />
-          Cobrar R$ {total.toFixed(2).replace(".", ",")}
-        </Button>
+        <div className="flex gap-2">
+          {onSaveOpenSale && (
+             <Button 
+               variant="outline"
+               size="lg" 
+               className="flex-1 h-14 font-bold" 
+               disabled={items.length === 0}
+               onClick={onSaveOpenSale}
+             >
+               Deixar Aberta
+             </Button>
+          )}
+          <Button 
+            size="lg" 
+            className="flex-1 h-14 text-lg font-bold shadow-md" 
+            disabled={items.length === 0}
+            onClick={onCheckout}
+          >
+            <CreditCard className="w-5 h-5 mr-2" />
+            Cobrar
+          </Button>
+        </div>
       </div>
     </div>
   );

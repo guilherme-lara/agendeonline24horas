@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -24,8 +24,9 @@ interface AddItemModalProps {
 export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
   const { clinic } = useClinic() as any;
   const [type, setType] = useState<"product" | "service">("service");
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
+  
+  // selectedItemId holds the ID of the selected service or product
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [quantity, setQuantity] = useState("1");
   const [barberId, setBarberId] = useState<string>("none");
 
@@ -33,7 +34,6 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
     queryKey: ["professionals", clinic?.id],
     queryFn: async () => {
       if (!clinic?.id) return [];
-      // Assuming a barbers table exists based on previous codebase knowledge
       const { data } = await supabase
         .from("barbers")
         .select("id, name")
@@ -43,12 +43,50 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
     enabled: !!clinic?.id
   });
 
+  const { data: catalog, isLoading: loadingCatalog } = useQuery({
+    queryKey: ["pdv-catalog", clinic?.id],
+    queryFn: async () => {
+      if (!clinic?.id) return { services: [], products: [] };
+      
+      const [servicesRes, inventoryRes] = await Promise.all([
+        supabase
+          .from("services")
+          .select("id, name, price")
+          .eq("barbershop_id", clinic.id)
+          .eq("active", true)
+          .order("name"),
+        (supabase.from("inventory") as any)
+          .select("id, name, sell_price, quantity")
+          .eq("barbershop_id", clinic.id)
+          .eq("active", true)
+          .order("name")
+      ]);
+
+      return {
+        services: servicesRes.data || [],
+        products: inventoryRes.data || []
+      };
+    },
+    enabled: !!clinic?.id
+  });
+
+  const currentList = useMemo(() => {
+    if (!catalog) return [];
+    return type === "service" ? catalog.services : catalog.products;
+  }, [catalog, type]);
+
+  const selectedItemData = useMemo(() => {
+    return currentList.find((i: any) => i.id === selectedItemId);
+  }, [currentList, selectedItemId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const p = parseFloat(price.replace(",", "."));
     const q = parseInt(quantity, 10);
     
-    if (!name || isNaN(p) || isNaN(q) || q <= 0 || p < 0) return;
+    if (!selectedItemData || isNaN(q) || q <= 0) return;
+
+    // Price depends on the table structure (price for services, sell_price for products)
+    const unitPrice = type === "service" ? selectedItemData.price : selectedItemData.sell_price;
 
     let barber_name;
     if (barberId !== "none" && professionals) {
@@ -57,19 +95,23 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
 
     onAdd({
       item_type: type,
-      name,
-      unit_price: p,
+      name: selectedItemData.name,
+      unit_price: Number(unitPrice) || 0,
       quantity: q,
       barber_id: barberId !== "none" ? barberId : undefined,
       barber_name
     });
 
     // reset
-    setName("");
-    setPrice("");
+    setSelectedItemId("");
     setQuantity("1");
     setBarberId("none");
     onOpenChange(false);
+  };
+
+  const handleTypeChange = (newType: "product" | "service") => {
+    setType(newType);
+    setSelectedItemId("");
   };
 
   return (
@@ -83,7 +125,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo</label>
-              <Select value={type} onValueChange={(v: any) => setType(v)}>
+              <Select value={type} onValueChange={handleTypeChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -96,7 +138,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Profissional (Opcional)</label>
-              <Select value={barberId} onValueChange={setBarberId}>
+              <Select value={barberId} onValueChange={setBarberId} disabled={type === "product"}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
@@ -111,25 +153,32 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Descrição / Nome</label>
-            <Input 
-              required 
-              placeholder={type === "service" ? "Ex: Limpeza de Pele" : "Ex: Creme Hidratante"}
-              value={name} 
-              onChange={e => setName(e.target.value)} 
-            />
+            <label className="text-sm font-medium">Selecionar {type === "service" ? "Serviço" : "Produto"}</label>
+            <Select value={selectedItemId} onValueChange={setSelectedItemId} required>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingCatalog ? "Carregando..." : `Escolha um ${type === "service" ? "serviço" : "produto"}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {currentList.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>
+                ) : (
+                    currentList.map((item: any) => (
+                        <SelectItem key={item.id} value={item.id}>
+                            {item.name} - R$ {Number(type === "service" ? item.price : item.sell_price).toFixed(2).replace(".", ",")}
+                        </SelectItem>
+                    ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 opacity-60">
               <label className="text-sm font-medium">Preço Unitário (R$)</label>
               <Input 
-                required 
-                type="number" 
-                step="0.01" 
-                placeholder="0.00" 
-                value={price} 
-                onChange={e => setPrice(e.target.value)} 
+                disabled 
+                value={selectedItemData ? Number(type === "service" ? selectedItemData.price : selectedItemData.sell_price).toFixed(2).replace(".", ",") : "0,00"} 
+                className="bg-secondary/50 font-mono font-bold"
               />
             </div>
             <div className="space-y-2">
@@ -144,7 +193,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-2">
+          <Button type="submit" className="w-full mt-2" disabled={!selectedItemId}>
             <Plus className="w-4 h-4 mr-2" />
             Adicionar à Comanda
           </Button>
