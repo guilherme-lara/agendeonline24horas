@@ -16,6 +16,7 @@ import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import confetti from "canvas-confetti";
 import AddToComandaModal from "@/components/AddToComandaModal";
 import PixPaymentModal from "@/components/PixPaymentModal";
+import SplitPaymentModal from "@/components/SplitPaymentModal";
 import { createInfinitePayCharge } from "@/services/infinitepay";
 import { toast } from "sonner";
 
