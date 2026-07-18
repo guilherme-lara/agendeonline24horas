@@ -491,6 +491,7 @@ const PublicBooking = () => {
       price: Number(service.price),
       duration: Number(service.duration),
       type: "service",
+      requires_advance_payment: service.requires_advance_payment,
       advance_payment_value: service.advance_payment_value ? Number(service.advance_payment_value) : undefined,
       price_is_starting_at: service.price_is_starting_at,
       barber_id: barber?.id,
@@ -596,7 +597,7 @@ const PublicBooking = () => {
           _service_name: mainItem?.name || "Serviço Adicional",
           _price: mainItem?.price || 0,
           _scheduled_at: formattedDateForDB,
-          _payment_method: "pix_online",
+          _payment_method: totalToCharge > 0 ? "pix_online" : "local",
           _barber_id: (selectedBarber?.id || null) as any,
           _barber_name: (selectedBarber?.name || null) as any,
           _customer_id: (customerId || null) as any,
@@ -623,7 +624,7 @@ const PublicBooking = () => {
       const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
       const priceInCents = Math.round(totalToCharge * 100);
 
-      if (priceInCents < 100) {
+      if (priceInCents > 0 && priceInCents < 100) {
         throw new Error("O valor total deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
@@ -633,6 +634,10 @@ const PublicBooking = () => {
         : `Agendamento - ${shop?.name || 'Serviços'}`;
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
+      if (priceInCents === 0) {
+        return { url: null, apptId };
+      }
+
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
 

@@ -6,6 +6,7 @@ export interface CartItem {
   price: number;
   duration: number;
   type: "service" | "product";
+  requires_advance_payment?: boolean;
   advance_payment_value?: number;
   price_is_starting_at?: boolean;
   // For services
@@ -90,11 +91,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalAdvancePayment = useMemo(
     () =>
       items.reduce(
-        (sum, i) =>
-          sum +
-          (i.advance_payment_value && i.advance_payment_value > 0
+        (sum, i) => {
+          if (!i.requires_advance_payment) return sum; // If advance is not required, 0 advance needed
+          return sum + (i.advance_payment_value && i.advance_payment_value > 0
             ? i.advance_payment_value
-            : i.price ?? 0),
+            : i.price ?? 0);
+        },
         0,
       ),
     [items],
