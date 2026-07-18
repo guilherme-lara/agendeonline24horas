@@ -55,6 +55,8 @@ const Horarios = lazy(() => import("./pages/dashboard/Horarios"));
 const Mensagens = lazy(() => import("./pages/dashboard/Mensagens"));
 const AgendamentoOnline = lazy(() => import("./pages/dashboard/AgendamentoOnline"));
 const Caixa = lazy(() => import("./pages/dashboard/Caixa"));
+const PDV = lazy(() => import("./pages/PDV/PDV"));
+const PDVHistorico = lazy(() => import("./pages/PDV/Historico"));
 const Relatorios = lazy(() => import("./pages/dashboard/Relatorios"));
 const Despesas = lazy(() => import("./pages/dashboard/Despesas"));
 const Produtos = lazy(() => import("./pages/dashboard/Produtos"));
@@ -147,7 +149,7 @@ const LazyFallback = () => (
 // --- CONTEÚDO PRINCIPAL COM GERENCIAMENTO DE ROTAS ---
 const AppContent = () => {
   const { pathname } = useLocation();
-  const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin") || pathname.startsWith("/barber");
+  const hideFooter = pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin") || pathname.startsWith("/barber") || pathname.startsWith("/pdv");
 
   return (
     <>

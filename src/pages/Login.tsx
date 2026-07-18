@@ -108,13 +108,13 @@ const Login = () => {
           return;
         }
 
-        // Profissional → Dashboard Caixa
+        // Profissional -> PDV
         if (roleSet.has("barber")) {
-          window.location.href = "/dashboard/caixa";
+          window.location.href = "/pdv";
           return;
         }
 
-        // Dono → Dashboard ou Onboarding
+        // Dono -> PDV ou Onboarding
         const { data: shopData } = await supabase
           .from("barbershops")
           .select("id")
@@ -122,7 +122,7 @@ const Login = () => {
           .maybeSingle();
 
         if (shopData) {
-          window.location.href = "/dashboard/caixa";
+          window.location.href = "/pdv";
         } else {
           window.location.href = "/onboarding";
         }
