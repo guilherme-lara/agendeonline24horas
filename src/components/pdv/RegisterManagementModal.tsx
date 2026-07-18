@@ -144,7 +144,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
             </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setMode("options")} className="flex-1">Voltar</Button>
-              <Button type="submit" disabled={cashMovementMutation.isPending} className={\`flex-1 \${mode === "sangria" ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-emerald-500 hover:bg-emerald-600 text-white"}\`}>
+              <Button type="submit" disabled={cashMovementMutation.isPending} className={`flex-1 ${mode === "sangria" ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-emerald-500 hover:bg-emerald-600 text-white"}`}>
                 {cashMovementMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
               </Button>
             </div>

@@ -50,7 +50,7 @@ export default function PDVHistorico() {
         {registers?.map((reg) => (
           <div key={reg.id} className="bg-white dark:bg-slate-900 border rounded-xl p-4 flex justify-between items-center shadow-sm hover:shadow transition-all">
             <div className="flex items-center gap-4">
-              <div className={\`p-3 rounded-full \${reg.status === 'open' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}\`}>
+              <div className={`p-3 rounded-full ${reg.status === 'open' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                 <Store className="w-5 h-5" />
               </div>
               <div>
@@ -58,7 +58,7 @@ export default function PDVHistorico() {
                   <span className="font-semibold text-lg">
                     {format(parseISO(reg.opened_at), "dd/MM/yyyy")}
                   </span>
-                  <span className={\`text-xs font-semibold px-2 py-0.5 rounded-full \${reg.status === 'open' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}\`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${reg.status === 'open' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
                     {reg.status === 'open' ? 'Aberto' : 'Fechado'}
                   </span>
                 </div>
