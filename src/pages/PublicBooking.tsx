@@ -34,7 +34,13 @@ const getDayBoundsBRT = (date: Date) => {
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
 
-  return {
+        
+      // Filter services if barberId is passed in URL
+      if (barberId) {
+        const allowedServices = new Set(barberServices.data?.filter(bs => bs.barber_id === barberId).map(bs => bs.service_id) || []);
+        servs.data = servs.data?.filter(s => allowedServices.has(s.id)) || [];
+      }
+      return {
     dayStart: `${year}-${month}-${day}T00:00:00-03:00`,
     dayEnd: `${year}-${month}-${day}T23:59:59-03:00`,
   };
@@ -117,11 +123,21 @@ const hasTimeOverlap = (
 ) => slotStartMinutes < appointmentEndMinutes && slotEndMinutes > appointmentStartMinutes;
 
 const PublicBooking = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, barberId } = useParams<{ slug: string; barberId?: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+    // Auto-select professional from URL
+  useEffect(() => {
+    if (barberId && shopResources?.barbers) {
+      const barber = shopResources.barbers.find((b: any) => b.id === barberId);
+      if (barber && !selectedBarber) {
+        setSelectedBarber(barber);
+      }
+    }
+  }, [barberId, shopResources, selectedBarber]);
+
   const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, updateQuantity: updateItemQuantity, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
 
   const [step, setStep] = useState(1);
@@ -877,7 +893,7 @@ const PublicBooking = () => {
         if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
                 >
-                  {step === 2 ? 'Escolher Profissional' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                  {step === 2 ? (barberId ? 'Escolher Horário' : 'Escolher Profissional') : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>

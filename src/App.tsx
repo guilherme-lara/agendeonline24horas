@@ -258,17 +258,7 @@ const AppContent = () => {
             }
           />
 
-          {/* Bronze Tier + (Caixa disponível em todos os planos) */}
-          <Route
-            path="caixa"
-            element={
-              <Suspense fallback={<LazyFallback />}>
-                <PlanGate minPlan="bronze" featureName="Caixa">
-                  <Caixa />
-                </PlanGate>
-              </Suspense>
-            }
-          />
+
           <Route
             path="painel"
             element={
