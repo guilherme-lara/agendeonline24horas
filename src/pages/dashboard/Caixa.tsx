@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import confetti from "canvas-confetti";
+import CashRegisterPanel from "@/components/CashRegisterPanel";
 
 const Caixa = () => {
   const { clinic, professionalId } = useClinic() as any;
