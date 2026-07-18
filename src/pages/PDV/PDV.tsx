@@ -17,15 +17,16 @@ import { Settings2 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesList } from "@/components/pdv/SalesList";
-
+import CashRegisterPanel from "@/components/CashRegisterPanel";
 
 export default function PDV() {
-  const { clinic, loading: clinicLoading } = useClinic();
-  const { user } = useAuth();
+  const { clinic, professionalId, loading: clinicLoading } = useClinic() as any;
+  const { user, isProfessional } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [initialBalance, setInitialBalance] = useState("");
+  const [viewMode, setViewMode] = useState<"pdv" | "caixa">("pdv");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -335,6 +336,16 @@ export default function PDV() {
         </DialogContent>
       </Dialog>
 
+      <div className="mb-4 bg-white dark:bg-slate-900 p-2 rounded-xl border shadow-sm w-max">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-[340px]">
+           <TabsList className="grid w-full grid-cols-2 h-10">
+             <TabsTrigger value="pdv" className="text-sm font-semibold">Operacional</TabsTrigger>
+             <TabsTrigger value="caixa" className="text-sm font-semibold">Gestão de Caixa</TabsTrigger>
+           </TabsList>
+        </Tabs>
+      </div>
+
+      {viewMode === "pdv" ? (
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="w-2/3 flex flex-col gap-4">
           <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
@@ -356,13 +367,13 @@ export default function PDV() {
                    <TabsTrigger value="fechadas" className="data-[state=active]:bg-background">Fechadas</TabsTrigger>
                 </TabsList>
                 <TabsContent value="agendadas" className="flex-1 overflow-y-auto p-4 mt-0">
-                    <AppointmentsList onSelect={handleSelectAppointment} />
+                    <AppointmentsList onSelect={handleSelectAppointment} professionalId={isProfessional ? professionalId : undefined} />
                 </TabsContent>
                 <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
-                    <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} />
+                    <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
                 </TabsContent>
                 <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
-                    <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} />
+                    <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
                 </TabsContent>
              </Tabs>
           </div>
@@ -379,6 +390,11 @@ export default function PDV() {
           />
         </div>
       </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4">
+          <CashRegisterPanel />
+        </div>
+      )}
 
       <CheckoutModal 
         open={showCheckout} 

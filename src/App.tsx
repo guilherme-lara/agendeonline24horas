@@ -165,6 +165,7 @@ const AppContent = () => {
 
         {/* Rotas de Cliente (Booking) */}
         <Route path="/agendamentos/:slug" element={<PublicBooking />} />
+        <Route path="/agendamentos/:slug/:barberId" element={<PublicBooking />} />
         <Route path="/book/:slug" element={<PublicBooking />} />
         <Route path="/meus-agendamentos" element={<MyAppointments />} />
         <Route path="/appointments" element={<MyAppointments />} />

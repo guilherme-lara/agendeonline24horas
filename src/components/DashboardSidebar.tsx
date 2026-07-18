@@ -77,7 +77,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
   const visibleNavItems = useMemo(() => {
     if (isProfessional) {
       return navItems.filter((item) =>
-        ["Caixa", "Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
+        ["Caixa / PDV", "Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
       );
     }
     return navItems;

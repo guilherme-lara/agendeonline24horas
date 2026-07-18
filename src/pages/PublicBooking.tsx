@@ -646,15 +646,6 @@ const PublicBooking = () => {
     }
   }, [step, shopCategories, shopResources, selectedCategory, resetCategoryFlag]);
 
-  const disabledDates = useMemo(() => {
-    const closedDays = shopResources?.hours?.filter((h: any) => h.is_closed).map((h: any) => h.day_of_week) || [];
-    return (date: Date) => {
-      if (date < getTodayStartBrt()) return true;
-      if (closedDays.includes(date.getDay())) return true;
-      return false;
-    };
-  }, [shopResources]);
-
   // Get barbers that can perform ALL services currently in cart
   const serviceIdsInCart = useMemo(
     () => cartItems.filter((i) => i.type === "service").map((i) => i.id),

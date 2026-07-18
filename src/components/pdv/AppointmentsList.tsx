@@ -9,9 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AppointmentsListProps {
   onSelect: (appointment: any) => void;
+  professionalId?: string;
 }
 
-export function AppointmentsList({ onSelect }: AppointmentsListProps) {
+export function AppointmentsList({ onSelect, professionalId }: AppointmentsListProps) {
   const { clinic } = useClinic() as any;
 
   const { data: appointments, isLoading } = useQuery({
@@ -24,13 +25,19 @@ export function AppointmentsList({ onSelect }: AppointmentsListProps) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("appointments")
         .select("*")
         .eq("barbershop_id", clinic.id)
         .gte("scheduled_at", today.toISOString())
         .lt("scheduled_at", tomorrow.toISOString())
         .order("scheduled_at", { ascending: true });
+
+      if (professionalId) {
+        query = query.eq("barber_id", professionalId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data;

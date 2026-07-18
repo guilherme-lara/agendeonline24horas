@@ -10,15 +10,16 @@ interface SalesListProps {
   barbershopId?: string;
   status: "open" | "paid" | "closed";
   onSelectSale: (sale: any) => void;
+  createdBy?: string;
 }
 
-export function SalesList({ barbershopId, status, onSelectSale }: SalesListProps) {
+export function SalesList({ barbershopId, status, onSelectSale, createdBy }: SalesListProps) {
   const { data: sales, isLoading } = useQuery({
     queryKey: ["sales", barbershopId, status],
     queryFn: async () => {
       if (!barbershopId) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("sales")
         .select(`
           *,
@@ -27,6 +28,12 @@ export function SalesList({ barbershopId, status, onSelectSale }: SalesListProps
         .eq("barbershop_id", barbershopId)
         .eq("status", status)
         .order("created_at", { ascending: false });
+
+      if (createdBy) {
+        query = query.eq("created_by", createdBy);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
