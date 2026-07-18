@@ -243,30 +243,30 @@ const ProfessionalDashboard = () => {
   const handleFinalizeAndCharge = async (appt: any) => {
     try {
       setFinalizingId(appt.id);
-      // Marca como concluído (trigger recalc já garantiu o total via appointment_items)
-      const { error: upErr } = await supabase
-        .from("appointments")
-        .update({ status: "completed" })
-        .eq("id", appt.id);
-      if (upErr) throw upErr;
-
-      // Recarrega valor atualizado (após triggers)
+      // Recarrega valor atualizado (após triggers de recalc de items)
       const { data: fresh } = await supabase
         .from("appointments")
-        .select("id, price, total_price, service_name, client_name, client_phone")
+        .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone")
         .eq("id", appt.id)
         .maybeSingle();
+      setSplitPaymentAppt(fresh ?? appt);
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível abrir o checkout");
+    } finally {
+      setFinalizingId(null);
+    }
+  };
 
-      const totalReais = Number(fresh?.total_price ?? fresh?.price ?? appt.price ?? 0);
+  const handleGeneratePix = async (appt: any) => {
+    try {
+      setFinalizingId(appt.id);
+      const totalReais = Number(appt?.total_price ?? appt?.price ?? 0);
       const amountCents = Math.round(totalReais * 100);
-
       if (amountCents <= 0) {
-        toast.success("Atendimento finalizado.");
-        queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+        toast.error("Total inválido");
         return;
       }
-
-      const [first, ...rest] = String(fresh?.client_name || appt.client_name || "Cliente").trim().split(" ");
+      const [first, ...rest] = String(appt.client_name || "Cliente").trim().split(" ");
       const res = await createInfinitePayCharge({
         amount: amountCents,
         document_number: "",
@@ -275,26 +275,24 @@ const ProfessionalDashboard = () => {
         appointment_id: appt.id,
         barbershop_id: appt.barbershop_id,
       });
-
       if (!res.success) {
         toast.error(res.error || "Falha ao gerar cobrança Pix");
         return;
       }
-
       setPixModal({
         open: true,
         appointmentId: appt.id,
         pixCode: res.brcode || res.pix_key || "",
         price: totalReais,
-        serviceName: String(fresh?.service_name || appt.service_name || "Atendimento"),
+        serviceName: String(appt.service_name || "Atendimento"),
       });
-      queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível finalizar o atendimento");
+      toast.error(err?.message || "Falha ao gerar Pix");
     } finally {
       setFinalizingId(null);
     }
   };
+
 
   if (barberLoading || apptLoading) {
     return (
