@@ -605,6 +605,7 @@ const PublicBooking = () => {
       // O Supabase requer os argumentos antigos de servi├ºo base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
+      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
 
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
