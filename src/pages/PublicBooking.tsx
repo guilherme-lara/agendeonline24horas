@@ -123,15 +123,8 @@ const PublicBooking = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Auto-select professional from URL
-  useEffect(() => {
-    if (barberId && shopResources?.barbers) {
-      const barber = shopResources.barbers.find((b: any) => b.id === barberId);
-      if (barber && !selectedBarber) {
-        setSelectedBarber(barber);
-      }
-    }
-  }, [barberId, shopResources, selectedBarber]);
+
+
 
   const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, updateQuantity: updateItemQuantity, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
 
