@@ -186,6 +186,9 @@ const AppContent = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/pdv" element={<Suspense fallback={<LazyFallback />}><PDV /></Suspense>} />
           <Route path="/pdv/historico" element={<Suspense fallback={<LazyFallback />}><PDVHistorico /></Suspense>} />
+          <Route path="/caixa" element={<Navigate to="/pdv" replace />} />
+          <Route path="/dashboard/caixa" element={<Navigate to="/pdv" replace />} />
+          <Route path="/dashboard/pdv" element={<Navigate to="/pdv" replace />} />
           
           <Route path="/dashboard">
           <Route
