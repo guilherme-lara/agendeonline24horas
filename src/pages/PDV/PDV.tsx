@@ -118,7 +118,8 @@ export default function PDV() {
         sale = data;
       }
 
-      if (saleError) throw saleError;
+
+
 
       // 2. Create Sale Items
       const itemsToInsert = cartItems.map(item => ({
