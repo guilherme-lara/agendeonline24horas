@@ -123,15 +123,8 @@ const PublicBooking = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Auto-select professional from URL
-  useEffect(() => {
-    if (barberId && shopResources?.barbers) {
-      const barber = shopResources.barbers.find((b: any) => b.id === barberId);
-      if (barber && !selectedBarber) {
-        setSelectedBarber(barber);
-      }
-    }
-  }, [barberId, shopResources, selectedBarber]);
+
+
 
   const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, updateQuantity: updateItemQuantity, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
 
@@ -374,6 +367,16 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
+  // Auto-select professional from URL (after shopResources is declared)
+  useEffect(() => {
+    if (barberId && shopResources?.barbers) {
+      const barber = shopResources.barbers.find((b: any) => b.id === barberId);
+      if (barber && !selectedBarber) {
+        setSelectedBarber(barber);
+      }
+    }
+  }, [barberId, shopResources, selectedBarber]);
+
   const serviceDurationByName = useMemo(
     () => new Map((shopResources?.services || []).map((service: any) => [service.name, Number(service.duration) || 30])),
     [shopResources],
@@ -605,6 +608,7 @@ const PublicBooking = () => {
       // O Supabase requer os argumentos antigos de servi├ºo base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
+      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
 
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
@@ -638,8 +642,7 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
-      // Use cartTotalAdvance if cart has advance payment, else use full cart total
-      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
+      // totalToCharge j├í foi calculado acima para o RPC
       const priceInCents = Math.round(totalToCharge * 100);
 
       if (priceInCents > 0 && priceInCents < 100) {

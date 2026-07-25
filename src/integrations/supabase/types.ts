@@ -567,10 +567,12 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          movement_type: string
           order_id: string | null
+          origin_id: string | null
+          origin_type: string | null
           payment_method: string | null
           register_id: string
-          type: string
         }
         Insert: {
           amount: number
@@ -580,10 +582,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          movement_type: string
           order_id?: string | null
+          origin_id?: string | null
+          origin_type?: string | null
           payment_method?: string | null
           register_id: string
-          type: string
         }
         Update: {
           amount?: number
@@ -593,10 +597,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          movement_type?: string
           order_id?: string | null
+          origin_id?: string | null
+          origin_type?: string | null
           payment_method?: string | null
           register_id?: string
-          type?: string
         }
         Relationships: [
           {
@@ -702,20 +708,6 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cash_registers_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "barbers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cash_registers_opened_by_fkey"
-            columns: ["opened_by"]
-            isOneToOne: false
-            referencedRelation: "barbers"
             referencedColumns: ["id"]
           },
         ]
@@ -1225,6 +1217,102 @@ export type Database = {
             columns: ["barbershop_id"]
             isOneToOne: true
             referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          barbershop_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          status: string
+          total_amount: number
+        }
+        Insert: {
+          barbershop_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          status?: string
+          total_amount?: number
+        }
+        Update: {
+          barbershop_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          status?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          name: string
+          quantity: number
+          sale_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          name: string
+          quantity?: number
+          sale_id: string
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          name?: string
+          quantity?: number
+          sale_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
             referencedColumns: ["id"]
           },
         ]
