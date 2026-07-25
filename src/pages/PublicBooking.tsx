@@ -367,6 +367,16 @@ const PublicBooking = () => {
     enabled: !!shop?.id,
   });
 
+  // Auto-select professional from URL (after shopResources is declared)
+  useEffect(() => {
+    if (barberId && shopResources?.barbers) {
+      const barber = shopResources.barbers.find((b: any) => b.id === barberId);
+      if (barber && !selectedBarber) {
+        setSelectedBarber(barber);
+      }
+    }
+  }, [barberId, shopResources, selectedBarber]);
+
   const serviceDurationByName = useMemo(
     () => new Map((shopResources?.services || []).map((service: any) => [service.name, Number(service.duration) || 30])),
     [shopResources],
