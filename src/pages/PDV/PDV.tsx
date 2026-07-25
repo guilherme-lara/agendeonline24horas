@@ -52,6 +52,41 @@ export default function PDV() {
     enabled: !!clinic?.id,
   });
 
+  // Realtime: atualiza comandas, caixa e vendas ao vivo, sem reload.
+  useEffect(() => {
+    if (!clinic?.id) return;
+    const filter = `barbershop_id=eq.${clinic.id}`;
+    const channel = supabase
+      .channel(`pdv-realtime-${clinic.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointment_items" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["sales"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cash_movements", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
+        queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cash_registers", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointment_payments", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["sales"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clinic?.id, queryClient]);
+
   const openRegisterMutation = useMutation({
     mutationFn: async (balance: number) => {
       if (!clinic?.id || !user?.id) throw new Error("Faltam dados");
