@@ -639,8 +639,7 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
-      // Use cartTotalAdvance if cart has advance payment, else use full cart total
-      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
+      // totalToCharge j├í foi calculado acima para o RPC
       const priceInCents = Math.round(totalToCharge * 100);
 
       if (priceInCents > 0 && priceInCents < 100) {
