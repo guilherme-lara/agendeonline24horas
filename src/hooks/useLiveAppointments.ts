@@ -11,6 +11,12 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!barbershopId) return;
 
     const appointmentsChannel = supabase
@@ -23,27 +29,7 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
           table: "appointments",
           filter: `barbershop_id=eq.${barbershopId}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["appointments"] });
-          queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
-        }
-      )
-      .subscribe();
-
-    const ordersChannel = supabase
-      .channel(`live-orders-${barbershopId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `barbershop_id=eq.${barbershopId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        (payload) => { queryClient.invalidateQueries({ queryKey: ["orders"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
           queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
@@ -57,3 +43,5 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
     };
   }, [barbershopId, queryClient]);
 };
+
+
