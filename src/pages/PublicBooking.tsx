@@ -1218,8 +1218,6 @@ const PublicBooking = () => {
                               </div>
                             </div>
                         </div>
-                            </div>
-                        </div>
 
                         <div className="pt-4 flex items-center justify-between gap-4">
                           <Button variant="ghost" onClick={() => { setStep(2); }} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
@@ -1439,6 +1437,7 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
 
 
 
