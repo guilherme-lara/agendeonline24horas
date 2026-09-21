@@ -539,9 +539,10 @@ const PublicBooking = () => {
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inv├ílido.");
-      if (!shop?.settings?.infinitepay_tag) {
-        throw new Error("Erro: O estabelecimento ainda n├úo configurou o m├®todo de pagamento.");
-      }
+      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
+        if (totalToCharge > 0 && !shop?.settings?.infinitepay_tag) {
+          throw new Error("Erro: O estabelecimento ainda não configurou o método de pagamento.");
+        }
       if (cartItems.length === 0) throw new Error("Adicione pelo menos um servi├ºo ao agendamento.");
 
       // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -617,8 +618,6 @@ const PublicBooking = () => {
       // O Supabase requer os argumentos antigos de servi├ºo base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
-      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
-
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
         {
@@ -646,8 +645,12 @@ const PublicBooking = () => {
       if (!apptId) throw new Error("Falha ao recuperar o ID do agendamento.");
 
       // 3. Redirecionamento para Pagamento
+      if (totalToCharge === 0) {
+        return { url: null, apptId };
+      }
+
       const infiniteTag = shop?.settings?.infinitepay_tag;
-      if (!infiniteTag) throw new Error("Este estabelecimento n├úo est├í configurado para receber pagamentos online.");
+      if (!infiniteTag) throw new Error("Este estabelecimento não está configurado para receber pagamentos online.");
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
@@ -664,9 +667,6 @@ const PublicBooking = () => {
         : `Agendamento - ${shop?.name || 'Servi├ºos'}`;
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
-      if (priceInCents === 0) {
-        return { url: null, apptId };
-      }
 
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
@@ -1437,6 +1437,9 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
+
+
 
 
 
