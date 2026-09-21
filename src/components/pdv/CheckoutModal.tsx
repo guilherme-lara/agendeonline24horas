@@ -3,12 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Plus, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, Loader2, QrCode, Copy } from "lucide-react";
 import { CartItem } from "./CartPanel";
+import { createInfinitePayCharge } from "@/services/infinitepay";
+import { toast } from "sonner";
 
 export interface PaymentSplit {
   method: string;
   amount: number;
+  qrCode?: string;
 }
 
 interface CheckoutModalProps {
@@ -21,7 +24,8 @@ interface CheckoutModalProps {
 }
 
 const PAYMENT_METHODS = [
-  { id: "pix", label: "Pix" },
+  { id: "pix", label: "Pix (InfinitePay)" },
+  { id: "payment_link", label: "Link de Pagamento" },
   { id: "credit_card", label: "Cartão de Crédito" },
   { id: "debit_card", label: "Cartão de Débito" },
   { id: "cash", label: "Dinheiro" },
@@ -33,6 +37,7 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
   const [payments, setPayments] = useState<PaymentSplit[]>([]);
   const [currentMethod, setCurrentMethod] = useState("pix");
   const [currentAmount, setCurrentAmount] = useState("");
+  const [isGeneratingPix, setIsGeneratingPix] = useState<number | null>(null);
 
   const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
   const remaining = Math.max(0, total - totalPaid);
@@ -54,6 +59,36 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
 
   const handleRemovePayment = (index: number) => {
     setPayments(payments.filter((_, i) => i !== index));
+  };
+
+  const handleGeneratePix = async (index: number) => {
+    const p = payments[index];
+    if (p.amount <= 0) return toast.error("Valor inválido");
+    
+    setIsGeneratingPix(index);
+    try {
+      const amountCents = Math.round(p.amount * 100);
+      const [first, ...rest] = String(customerName || "Cliente").trim().split(" ");
+      const res = await createInfinitePayCharge({
+        amount: amountCents,
+        document_number: "",
+        first_name: first || "Cliente",
+        last_name: rest.join(" ") || "N",
+        // Fallbacks since PDV may not have a single appointment ID:
+        appointment_id: items[0]?.source_appointment_id || "pdv-" + Date.now(), 
+        barbershop_id: "", // Edge function handles missing if possible, but let's pass a generic or maybe we have clinic ID? We don't have clinic ID here directly.
+      });
+      if (!res.success) throw new Error(res.error || "Falha ao gerar cobrança");
+      
+      const newPayments = [...payments];
+      newPayments[index].qrCode = res.brcode || res.pix_key;
+      setPayments(newPayments);
+      toast.success("Pix gerado com sucesso");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao gerar Pix");
+    } finally {
+      setIsGeneratingPix(null);
+    }
   };
 
   const handleConfirm = () => {
@@ -98,18 +133,55 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
           ) : (
             <div className="space-y-2">
               {payments.map((p, i) => (
-                <div key={i} className="flex justify-between items-center p-3 rounded-lg border bg-white dark:bg-slate-950">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">
-                      {PAYMENT_METHODS.find((m) => m.id === p.method)?.label || p.method}
-                    </span>
+                <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border bg-white dark:bg-slate-950">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">
+                        {PAYMENT_METHODS.find((m) => m.id === p.method)?.label || p.method}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-sm">R$ {p.amount.toFixed(2).replace(".", ",")}</span>
+                      <button onClick={() => handleRemovePayment(i)} className="text-rose-500 hover:text-rose-600 p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-sm">R$ {p.amount.toFixed(2).replace(".", ",")}</span>
-                    <button onClick={() => handleRemovePayment(i)} className="text-rose-500 hover:text-rose-600 p-1">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  
+                  {(p.method === "pix" || p.method === "payment_link") && (
+                    <div className="flex flex-col gap-2 bg-secondary/30 p-2 rounded-md border border-border mt-1">
+                      {!p.qrCode ? (
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="w-full text-xs h-7"
+                          disabled={isGeneratingPix === i || p.amount <= 0}
+                          onClick={() => handleGeneratePix(i)}
+                        >
+                          {isGeneratingPix === i ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <QrCode className="h-3 w-3 mr-1" />}
+                          Gerar {p.method === "pix" ? "Pix" : "Link"}
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 truncate text-[10px] bg-background p-1.5 rounded border select-all overflow-hidden text-ellipsis whitespace-nowrap">
+                            {p.qrCode}
+                          </code>
+                          <Button 
+                            size="icon" 
+                            variant="outline" 
+                            className="h-6 w-6 shrink-0" 
+                            title="Copiar"
+                            onClick={() => {
+                              navigator.clipboard.writeText(p.qrCode || "");
+                              toast.success("Copiado!");
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

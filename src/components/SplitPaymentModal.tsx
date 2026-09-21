@@ -17,12 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
+import { Loader2, Plus, Trash2, CreditCard, Banknote, QrCode, Wallet, Copy } from "lucide-react";
 import { toast } from "sonner";
+
+import { createInfinitePayCharge } from "@/services/infinitepay";
 
 const METHODS = [
   { value: "cash", label: "Dinheiro", icon: Banknote },
-  { value: "pix", label: "Pix", icon: QrCode },
+  { value: "pix", label: "Pix (InfinitePay)", icon: QrCode },
+  { value: "payment_link", label: "Link de Pagamento", icon: QrCode },
   { value: "credit_card", label: "Crédito", icon: CreditCard },
   { value: "debit_card", label: "Débito", icon: CreditCard },
   { value: "transfer", label: "Transferência", icon: Wallet },
@@ -35,6 +38,8 @@ interface Row {
   method: string;
   amount: string; // string for input control
   installments: number;
+  qrCode?: string;
+  isGenerating?: boolean;
 }
 
 interface Props {
@@ -94,6 +99,33 @@ const SplitPaymentModal = ({
     setRows((prev) => prev.filter((_, i) => i !== idx));
   const updateRow = (idx: number, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const handleGeneratePix = async (idx: number) => {
+    const row = rows[idx];
+    const amount = Number(row.amount.replace(",", "."));
+    if (amount <= 0) return toast.error("Valor inválido");
+    if (!appointment) return;
+
+    updateRow(idx, { isGenerating: true });
+    try {
+      const amountCents = Math.round(amount * 100);
+      const [first, ...rest] = String(appointment.client_name || "Cliente").trim().split(" ");
+      const res = await createInfinitePayCharge({
+        amount: amountCents,
+        document_number: "",
+        first_name: first || "Cliente",
+        last_name: rest.join(" ") || "N",
+        appointment_id: appointment.id,
+        barbershop_id: appointment.barbershop_id,
+      });
+      if (!res.success) throw new Error(res.error || "Falha ao gerar cobrança");
+      updateRow(idx, { qrCode: res.brcode || res.pix_key, isGenerating: false });
+      toast.success("Pix gerado com sucesso");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao gerar Pix");
+      updateRow(idx, { isGenerating: false });
+    }
+  };
 
   const handleSubmit = async () => {
     if (!appointment) return;
@@ -178,53 +210,86 @@ const SplitPaymentModal = ({
             </p>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             {rows.map((row, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-[1fr,110px,80px,auto] gap-2 items-center"
-              >
-                <Select
-                  value={row.method}
-                  onValueChange={(v) => updateRow(idx, { method: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={row.amount}
-                  onChange={(e) => updateRow(idx, { amount: e.target.value })}
-                  placeholder="0,00"
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  max={24}
-                  value={row.installments}
-                  onChange={(e) =>
-                    updateRow(idx, { installments: Math.max(1, Number(e.target.value) || 1) })
-                  }
-                  disabled={row.method !== "credit_card"}
-                  title="Parcelas (apenas crédito)"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeRow(idx)}
-                  disabled={rows.length === 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              <div key={idx} className="space-y-2">
+                <div className="grid grid-cols-[1fr,110px,80px,auto] gap-2 items-center">
+                  <Select
+                    value={row.method}
+                    onValueChange={(v) => updateRow(idx, { method: v, qrCode: undefined })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {METHODS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={row.amount}
+                    onChange={(e) => updateRow(idx, { amount: e.target.value, qrCode: undefined })}
+                    placeholder="0,00"
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={row.installments}
+                    onChange={(e) =>
+                      updateRow(idx, { installments: Math.max(1, Number(e.target.value) || 1) })
+                    }
+                    disabled={row.method !== "credit_card"}
+                    title="Parcelas (apenas crédito)"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeRow(idx)}
+                    disabled={rows.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {(row.method === "pix" || row.method === "payment_link") && (
+                  <div className="flex flex-col gap-2 bg-secondary/30 p-2 rounded-md border border-border">
+                    {!row.qrCode ? (
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="w-full text-xs h-7"
+                        disabled={row.isGenerating || Number(row.amount.replace(",", ".")) <= 0}
+                        onClick={() => handleGeneratePix(idx)}
+                      >
+                        {row.isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <QrCode className="h-3 w-3 mr-1" />}
+                        Gerar {row.method === "pix" ? "Pix" : "Link"}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 truncate text-[10px] bg-background p-1.5 rounded border select-all overflow-hidden text-ellipsis whitespace-nowrap">
+                          {row.qrCode}
+                        </code>
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          className="h-6 w-6 shrink-0" 
+                          title="Copiar"
+                          onClick={() => {
+                            navigator.clipboard.writeText(row.qrCode || "");
+                            toast.success("Copiado!");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 

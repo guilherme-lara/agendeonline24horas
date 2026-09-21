@@ -179,14 +179,14 @@ const ProfessionalDashboard = () => {
     // A RECEBER: procedimentos concluídos aguardando aprovação de comissão pelo gerente
     const aReceber = confirmedAppointments
       .filter((a: any) =>
-        a.status === "completed" && !a.commission_approved
+        a.status === "completed" && a.payment_status === "paid" && !a.commission_approved
       )
-      .reduce((sum: number, a: any) => sum + Number(a.price || 0) * (commissionRate / 100), 0);
+      .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
 
     // SALDO LIBERADO: procedimentos com comissão já aprovada pelo gerente via RPC
     const saldoLiberado = confirmedAppointments
-      .filter((a: any) => a.status === "completed" && a.commission_approved === true)
-      .reduce((sum: number, a: any) => sum + Number(a.price || 0) * (commissionRate / 100), 0);
+      .filter((a: any) => a.status === "completed" && a.payment_status === "paid" && a.commission_approved === true)
+      .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
 
     return {
       todayEarnings,

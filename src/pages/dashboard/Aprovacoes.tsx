@@ -26,6 +26,7 @@ const Aprovacoes = () => {
         )
         .eq("barbershop_id", clinic.id)
         .eq("status", "completed")
+        .eq("payment_status", "paid")
         .or("commission_approved.is.null,commission_approved.eq.false")
         .order("scheduled_at", { ascending: false })
         .limit(200);
@@ -57,7 +58,14 @@ const Aprovacoes = () => {
       const { error } = await (supabase.rpc as any)("approve_appointment_commission", {
         _appointment_id: id,
       });
-      if (error) throw error;
+      
+      if (error) {
+        if (error.code === '42501' || error.message?.toLowerCase().includes('permission denied')) {
+          throw new Error("Permissão negada. Apenas gerentes podem aprovar.");
+        }
+        throw error;
+      }
+      
       toast.success("Comissão liberada para o profissional");
       queryClient.invalidateQueries({ queryKey: ["comissao-pendente"] });
       queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
