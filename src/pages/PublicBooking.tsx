@@ -313,6 +313,201 @@ const PublicBooking = () => {
           }
         : null;
     },
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+
+
+
+  const { items: cartItems, addItem: addToCart, removeItem: removeFromCart, updateQuantity: updateItemQuantity, clearCart, totalPrice: cartTotalPrice, totalDuration: cartTotalDuration, totalAdvancePayment: cartTotalAdvance } = useCart();
+
+  const [step, setStep] = useState(1);
+  const [selectedBarber, setSelectedBarber] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [clientData, setClientData] = useState({ name: "", phone: "" });
+  const [showCart, setShowCart] = useState(false);
+  
+  const [_cartUpdateTick, setCartUpdateTick] = useState(0);
+  const [resetCategoryFlag, setResetCategoryFlag] = useState(false);
+
+  const [success, setSuccess] = useState(searchParams.get("success") === "true");
+  const [cancelled, setCancelled] = useState(false);
+
+  // Polling: check appointment status when back from checkout
+  const [apptStatus, setApptStatus] = useState<string | null>(null);
+  const [statusChecked, setStatusChecked] = useState(false);
+
+  useEffect(() => {
+    if (!success || statusChecked) return;
+    setStatusChecked(true);
+
+    const checkStatus = async () => {
+      const apptId = sessionStorage.getItem("pending_appt_id");
+      if (!apptId) { setApptStatus("confirmed"); return; }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("appointments_public")
+          .select("status, expires_at")
+          .eq("id", apptId)
+          .maybeSingle();
+
+        if (error) return;
+
+        if (data?.status === "confirmed" || data?.status === "completed") {
+          // Payment confirmed by webhook ÔÇö update timer state too
+          setApptStatus("confirmed");
+          setCartUpdateTick((t) => t + 1);
+        } else if (data?.status === "cancelled" || data?.status === "expired") {
+          setApptStatus("expired");
+          sessionStorage.removeItem("payment_expires_at");
+          sessionStorage.removeItem("pending_appt_id");
+        } else {
+          // Still pending ÔÇö keep polling but also check if expiry passed
+          const expiresAt = data?.expires_at ? new Date(data.expires_at).getTime() : null;
+          if (expiresAt && Date.now() > expiresAt) {
+            setApptStatus("expired");
+            sessionStorage.removeItem("payment_expires_at");
+            sessionStorage.removeItem("pending_appt_id");
+            return;
+          }
+          setApptStatus("pending");
+        }
+      } catch {
+        // Network error ÔÇö assume still pending
+        setApptStatus("pending");
+      }
+    };
+
+    // Poll every 3 seconds for up to 60 seconds
+    checkStatus();
+    const polling = setInterval(checkStatus, 3000);
+    const timeout = setTimeout(() => {
+      clearInterval(polling);
+      checkStatus(); // final check
+    }, 62000);
+
+    return () => { clearInterval(polling); clearTimeout(timeout); };
+  }, [success]);
+
+  // 3-minute payment lock state
+  const [paymentExpiresAt, setPaymentExpiresAt] = useState<number | null>(() => {
+    try {
+      const stored = sessionStorage.getItem("payment_expires_at");
+      if (stored) return Number(stored);
+    } catch { /* */ }
+    return null;
+  });
+  const [pendingApptId, setPendingApptId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem("pending_appt_id");
+    } catch { /* */ }
+    return null;
+  });
+
+  // FIX: Watch for changes in success/paymentExpiresAt to recompute timeLeft
+  // This solves the timer not starting after redirect back from checkout
+  useEffect(() => {
+    if (!success) return;
+    // Re-read from sessionStorage when success state changes
+    try {
+      const stored = sessionStorage.getItem("payment_expires_at");
+      if (stored) setPaymentExpiresAt(Number(stored));
+    } catch { /* */ }
+  }, [success]);
+
+  // Check for expired appointment on remount/redirect return
+  useEffect(() => {
+    if (success || !paymentExpiresAt || !pendingApptId) return;
+
+    const checkBooking = async () => {
+      if (Date.now() > paymentExpiresAt) {
+        const { data } = await (supabase as any)
+          .from("appointments_public")
+          .select("status")
+          .eq("id", pendingApptId)
+          .maybeSingle();
+
+        if (data?.status === "confirmed" || data?.status === "completed") {
+          return;
+        }
+
+        await supabase
+          .from("appointments")
+          .update({ status: "cancelled", payment_status: "expired" })
+          .eq("id", pendingApptId)
+          .in("status", ["pending_payment", "pendente_pagamento", "pending", "pendente_sinal"]);
+
+          toast({
+            title: "Reserva Expirada",
+            description: "O tempo para pagamento acabou. Escolha outro hor├írio.",
+            variant: "destructive",
+          });
+          sessionStorage.removeItem("payment_expires_at");
+          sessionStorage.removeItem("pending_appt_id");
+          setPaymentExpiresAt(null);
+          setPendingApptId(null);
+      }
+    };
+
+    checkBooking();
+  }, [success]);
+
+  // Countdown timer ÔÇö reset when paymentExpiresAt changes (e.g. after redirect)
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (!paymentExpiresAt) {
+      setTimeLeft(0);
+      return;
+    }
+    const initial = Math.max(0, Math.floor((paymentExpiresAt - Date.now()) / 1000));
+    setTimeLeft(initial);
+  }, [paymentExpiresAt]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeLeft > 0]);
+
+  const timerText = `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`;
+  const timerColor = timeLeft <= 60 ? "text-red-400 animate-pulse" : timeLeft <= 120 ? "text-amber-400" : "text-emerald-400";
+
+  const { data: shop, isLoading: loadingShop, isError: errorShop } = useQuery({
+    queryKey: ["public-shop", slug],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("barbershops_public")
+        .select("id, name, slug, address, logo_url, phone, infinitepay_tag, pix_static_qr_url, pix_beneficiary, confirmation_message_template")
+        .eq("slug", slug!)
+        .maybeSingle();
+      if (error) throw error;
+      // Normalize to keep .settings.* access patterns working downstream
+      return data
+        ? {
+            ...data,
+            settings: {
+              infinitepay_tag: data.infinitepay_tag,
+              pix_static_qr_url: data.pix_static_qr_url,
+              pix_beneficiary: data.pix_beneficiary,
+              confirmation_message_template: data.confirmation_message_template,
+            },
+          }
+        : null;
+    },
     enabled: !!slug,
     staleTime: 0,
   });
@@ -348,6 +543,12 @@ const PublicBooking = () => {
             .eq("active", true)
             .eq("barbershop_id", shop!.id),
         ]);
+
+      const barberIds = barbers.data?.map(b => b.id) || [];
+      const [schedules, timeOffs] = await Promise.all([
+        barberIds.length > 0 ? supabase.from("professional_schedules").select("*").in("barber_id", barberIds) : { data: [] },
+        barberIds.length > 0 ? supabase.from("professional_time_offs").select("*").in("barber_id", barberIds) : { data: [] }
+      ]);
         
       // Filter services if barberId is passed in URL
       if (barberId) {
@@ -361,6 +562,8 @@ const PublicBooking = () => {
         barbers: barbers.data || [],
         barberServices: barberServices.data || [],
         categories: cats.data || [],
+        schedules: schedules.data || [],
+        timeOffs: timeOffs.data || [],
       };
 
     },
@@ -608,7 +811,7 @@ const PublicBooking = () => {
       // O Supabase requer os argumentos antigos de servi├ºo base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
-      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice;
+      const totalToCharge = cartTotalAdvance;
 
       const { data: apptId, error: rpcError } = await supabase.rpc(
         "create_public_appointment",
@@ -665,19 +868,21 @@ const PublicBooking = () => {
       return { url: checkoutUrl, apptId };
     },
     onSuccess: (res) => {
-      // Store payment lock state before redirect
-      const expires = Date.now() + PAYMENT_LOCK_MS;
-      try {
-        sessionStorage.setItem("payment_expires_at", String(expires));
-        sessionStorage.setItem("pending_appt_id", res.apptId);
-      } catch { /* */ }
-      setPaymentExpiresAt(expires);
-      setPendingApptId(res.apptId);
       clearCart();
       setCartUpdateTick((t) => t + 1);
       queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
+      
       if (res.url) {
+        const expires = Date.now() + PAYMENT_LOCK_MS;
+        try {
+          sessionStorage.setItem("payment_expires_at", String(expires));
+          sessionStorage.setItem("pending_appt_id", res.apptId);
+        } catch { /* */ }
+        setPaymentExpiresAt(expires);
+        setPendingApptId(res.apptId);
         window.location.href = res.url;
+      } else {
+        navigate(`/agendamentos/${slug}?success=true`);
       }
     },
     onError: (error: any) => {
@@ -698,48 +903,69 @@ const PublicBooking = () => {
     const serviceItems = cartItems.filter((i) => i.type === "service");
     if (serviceItems.length === 0 && step < 4) return [];
 
-    // Use totalCartDuration for slot blocking, fallback to single service during intermediate steps
     const firstServiceInCategory = shopResources.services.find((s: any) => s.category_id === selectedCategory);
     const durationToUse = totalCartDuration || Number(firstServiceInCategory?.duration || 30);
 
     const dayOfWeek = selectedDate.getDay();
-    const bh = shopResources.hours.find((h: any) => h.day_of_week === dayOfWeek);
-    if (!bh || bh.is_closed) return [];
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+
+    // 1. Encontrar profissionais candidatos
+    let candidateBarbers = availableBarbers;
+    if (selectedBarber) {
+      candidateBarbers = [selectedBarber];
+    }
+
+    // 2. Filtrar candidatos por escala de trabalho (schedules) e folgas (timeOffs)
+    candidateBarbers = candidateBarbers.filter(b => {
+       const isOff = shopResources.timeOffs.some(off => off.barber_id === b.id && off.start_date <= dateStr && off.end_date >= dateStr);
+       if (isOff) return false;
+       const sched = shopResources.schedules.find(s => s.barber_id === b.id && s.day_of_week === dayOfWeek);
+       if (!sched || !sched.is_working) return false;
+       return true;
+    });
+
+    if (candidateBarbers.length === 0) return [];
 
     const slots: string[] = [];
-    const [openH, openM] = bh.open_time.split(":").map(Number);
-    const [closeH, closeM] = bh.close_time.split(":").map(Number);
     const nowBrtMinutes = getNowBrtMinutes();
 
-    for (let h = openH; h <= closeH; h++) {
-      for (let m = (h === openH ? openM : 0); m < 60; m += 30) {
-        if (h === closeH && m >= closeM) break;
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
         const slotStartMinutes = h * 60 + m;
-        // Blindagem de fuso: bloqueia hor├írios passados usando o rel├│gio de Bras├¡lia,
-        // n├úo o fuso local do dispositivo do cliente.
+        // Blindagem de fuso
         if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
 
-        const hasConflict = existingAppts.some((appt: any) => {
-          const appointmentStartMinutes = getBrtMinutesFromScheduledAt(appt.scheduled_at);
-          const appointmentDuration = serviceDurationByName.get(appt.service_name) || 30;
-          const appointmentEndMinutes = appointmentStartMinutes + appointmentDuration + BUFFER_MINUTES;
+        // Slot é válido se PELO MENOS UM candidato pode atender
+        const canFulfill = candidateBarbers.some(b => {
+           const sched = shopResources.schedules.find(s => s.barber_id === b.id && s.day_of_week === dayOfWeek);
+           if (!sched) return false;
 
-          return hasTimeOverlap(
-            slotStartMinutes,
-            slotEndMinutes,
-            appointmentStartMinutes,
-            appointmentEndMinutes,
-          );
+           const [startH, startM] = sched.start_time.split(":").map(Number);
+           const [endH, endM] = sched.end_time.split(":").map(Number);
+           const workStartMinutes = startH * 60 + startM;
+           const workEndMinutes = endH * 60 + endM;
+
+           if (slotStartMinutes < workStartMinutes || slotEndMinutes > workEndMinutes) return false;
+
+           const hasConflict = existingAppts.some((appt: any) => {
+              if (appt.barber_id !== b.id) return false;
+              const apptStart = getBrtMinutesFromScheduledAt(appt.scheduled_at);
+              const apptDuration = serviceDurationByName.get(appt.service_name) || 30;
+              const apptEnd = apptStart + apptDuration + BUFFER_MINUTES;
+              return hasTimeOverlap(slotStartMinutes, slotEndMinutes, apptStart, apptEnd);
+           });
+
+           return !hasConflict;
         });
 
-        if (!hasConflict) {
-          slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+        if (canFulfill) {
+           slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
         }
       }
     }
     return slots;
-  }, [selectedDate, cartItems, totalCartDuration, shopResources, existingAppts, step]);
+  }, [selectedDate, cartItems, totalCartDuration, shopResources, existingAppts, step, availableBarbers, selectedBarber, selectedCategory, serviceDurationByName]);
 
   if (loadingShop) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
   if (errorShop || !shop) return (
@@ -1152,7 +1378,7 @@ const PublicBooking = () => {
                               </span>
                               <div className="text-right">
                                 <span className="text-2xl font-black text-primary">
-                                  R$ {Number((cartTotalAdvance > 0 ? cartTotalAdvance : cartTotalPrice).toFixed(2))}
+                                  {cartTotalAdvance > 0 ? `R$ ${cartTotalAdvance.toFixed(2)} (Sinal)` : "Confirmar"}
                                 </span>
                                 {cartItems.length > 0 && totalCartDuration > 0 && (
                                   <p className="text-[10px] text-muted-foreground font-bold">{totalCartDuration} min total</p>
@@ -1355,3 +1581,7 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
+
+
+

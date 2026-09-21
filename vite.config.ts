@@ -21,9 +21,9 @@ export default defineConfig(({ mode }) => ({
       // e quebre o fluxo de pagamento do cliente.
       registerType: "prompt", 
       manifest: {
-        name: "AgendeOnline 24 Horas",
-        short_name: "AgendeOnline",
-        description: "Agendamento online para barbearias com confirmação automática",
+        name: "AgendeOnline24Horas",
+        short_name: "Painel da Clínica",
+        description: "Plataforma de gestão e agendamento online para clínicas e profissionais.",
         theme_color: "#0a0f1a",
         background_color: "#0a0f1a",
         display: "standalone",
@@ -40,6 +40,12 @@ export default defineConfig(({ mode }) => ({
             type: "image/png",
             purpose: "any maskable",
           },
+          {
+            src: "/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          }
         ],
       },
       workbox: {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy, ShieldCheck, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UpgradeModal from "@/components/UpgradeModal";
+import TeamMonitor from "./TeamMonitor";
+import TeamMemberDrawer from "./TeamMemberDrawer";
 
 // PONTO DE ATUALIZAÇÃO 4: REMOVIDO `commission_pct` DA INTERFACE
 interface Barber {
@@ -44,6 +46,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   // PONTO DE ATUALIZAÇÃO 4: REMOVIDO ESTADO DE COMISSÃO
   // const [commission, setCommission] = useState("50"); 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
 
   // Access management state
   const [accessEmail, setAccessEmail] = useState("");
@@ -183,7 +186,9 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
         requiredPlan={planName === "bronze" ? "Prata" : "Ouro"}
         featureName={`Mais de ${limit} profissionais`}
       />
-
+      <div className="mb-8">
+        <TeamMonitor barbershopId={barbershopId} barbers={barbers} />
+      </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
@@ -238,12 +243,15 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                       {b.phone || b.email || "Sem contato"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {b.user_id ? (
                       <span className="text-[10px] font-black text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">Acesso Ativo</span>
                     ) : (
                       <span className="text-[10px] font-black text-muted-foreground bg-secondary px-2.5 py-1 rounded-full uppercase tracking-wider">Sem Acesso</span>
                     )}
+                    <button onClick={() => setSelectedBarber(b)} className="text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors shrink-0" title="Gerenciar Escala e Acesso">
+                      <Settings2 className="h-4 w-4" />
+                    </button>
                     <button onClick={() => handleArchive(b.id, true)} className="text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 p-2 rounded-lg transition-colors shrink-0" title="Arquivar profissional">
                       <Archive className="h-4 w-4" />
                     </button>
@@ -346,6 +354,12 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           )}
         </div>
       )}
+      <TeamMemberDrawer
+        open={!!selectedBarber}
+        onClose={() => setSelectedBarber(null)}
+        barber={selectedBarber}
+        barbershopId={barbershopId}
+      />
     </div>
   );
 };
