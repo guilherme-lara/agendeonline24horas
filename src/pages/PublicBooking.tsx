@@ -134,7 +134,7 @@ const PublicBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
-  const [paymentOption, setPaymentOption] = useState<"online" | "local">("online");
+  const [paymentOption, setPaymentOption] = useState<"online" | "local">("local");
   const [showCart, setShowCart] = useState(false);
   
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
