@@ -1226,7 +1226,7 @@ const PublicBooking = () => {
                               disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
                               className="flex-1 h-14 bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center"
                           >
-                              {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</>}
+                              {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : (cartTotalAdvance > 0 || paymentOption === "online" ? <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</> : <><CalendarDays className="mr-2 h-5 w-5" /> Confirmar Agendamento</>)}
                           </Button>
                         </div>
                     </div>
@@ -1437,6 +1437,7 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
 
 
 
