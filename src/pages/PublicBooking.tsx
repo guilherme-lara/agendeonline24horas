@@ -135,6 +135,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [paymentOption, setPaymentOption] = useState<"online" | "local">("local");
+  const actualCartTotalAdvance = shop?.settings?.infinitepay_tag ? cartTotalAdvance : 0;
   const [showCart, setShowCart] = useState(false);
   
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
@@ -539,7 +540,8 @@ const PublicBooking = () => {
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inv├ílido.");
-      const totalToCharge = cartTotalAdvance > 0 ? cartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
+      const actualCartTotalAdvance = shop?.settings?.infinitepay_tag ? cartTotalAdvance : 0;
+      const totalToCharge = actualCartTotalAdvance > 0 ? actualCartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
         if (totalToCharge > 0 && !shop?.settings?.infinitepay_tag) {
           throw new Error("Erro: O estabelecimento ainda não configurou o método de pagamento.");
         }
@@ -1177,17 +1179,17 @@ const PublicBooking = () => {
                                                                         {shop?.settings?.infinitepay_tag && (
                           <div className="bg-secondary/50 rounded-3xl p-6 border border-border space-y-4 mb-2">
                               <h4 className="text-sm font-black uppercase text-muted-foreground text-center mb-2">Forma de Pagamento</h4>
-                              <div className={`grid ${cartTotalAdvance > 0 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>
+                              <div className={`grid ${actualCartTotalAdvance > 0 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>
                                 <button
                                   onClick={() => setPaymentOption("online")}
-                                  className={`p-4 rounded-2xl border text-center transition-all ${paymentOption === "online" || cartTotalAdvance > 0 ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                                  className={`p-4 rounded-2xl border text-center transition-all ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "border-primary bg-primary/10" : "border-border bg-card"}`}
                                 >
-                                  <QrCode className={`h-6 w-6 mx-auto mb-2 ${paymentOption === "online" || cartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`} />
-                                  <span className={`text-xs font-bold ${paymentOption === "online" || cartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`}>
-                                    {cartTotalAdvance > 0 ? "Pagar Agora (Sinal)" : "Pagar Agora (Online)"}
+                                  <QrCode className={`h-6 w-6 mx-auto mb-2 ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`} />
+                                  <span className={`text-xs font-bold ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`}>
+                                    {actualCartTotalAdvance > 0 ? "Pagar Agora (Sinal)" : "Pagar Agora (Online)"}
                                   </span>
                                 </button>
-                                {cartTotalAdvance === 0 && (
+                                {actualCartTotalAdvance === 0 && (
                                   <button
                                     onClick={() => setPaymentOption("local")}
                                     className={`p-4 rounded-2xl border text-center transition-all ${paymentOption === "local" ? "border-primary bg-primary/10" : "border-border bg-card"}`}
@@ -1210,7 +1212,7 @@ const PublicBooking = () => {
                               </span>
                               <div className="text-right">
                                 <span className="text-2xl font-black text-primary">
-                                  {cartTotalAdvance > 0 ? `R$ ${cartTotalAdvance.toFixed(2)} (Sinal)` : (paymentOption === "online" ? `R$ ${cartTotalPrice.toFixed(2)}` : "No local")}
+                                  {actualCartTotalAdvance > 0 ? `R$ ${actualCartTotalAdvance.toFixed(2)} (Sinal)` : (paymentOption === "online" ? `R$ ${cartTotalPrice.toFixed(2)}` : "No local")}
                                 </span>
                                 {cartItems.length > 0 && totalCartDuration > 0 && (
                                   <p className="text-[10px] text-muted-foreground font-bold">{totalCartDuration} min total</p>
@@ -1226,7 +1228,7 @@ const PublicBooking = () => {
                               disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
                               className="flex-1 h-14 bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center"
                           >
-                              {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : (cartTotalAdvance > 0 || paymentOption === "online" ? <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</> : <><CalendarDays className="mr-2 h-5 w-5" /> Confirmar Agendamento</>)}
+                              {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : (actualCartTotalAdvance > 0 || paymentOption === "online" ? <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</> : <><CalendarDays className="mr-2 h-5 w-5" /> Confirmar Agendamento</>)}
                           </Button>
                         </div>
                     </div>
@@ -1437,6 +1439,7 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
 
 
 
