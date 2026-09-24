@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Building2, Users, DollarSign, CalendarDays, Loader2, LogOut,
@@ -104,7 +104,7 @@ const SuperAdmin = () => {
       const { error } = await supabase.from("system_settings").upsert({ key: "announcement", value: broadcastText }, { onConflict: 'key' });
       if (error) throw error;
     },
-    onSuccess: () => toast({ title: "Aviso enviado!", description: "Todos os usuÃ¡rios verÃ£o o aviso." })
+    onSuccess: () => toast({ title: "Aviso enviado!", description: "Todos os usuários verão o aviso." })
   });
 
   const renewTrialMutation = useMutation({
@@ -128,10 +128,10 @@ const SuperAdmin = () => {
     const active = plans.filter(p => p.status === "active");
     const mrrValue = active.reduce((sum, p) => sum + Number(p.price || 0), 0);
     return [
-      { label: "Estabelecimentos", value: shops.length, icon: Building2, color: "text-blue-600" },
-      { label: "Ativos", value: active.length, icon: Users, color: "text-emerald-600" },
-      { label: "MRR", value: `R$ ${mrrValue.toLocaleString()}`, icon: DollarSign, color: "text-violet-600" },
-      { label: "Bookings 24h", value: metrics?.last24hBookings || 0, icon: CalendarDays, color: "text-amber-600" },
+      { label: "Estabelecimentos", value: shops.length, icon: Building2, color: "text-blue-500" },
+      { label: "Ativos", value: active.length, icon: Users, color: "text-emerald-500" },
+      { label: "MRR", value: `R$ ${mrrValue.toLocaleString()}`, icon: DollarSign, color: "text-violet-500" },
+      { label: "Bookings 24h", value: metrics?.last24hBookings || 0, icon: CalendarDays, color: "text-amber-500" },
     ];
   }, [shops, plans, metrics]);
 
@@ -140,31 +140,31 @@ const SuperAdmin = () => {
   }, [shops, searchQuery]);
 
   if ((authLoading || loadingShops) && !shops.length) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
   );
 
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* HEADER */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-6 border-b border-gray-200">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-50 p-2.5 rounded-xl">
-              <ShieldCheck className="h-6 w-6 text-blue-600" />
+            <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20">
+              <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Painel Administrativo</h1>
-              <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+              <h1 className="text-2xl font-bold font-display text-foreground">Painel Administrativo</h1>
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <Activity className="h-3 w-3 text-emerald-500" /> Sistema operacional
               </p>
             </div>
           </div>
-          <Button variant="ghost" onClick={signOut} className="text-gray-500 hover:text-red-600 hover:bg-red-50 font-medium">
+          <Button variant="ghost" onClick={signOut} className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 font-medium">
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
         </header>
@@ -172,49 +172,49 @@ const SuperAdmin = () => {
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {dashboardStats.map((kpi, i) => (
-            <div key={i} className="bg-card border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-elev-1">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{kpi.label}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{kpi.label}</p>
                 <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">{kpi.value}</h2>
+              <h2 className="text-2xl font-bold font-mono">{kpi.value}</h2>
             </div>
           ))}
         </div>
 
         {/* BROADCAST */}
-        <div className="bg-card border border-gray-200 rounded-xl p-6 mb-10 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-card border border-border rounded-2xl p-6 mb-10 shadow-elev-1">
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Bell className="h-4 w-4 text-amber-500" /> Aviso Global
           </h3>
           <Textarea 
             value={broadcastText} 
             onChange={(e) => setBroadcastText(e.target.value)} 
-            placeholder="Digite o aviso que aparecerÃ¡ no Dashboard de todos os estabelecimentos..."
-            className="bg-gray-50 border-gray-200 min-h-[80px] rounded-lg resize-none" 
+            placeholder="Digite o aviso que aparecerá no Dashboard de todos os estabelecimentos..."
+            className="bg-background border-border min-h-[80px] rounded-xl resize-none text-sm p-4" 
           />
           <Button 
             onClick={() => broadcastMutation.mutate()} 
             disabled={broadcastMutation.isPending}
-            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium h-9 px-6 rounded-lg text-sm"
+            className="mt-4"
           >
-            {broadcastMutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RefreshCw className="h-3.5 w-3.5 mr-2" />}
+            {broadcastMutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Enviar Aviso
           </Button>
         </div>
 
         {/* TABLE */}
-        <div className="bg-card border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-elev-1">
+          <div className="p-5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-semibold text-gray-900">Estabelecimentos</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{shops.length} registros</p>
+              <h3 className="text-base font-semibold">Estabelecimentos</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{shops.length} registros</p>
             </div>
             <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Buscar..." 
-                className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm rounded-lg" 
+                className="pl-11 rounded-full" 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)} 
               />
@@ -223,22 +223,21 @@ const SuperAdmin = () => {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+              <thead className="bg-secondary/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left">Estabelecimento</th>
-                  <th className="px-6 py-3 text-left">ProprietÃ¡rio</th>
-                  <th className="px-6 py-3 text-left">Plano</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-right">AÃ§Ãµes</th>
+                  <th className="px-6 py-4 text-left">Estabelecimento</th>
+                  <th className="px-6 py-4 text-left">Proprietário</th>
+                  <th className="px-6 py-4 text-left">Plano</th>
+                  <th className="px-6 py-4 text-left">Status</th>
+                  <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {filteredShops.map(shop => {
                   const plan = plans.find(p => p.barbershop_id === shop.id);
                   const planName = plan?.plan_name || "essential";
                   const isActive = plan?.status === "active";
                   
-                  // LÃ³gica de Trial
                   const now = new Date();
                   const trialEnd = shop.trial_ends_at ? new Date(shop.trial_ends_at) : null;
                   const isTrialActive = trialEnd && trialEnd > now && !isActive;
@@ -246,65 +245,65 @@ const SuperAdmin = () => {
                   const trialDaysLeft = isTrialActive ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
                   return (
-                    <tr key={shop.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={shop.id} className="hover:bg-secondary/20 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900 text-sm">{shop.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">/{shop.slug}</p>
+                        <p className="font-bold text-sm">{shop.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">/{shop.slug}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{metrics?.emailMap[shop.owner_id] || "â€”"}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{metrics?.emailMap[shop.owner_id] || "—"}</td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className={`text-xs font-medium border ${
-                          planName === "pro" ? "border-amber-200 text-amber-700 bg-amber-50" :
-                          planName === "growth" ? "border-blue-200 text-blue-700 bg-blue-50" :
-                          "border-gray-200 text-gray-600 bg-gray-50"
+                        <Badge variant="outline" className={`text-[10px] font-bold border uppercase tracking-wider ${
+                          planName === "pro" ? "border-amber-500/50 text-amber-500 bg-amber-500/10" :
+                          planName === "growth" ? "border-blue-500/50 text-blue-500 bg-blue-500/10" :
+                          "border-muted-foreground/50 text-muted-foreground bg-secondary"
                         }`}>
                           {planLabels[planName] || "Essential"}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
                         {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Ativo
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Ativo
                           </span>
                         ) : isTrialActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Trial ({trialDaysLeft}d)
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-500">
+                            <span className="h-2 w-2 rounded-full bg-amber-500" /> Trial ({trialDaysLeft}d)
                           </span>
                         ) : isTrialExpired ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Trial Expirado
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500">
+                            <span className="h-2 w-2 rounded-full bg-red-500" /> Trial Expirado
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                            <span className="h-1.5 w-1.5 rounded-full bg-gray-400" /> Inativo
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                            <span className="h-2 w-2 rounded-full bg-muted-foreground" /> Inativo
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                               <ChevronDown className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-card border-gray-200 shadow-lg rounded-lg w-48">
+                          <DropdownMenuContent align="end" className="bg-card border-border shadow-elev-3 rounded-xl w-48">
                             <DropdownMenuItem
                               onClick={() => renewTrialMutation.mutate(shop.id)}
-                              className="cursor-pointer text-sm gap-2 text-amber-600"
+                              className="cursor-pointer text-sm gap-2 text-amber-500 focus:text-amber-500 focus:bg-amber-500/10"
                             >
-                              <CalendarDays className="h-3.5 w-3.5" /> Estender Trial (+30d)
+                              <CalendarDays className="h-4 w-4" /> Estender Trial (+30d)
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => { setDetailShop(shop); setEditForm({ plan: plan?.plan_name || "essential", status: plan?.status || "active" }); }}
                               className="cursor-pointer text-sm gap-2"
                             >
-                              <UserCog className="h-3.5 w-3.5 text-gray-500" /> Editar Plano
+                              <UserCog className="h-4 w-4 text-muted-foreground" /> Editar Plano
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => { localStorage.setItem("impersonate_barbershop_id", shop.id); navigate("/dashboard"); }}
-                              className="cursor-pointer text-sm gap-2 text-blue-600"
+                              className="cursor-pointer text-sm gap-2 text-primary focus:text-primary focus:bg-primary/10"
                             >
-                              <Eye className="h-3.5 w-3.5" /> Modo Suporte
+                              <Eye className="h-4 w-4" /> Modo Suporte
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -313,7 +312,7 @@ const SuperAdmin = () => {
                   );
                 })}
                 {filteredShops.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">Nenhum resultado encontrado.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-muted-foreground">Nenhum resultado encontrado.</td></tr>
                 )}
               </tbody>
             </table>
@@ -323,41 +322,41 @@ const SuperAdmin = () => {
 
       {/* MODAL */}
       <Dialog open={!!detailShop} onOpenChange={() => setDetailShop(null)}>
-        <DialogContent className="bg-card border-gray-200 max-w-md rounded-xl shadow-xl">
-          <DialogHeader className="pb-4 border-b border-gray-100">
-            <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <CreditCard className="text-blue-600 h-5 w-5" /> Gerenciar Plano
+        <DialogContent className="bg-card border-border sm:max-w-md rounded-2xl shadow-elev-3 p-6">
+          <DialogHeader className="pb-4 border-b border-border">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <CreditCard className="text-primary h-5 w-5" /> Gerenciar Plano
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6 pt-4">
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Estabelecimento</p>
-              <h3 className="text-base font-semibold text-gray-900">{detailShop?.name}</h3>
+            <div className="bg-secondary p-4 rounded-xl border border-border">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide mb-1">Estabelecimento</p>
+              <h3 className="text-base font-bold">{detailShop?.name}</h3>
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700">Plano</label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Plano</label>
                 <Select value={editForm.plan} onValueChange={(v) => setEditForm({...editForm, plan: v})}>
-                  <SelectTrigger className="bg-card border-gray-200 h-10 rounded-lg text-sm">
+                  <SelectTrigger className="bg-background border-border h-12 rounded-xl text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-gray-200 rounded-lg">
-                    <SelectItem value="essential">Essential â€” R$ 97/mÃªs</SelectItem>
-                    <SelectItem value="growth">Growth â€” R$ 197/mÃªs</SelectItem>
-                    <SelectItem value="pro">Pro â€” R$ 397/mÃªs</SelectItem>
+                  <SelectContent className="bg-card border-border rounded-xl">
+                    <SelectItem value="essential">Essential — R$ 97/mês</SelectItem>
+                    <SelectItem value="growth">Growth — R$ 197/mês</SelectItem>
+                    <SelectItem value="pro">Pro — R$ 397/mês</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700">Status</label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Status</label>
                 <Select value={editForm.status} onValueChange={(v) => setEditForm({...editForm, status: v})}>
-                  <SelectTrigger className="bg-card border-gray-200 h-10 rounded-lg text-sm">
+                  <SelectTrigger className="bg-background border-border h-12 rounded-xl text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-gray-200 rounded-lg">
+                  <SelectContent className="bg-card border-border rounded-xl">
                     <SelectItem value="active">Ativo</SelectItem>
                     <SelectItem value="suspended">Suspenso</SelectItem>
                     <SelectItem value="overdue">Atrasado</SelectItem>
@@ -366,14 +365,14 @@ const SuperAdmin = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-gray-100">
-              <Button variant="outline" onClick={() => setDetailShop(null)} className="flex-1 border-gray-200 text-gray-700 rounded-lg h-10">
+            <div className="flex gap-3 pt-4 border-t border-border mt-4">
+              <Button variant="ghost" onClick={() => setDetailShop(null)} className="flex-1 rounded-xl">
                 Cancelar
               </Button>
               <Button 
                 onClick={() => updatePlanMutation.mutate()} 
                 disabled={updatePlanMutation.isPending} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg h-10"
+                className="flex-1 rounded-xl"
               >
                 {updatePlanMutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Salvar

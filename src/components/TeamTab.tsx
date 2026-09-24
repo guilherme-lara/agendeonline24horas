@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UpgradeModal from "@/components/UpgradeModal";
 import TeamMonitor from "./TeamMonitor";
 import TeamMemberDrawer from "./TeamMemberDrawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // PONTO DE ATUALIZAÇÃO 4: REMOVIDO `commission_pct` DA INTERFACE
 interface Barber {

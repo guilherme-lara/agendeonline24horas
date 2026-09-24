@@ -65,14 +65,27 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       onClick?.(e);
     };
 
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          onClick={handleClick as any}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         onClick={handleClick as any}
         {...props}
       >
-        {isRippling && !asChild ? (
+        {isRippling ? (
           <span
             className="absolute rounded-full bg-current opacity-20 pointer-events-none animate-ripple"
             style={{
@@ -85,7 +98,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           />
         ) : null}
         {children}
-      </Comp>
+      </button>
     );
   },
 );
