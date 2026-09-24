@@ -6,29 +6,32 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Light Mode - Material Design */
+    --background: 0 0% 98%; /* Very light grey */
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 221 83% 53%; /* Material Blue */
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%; /* zinc-500 */
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 221 83% 95%; /* Light Blue tint */
+    --accent-foreground: 221 83% 53%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --ring: 221 83% 53%;
     
-    --radius: 0.5rem; /* 8px, sculpted geometry */
+    --radius: 0.75rem; /* Material 3 slightly rounder */
 
     --surface-glass: 0 0% 100% / 0.78;
+    
+    /* Material 3 Elevations */
     --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-elev-2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-elev-3: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -38,32 +41,34 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%; /* zinc-950 (#09090b) */
-    --foreground: 0 0% 98%; /* zinc-50 */
-    --card: 240 5.9% 10%; /* zinc-900 (#18181b) */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 5.9% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%; /* zinc-900 */
-    --secondary: 240 3.7% 15.9%; /* zinc-800 */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%; /* zinc-400 */
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    /* Dark Mode - Azul IDE (Slate/Navy based) */
+    --background: 222 47% 11%; /* #0f172a slate-900 */
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%; /* #1e293b slate-800 */
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%; /* Blue 500 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 22%; /* slate-700 */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 28% 22%;
+    --muted-foreground: 215 20% 65%; /* slate-400 */
+    --accent: 215 28% 22%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%; /* zinc-800 - extremely subtle */
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 28% 22%; /* slate-700 */
+    --input: 215 28% 22%;
+    --ring: 217 91% 60%;
 
-    --surface-glass: 240 10% 3.9% / 0.7;
-    /* Sombras no dark mode: evitar drop shadow pesado, focar em bordas/glow */
-    --shadow-elev-1: 0 0 0 1px hsl(var(--border));
-    --shadow-elev-2: 0 0 0 1px hsl(var(--border)), 0 4px 6px -1px rgb(0 0 0 / 0.5);
-    --shadow-elev-3: 0 0 0 1px hsl(var(--border)), 0 10px 15px -3px rgb(0 0 0 / 0.5);
-    --shadow-glow-primary: 0 0 15px -3px hsl(var(--primary) / 0.3);
+    --surface-glass: 222 47% 11% / 0.7;
+    
+    /* Material 3 Elevations (Dark Mode handles shadows differently) */
+    --shadow-elev-1: 0 1px 3px 0 rgb(0 0 0 / 0.4);
+    --shadow-elev-2: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-elev-3: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+    --shadow-glow-primary: 0 0 15px -3px hsl(var(--primary) / 0.4);
   }
 
   .dashboard-theme { /* tokens herdados de :root / .dark */ }
@@ -86,13 +91,16 @@
   .elev-2 { box-shadow: var(--shadow-elev-2); }
   .elev-3 { box-shadow: var(--shadow-elev-3); }
 
-  /* Premium card - New Age SaaS */
+  /* Premium card - Material */
   .card-elev {
-    @apply rounded-xl bg-card border border-border;
+    @apply rounded-xl bg-card border-none;
     box-shadow: var(--shadow-elev-1);
   }
   .card-elev-hover {
-    @apply card-elev transition-colors duration-200 hover:border-muted-foreground/30;
+    @apply card-elev transition-shadow duration-200;
+  }
+  .card-elev-hover:hover {
+    box-shadow: var(--shadow-elev-2);
   }
 
   /* Status pills (translucent) */
@@ -141,4 +149,12 @@
 
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+  
+  @keyframes ripple {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  }
+  .animate-ripple {
+    animation: ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
 }

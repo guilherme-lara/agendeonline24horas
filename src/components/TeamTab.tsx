@@ -40,6 +40,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [addingDialogOpen, setAddingDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -88,6 +89,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
     } else {
       toast({ title: "Profissional adicionado!" });
       setName(""); setPhone(""); setEmail("");
+      setAddingDialogOpen(false);
       fetchBarbers();
     }
     setAdding(false);
@@ -194,25 +196,43 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           <Users className="h-5 w-5 text-primary" />
           <h2 className="font-display text-lg font-bold">Equipe</h2>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {activeCount}/{limit === Infinity ? "∞" : limit} profissionais
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-muted-foreground hidden sm:block">
+            {activeCount}/{limit === Infinity ? "∞" : limit} profissionais
+          </span>
+          <Button onClick={() => setAddingDialogOpen(true)} className="h-9 px-4 bg-primary text-primary-foreground font-bold shadow-sm">
+            <Plus className="h-4 w-4 mr-2" /> Novo
+          </Button>
+        </div>
       </div>
 
-      {/* Add form */}
-      <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-4 transition-all hover:shadow-md">
-        <p className="text-sm font-bold text-foreground">Adicionar Novo Profissional</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do profissional" className="bg-background border-input shadow-sm md:col-span-1 h-11" maxLength={100} />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-background border-input shadow-sm h-11" maxLength={20} />
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-background border-input shadow-sm h-11" maxLength={100} />
-        </div>
-        <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full h-11 premium-gradient text-primary-foreground font-bold hover:opacity-90 shadow-md">
-          {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
-          Cadastrar Profissional
-          {activeCount >= limit && <Crown className="h-4 w-4 ml-2" />}
-        </Button>
-      </div>
+      {/* Dialog for Add form */}
+      <Dialog open={addingDialogOpen} onOpenChange={setAddingDialogOpen}>
+        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 sm:max-w-md rounded-xl p-6">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-xl font-bold font-display">Adicionar Profissional</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Nome</label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do profissional" className="bg-background border-border h-12" maxLength={100} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase">Telefone</label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="bg-background border-border h-12" maxLength={20} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase">E-mail</label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-background border-border h-12" maxLength={100} />
+            </div>
+            <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full h-12 bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-elev-1 mt-4">
+              {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
+              Cadastrar Profissional
+              {activeCount >= limit && <Crown className="h-4 w-4 ml-2" />}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* List */}
       {loading ? (

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Scissors, Loader2, Check, AlertTriangle, CalendarDays,
@@ -69,8 +69,8 @@ const doesAppointmentBlockSlot = (appointment: any, now: Date) => {
     return true;
   }
 
-  // Regra de negÃ³cio: sÃ³ agendamentos CONFIRMADOS ocupam o horÃ¡rio.
-  // Reservas aguardando pagamento nÃ£o bloqueiam outros clientes.
+  // Regra de negócio: só agendamentos CONFIRMADOS ocupam o horário.
+  // Reservas aguardando pagamento não bloqueiam outros clientes.
   if (TEMPORARY_LOCK_STATUSES.has(status) || LEGACY_PENDING_STATUSES.has(status)) {
     void getFallbackExpiry; void now;
     return false;
@@ -86,7 +86,7 @@ const matchesSelectedBarber = (appointment: any, barber: any) => {
   return false;
 };
 
-// Minuto-do-dia atual no fuso de Brasâ”œÂ¡lia (UTC-3), independente do fuso do navegador.
+// Minuto-do-dia atual no fuso de Brasília (UTC-3), independente do fuso do navegador.
 const getNowBrtMinutes = () => {
   const now = new Date();
   const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -99,7 +99,7 @@ const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
   return (((totalUtcMinutes - 180) % 1440) + 1440) % 1440;
 };
 
-// Inâ”œÂ¡cio do dia atual em BRT (UTC-3), independente do fuso do navegador.
+// Início do dia atual em BRT (UTC-3), independente do fuso do navegador.
 const getTodayStartBrt = () => {
   const now = new Date();
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
@@ -132,7 +132,7 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [paymentOption, setPaymentOption] = useState<"online" | "local">("local");
-  // Pagamento antecipado nÃ£o Ã© mais obrigatÃ³rio: cliente escolhe online ou no local.
+  // Pagamento antecipado não é mais obrigatório: cliente escolhe online ou no local.
   const actualCartTotalAdvance = 0; void cartTotalAdvance;
   const [showCart, setShowCart] = useState(false);
   
@@ -166,7 +166,7 @@ const PublicBooking = () => {
         if (error) return;
 
         if (data?.status === "confirmed" || data?.status === "completed") {
-          // Payment confirmed by webhook Ã”Ã‡Ã¶ update timer state too
+          // Payment confirmed by webhook - update timer state too
           setApptStatus("confirmed");
           setCartUpdateTick((t) => t + 1);
         } else if (data?.status === "cancelled" || data?.status === "expired") {
@@ -174,7 +174,7 @@ const PublicBooking = () => {
           sessionStorage.removeItem("payment_expires_at");
           sessionStorage.removeItem("pending_appt_id");
         } else {
-          // Still pending Ã”Ã‡Ã¶ keep polling but also check if expiry passed
+          // Still pending - keep polling but also check if expiry passed
           const expiresAt = data?.expires_at ? new Date(data.expires_at).getTime() : null;
           if (expiresAt && Date.now() > expiresAt) {
             setApptStatus("expired");
@@ -185,7 +185,7 @@ const PublicBooking = () => {
           setApptStatus("pending");
         }
       } catch {
-        // Network error Ã”Ã‡Ã¶ assume still pending
+        // Network error - assume still pending
         setApptStatus("pending");
       }
     };

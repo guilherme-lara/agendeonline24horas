@@ -153,23 +153,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
           </button>
         </div>
 
-        {/* Trial banner */}
-        {trialDaysLeft && (
-          <div className="mx-3 mt-3 rounded-xl p-3 bg-secondary/50 border border-border shrink-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="h-3.5 w-3.5 text-foreground" />
-              <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
-                Pro Trial · {trialDaysLeft}d restantes
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-border overflow-hidden">
-              <div
-                className="h-full bg-foreground transition-all duration-1000"
-                style={{ width: `${Math.max(5, (trialDaysLeft / 30) * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Trial banner removed as per Phase 1 */}
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 custom-scrollbar">

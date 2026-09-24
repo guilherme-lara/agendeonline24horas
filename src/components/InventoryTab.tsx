@@ -203,7 +203,7 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
 
       {/* Add Product Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-none shadow-elev-3 rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle>Novo Produto</DialogTitle>
           </DialogHeader>
@@ -239,7 +239,7 @@ const InventoryTab = ({ barbershopId }: InventoryTabProps) => {
 
       {/* Movement Dialog */}
       <Dialog open={!!movementItem} onOpenChange={() => setMovementItem(null)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-none shadow-elev-3 rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle>
               {movementType === "entry" ? "Entrada" : "Saída"} — {movementItem?.name}
