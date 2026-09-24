@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Trash2, ShoppingBag, Plus, CreditCard, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -55,7 +55,7 @@ export function CartPanel({ items, customerName, onRemoveItem, onCheckout, onCle
         ) : (
           <div className="space-y-3">
             {items.map((item) => (
-              <div key={item.id} className="flex justify-between items-start p-3 bg-white dark:bg-slate-900 border rounded-lg shadow-sm">
+              <div key={item.id} className="flex justify-between items-start p-3 bg-card border rounded-lg shadow-sm">
                 <div className="flex flex-col">
                   <span className="font-semibold text-sm">{item.name}</span>
                   <span className="text-xs text-muted-foreground mt-0.5">
@@ -111,3 +111,4 @@ export function CartPanel({ items, customerName, onRemoveItem, onCheckout, onCle
     </div>
   );
 }
+

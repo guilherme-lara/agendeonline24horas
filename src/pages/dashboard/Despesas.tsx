@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ interface Expense { id: string; description: string; amount: number; date: strin
 const categories = [
   { value: "aluguel", label: "Aluguel" }, { value: "produtos", label: "Produtos" },
   { value: "equipamentos", label: "Equipamentos" }, { value: "marketing", label: "Marketing" },
-  { value: "salarios", label: "Salários" }, { value: "agua_luz", label: "Água/Luz" },
+  { value: "salarios", label: "SalÃ¡rios" }, { value: "agua_luz", label: "Ãgua/Luz" },
   { value: "outros", label: "Outros" },
 ];
 
@@ -57,11 +57,11 @@ const Despesas = () => {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sessão expirada.");
+      if (!session) throw new Error("SessÃ£o expirada.");
       const { error } = await supabase.from("expenses").insert({ barbershop_id: clinic?.id, description: description.trim(), amount: Number(amount), date, category });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast({ title: "Despesa Lançada!" }); setIsDialogOpen(false); resetForm(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); toast({ title: "Despesa LanÃ§ada!" }); setIsDialogOpen(false); resetForm(); },
     onError: (err: any) => { toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" }); }
   });
 
@@ -88,8 +88,8 @@ const Despesas = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar o seu financeiro.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronizaÃ§Ã£o</h2>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar o seu financeiro.</p>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -106,17 +106,17 @@ const Despesas = () => {
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display">
             <TrendingDown className="h-8 w-8 text-red-400" /> Fluxo de Despesas
           </h1>
-          <p className="text-muted-foreground text-sm mt-1 font-medium">Controle rigoroso de todas as saídas do seu negócio.</p>
+          <p className="text-muted-foreground text-sm mt-1 font-medium">Controle rigoroso de todas as saÃ­das do seu negÃ³cio.</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="bg-red-600 hover:bg-red-500 text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-red-900/20 transition-all active:scale-95">
-          <Plus className="h-5 w-5 mr-2" /> Novo Lançamento
+          <Plus className="h-5 w-5 mr-2" /> Novo LanÃ§amento
         </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <div className="bg-card border border-red-500/20 rounded-2xl p-6 shadow-card relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10"><TrendingDown className="h-12 w-12 text-red-500" /></div>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total em Despesas (Mês Selecionado)</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total em Despesas (MÃªs Selecionado)</p>
           <p className="text-3xl font-black text-red-400 tracking-tighter">R$ {totalMonth.toFixed(2).replace(".", ",")}</p>
           <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase">{filteredExpenses.length} comprovantes registrados</p>
         </div>
@@ -125,7 +125,7 @@ const Despesas = () => {
             <PiggyBank className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Período de Análise</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">PerÃ­odo de AnÃ¡lise</p>
             <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="bg-transparent border-none p-0 h-auto text-foreground font-bold focus-visible:ring-0 cursor-pointer" />
           </div>
         </div>
@@ -136,8 +136,8 @@ const Despesas = () => {
           <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
             <TrendingDown className="h-10 w-10 text-muted-foreground/30" />
           </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">Nenhuma saída registrada</h3>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto">Suas despesas do mês selecionado aparecerão aqui.</p>
+          <h3 className="text-xl font-bold text-foreground mb-2">Nenhuma saÃ­da registrada</h3>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">Suas despesas do mÃªs selecionado aparecerÃ£o aqui.</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -169,13 +169,13 @@ const Despesas = () => {
         <DialogContent className="bg-card border-border text-foreground max-w-md shadow-2xl">
           <DialogHeader className="border-b border-border/50 pb-4">
             <DialogTitle className="flex items-center gap-3 text-xl font-black font-display">
-                <TrendingDown className="text-red-400 h-6 w-6" /> Registrar Saída
+                <TrendingDown className="text-red-400 h-6 w-6" /> Registrar SaÃ­da
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 pt-4">
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Descrição da Despesa</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">DescriÃ§Ã£o da Despesa</label>
                     <Input placeholder="Ex: Aluguel da Loja, Compra de Shampoos..." value={description} onChange={(e) => setDescription(e.target.value)} className="bg-background border-border h-12" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -202,7 +202,7 @@ const Despesas = () => {
               className="w-full bg-red-600 hover:bg-red-500 text-white font-black h-14 rounded-2xl shadow-xl shadow-red-900/20 transition-all active:scale-95"
               onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !description.trim() || !amount}>
               {createMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-              Confirmar Lançamento
+              Confirmar LanÃ§amento
             </Button>
           </div>
         </DialogContent>

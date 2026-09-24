@@ -1,4 +1,4 @@
-import TeamTab from "@/components/TeamTab";
+﻿import TeamTab from "@/components/TeamTab";
 import { useClinic } from "@/hooks/useClinic";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle, Users, RefreshCw, ShieldCheck } from "lucide-react";
@@ -35,8 +35,8 @@ const Profissionais = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos verificar as permissões de equipe para o seu plano.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronizaÃ§Ã£o</h2>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos verificar as permissÃµes de equipe para o seu plano.</p>
         <Button onClick={handleRetry} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -55,7 +55,7 @@ const Profissionais = () => {
             </div>
             <div>
                 <h1 className="text-3xl font-black text-foreground tracking-tight font-display">Equipe & Profissionais</h1>
-                <p className="text-muted-foreground text-sm font-medium">Gerencie os profissionais e as permissões de acesso ao sistema.</p>
+                <p className="text-muted-foreground text-sm font-medium">Gerencie os profissionais e as permissÃµes de acesso ao sistema.</p>
             </div>
         </div>
         <div className="bg-card border border-border px-4 py-2 rounded-xl flex items-center gap-3">
@@ -74,7 +74,7 @@ const Profissionais = () => {
       </div>
 
       <p className="text-center text-[10px] text-muted-foreground/50 uppercase font-bold mt-8 tracking-widest">
-        Dica: Profissionais com acesso ao sistema podem baixar o app para ver a própria agenda.
+        Dica: Profissionais com acesso ao sistema podem baixar o app para ver a prÃ³pria agenda.
       </p>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2, Save, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,11 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 const DAYS = [
   { index: 0, label: "Domingo" },
   { index: 1, label: "Segunda-feira" },
-  { index: 2, label: "Terça-feira" },
+  { index: 2, label: "TerÃ§a-feira" },
   { index: 3, label: "Quarta-feira" },
   { index: 4, label: "Quinta-feira" },
   { index: 5, label: "Sexta-feira" },
-  { index: 6, label: "Sábado" },
+  { index: 6, label: "SÃ¡bado" },
 ];
 
 interface HourEntry {
@@ -46,7 +46,7 @@ const Horarios = () => {
 
       if (error) {
         toast({
-          title: "Erro ao carregar horários",
+          title: "Erro ao carregar horÃ¡rios",
           description: error.message,
           variant: "destructive",
         });
@@ -81,7 +81,7 @@ const Horarios = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!clinic?.id) throw new Error("Estabelecimento não identificado.");
+      if (!clinic?.id) throw new Error("Estabelecimento nÃ£o identificado.");
 
       const { error } = await supabase.from("business_hours").upsert(
         hours.map((h) => ({
@@ -100,14 +100,14 @@ const Horarios = () => {
       queryClient.invalidateQueries({ queryKey: ["shopResources", clinic?.id] });
       queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       toast({
-        title: "Horários salvos!",
-        description: "Os novos horários já estão ativos.",
+        title: "HorÃ¡rios salvos!",
+        description: "Os novos horÃ¡rios jÃ¡ estÃ£o ativos.",
       });
     },
     onError: (err: any) => {
       toast({
-        title: "Erro ao salvar horários",
-        description: err.message || "Verifique sua conexão.",
+        title: "Erro ao salvar horÃ¡rios",
+        description: err.message || "Verifique sua conexÃ£o.",
         variant: "destructive",
       });
     },
@@ -128,7 +128,7 @@ const Horarios = () => {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-xs text-muted-foreground animate-pulse uppercase tracking-widest font-bold">
-          Carregando horários...
+          Carregando horÃ¡rios...
         </p>
       </div>
     );
@@ -139,10 +139,10 @@ const Horarios = () => {
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">
-          Erro de sincronização
+          Erro de sincronizaÃ§Ã£o
         </h2>
         <p className="text-sm text-muted-foreground mb-8">
-          Não foi possível carregar os horários.
+          NÃ£o foi possÃ­vel carregar os horÃ¡rios.
         </p>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
@@ -169,10 +169,10 @@ const Horarios = () => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight font-display">
-            Horários de Funcionamento
+            HorÃ¡rios de Funcionamento
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Configure os dias e horários em que seu negócio está aberto.
+            Configure os dias e horÃ¡rios em que seu negÃ³cio estÃ¡ aberto.
           </p>
         </div>
       </div>
@@ -221,7 +221,7 @@ const Horarios = () => {
                     onChange={(e) => updateHour(idx, "open_time", e.target.value)}
                     className="w-28 bg-background border-border h-10 text-center font-mono"
                   />
-                  <span className="text-muted-foreground text-sm">até</span>
+                  <span className="text-muted-foreground text-sm">atÃ©</span>
                   <Input
                     type="time"
                     value={entry.close_time}
@@ -248,7 +248,7 @@ const Horarios = () => {
           ) : (
             <Save className="h-5 w-5 mr-2" />
           )}
-          Salvar Horários
+          Salvar HorÃ¡rios
         </Button>
       </div>
     </div>
@@ -256,3 +256,4 @@ const Horarios = () => {
 };
 
 export default Horarios;
+

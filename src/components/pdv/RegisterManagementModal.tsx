@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
 
   const cashMovementMutation = useMutation({
     mutationFn: async ({ type, value, note }: { type: string, value: number, note: string }) => {
-      if (!activeRegister || !user?.id) throw new Error("Caixa inválido");
+      if (!activeRegister || !user?.id) throw new Error("Caixa invÃ¡lido");
       
       const { error } = await supabase.from("cash_movements").insert({
         barbershop_id: clinicId,
@@ -44,7 +44,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      toast({ title: "Sucesso", description: `Operação de ${variables.type} registrada.` });
+      toast({ title: "Sucesso", description: `OperaÃ§Ã£o de ${variables.type} registrada.` });
       setAmount("");
       setReason("");
       setMode("options");
@@ -57,7 +57,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
 
   const closeRegisterMutation = useMutation({
     mutationFn: async () => {
-      if (!activeRegister) throw new Error("Caixa inválido");
+      if (!activeRegister) throw new Error("Caixa invÃ¡lido");
       
       const { error } = await supabase.from("cash_registers").update({
         status: "closed",
@@ -67,7 +67,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Caixa Fechado", description: "As operações do dia foram encerradas." });
+      toast({ title: "Caixa Fechado", description: "As operaÃ§Ãµes do dia foram encerradas." });
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
       onOpenChange(false);
     },
@@ -85,7 +85,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
   };
 
   const handleClose = () => {
-    if (confirm("Tem certeza que deseja FECHAR o caixa? Esta ação não pode ser desfeita e exigirá a abertura de um novo caixa para continuar operando.")) {
+    if (confirm("Tem certeza que deseja FECHAR o caixa? Esta aÃ§Ã£o nÃ£o pode ser desfeita e exigirÃ¡ a abertura de um novo caixa para continuar operando.")) {
       closeRegisterMutation.mutate();
     }
   };
@@ -100,7 +100,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
           <DialogTitle>
             {mode === "options" && "Gerenciar Caixa Atual"}
             {mode === "sangria" && "Realizar Sangria (Retirada)"}
-            {mode === "suprimento" && "Realizar Suprimento (Reforço)"}
+            {mode === "suprimento" && "Realizar Suprimento (ReforÃ§o)"}
             {mode === "close" && "Fechamento de Caixa"}
           </DialogTitle>
         </DialogHeader>
@@ -111,7 +111,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
               <ArrowUpCircle className="w-6 h-6 mr-3 text-emerald-500" />
               <div>
                 <div className="font-semibold text-left">Suprimento</div>
-                <div className="text-sm text-muted-foreground">Adicionar troco à gaveta</div>
+                <div className="text-sm text-muted-foreground">Adicionar troco Ã  gaveta</div>
               </div>
             </Button>
             <Button variant="outline" className="h-16 justify-start text-lg font-normal" onClick={() => setMode("sangria")}>
@@ -139,8 +139,8 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
               <Input required type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Motivo / Observação</label>
-              <Input required placeholder={mode === "sangria" ? "Ex: Pagamento de água" : "Ex: Troco para o dia"} value={reason} onChange={e => setReason(e.target.value)} />
+              <label className="text-sm font-medium">Motivo / ObservaÃ§Ã£o</label>
+              <Input required placeholder={mode === "sangria" ? "Ex: Pagamento de Ã¡gua" : "Ex: Troco para o dia"} value={reason} onChange={e => setReason(e.target.value)} />
             </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setMode("options")} className="flex-1">Voltar</Button>
@@ -154,7 +154,7 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
         {mode === "close" && (
           <div className="space-y-4 py-4 text-center">
             <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-4 rounded-lg text-sm mb-4">
-              Ao fechar o caixa, você não poderá realizar novas vendas até abrir um novo caixa. 
+              Ao fechar o caixa, vocÃª nÃ£o poderÃ¡ realizar novas vendas atÃ© abrir um novo caixa. 
               Geralmente feito ao final do expediente.
             </div>
             
@@ -172,3 +172,4 @@ export function RegisterManagementModal({ open, onOpenChange, activeRegister, cl
     </Dialog>
   );
 }
+

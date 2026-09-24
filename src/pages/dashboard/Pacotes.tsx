@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const Pacotes = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sessão expirada.");
+      if (!session) throw new Error("SessÃ£o expirada.");
       const payload = { name: name.trim(), price: Number(price), quantity: Number(quantity), service_id: serviceId === "none" ? null : serviceId, description, barbershop_id: clinic?.id };
       if (editing) { const { error } = await supabase.from("packages").update(payload).eq("id", editing.id); if (error) throw error; }
       else { const { error } = await supabase.from("packages").insert([payload]); if (error) throw error; }
@@ -74,8 +74,8 @@ const Pacotes = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar seus pacotes promocionais.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronizaÃ§Ã£o</h2>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar seus pacotes promocionais.</p>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -90,9 +90,9 @@ const Pacotes = () => {
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display">
-            <PackageCheck className="h-8 w-8 text-primary" /> Gestão de Pacotes
+            <PackageCheck className="h-8 w-8 text-primary" /> GestÃ£o de Pacotes
           </h1>
-          <p className="text-muted-foreground text-sm mt-1 font-medium">Crie ofertas irresistíveis para fidelizar seus clientes recorrentes.</p>
+          <p className="text-muted-foreground text-sm mt-1 font-medium">Crie ofertas irresistÃ­veis para fidelizar seus clientes recorrentes.</p>
         </div>
         <Button onClick={openNew} className="premium-gradient text-primary-foreground font-bold h-12 px-6 rounded-xl shadow-premium transition-all active:scale-95">
           <Plus className="h-5 w-5 mr-2" /> Criar Novo Combo
@@ -105,7 +105,7 @@ const Pacotes = () => {
             <PackageCheck className="h-10 w-10 text-muted-foreground/30" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Nenhum pacote ativo</h3>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Venda 4 cortes pelo preço de 3 e garanta o retorno do cliente.</p>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Venda 4 cortes pelo preÃ§o de 3 e garanta o retorno do cliente.</p>
           <Button onClick={openNew} variant="outline" className="border-border text-muted-foreground hover:text-foreground">Montar Primeiro Pacote</Button>
         </div>
       ) : (
@@ -126,8 +126,8 @@ const Pacotes = () => {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="bg-background/50 p-3 rounded-xl border border-border/50 flex-1">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Recorrência</p>
-                        <p className="text-xl font-black text-foreground">{p.quantity}<span className="text-xs text-muted-foreground/50 ml-1 font-bold">Sessões</span></p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">RecorrÃªncia</p>
+                        <p className="text-xl font-black text-foreground">{p.quantity}<span className="text-xs text-muted-foreground/50 ml-1 font-bold">SessÃµes</span></p>
                     </div>
                     <div className="bg-background/50 p-3 rounded-xl border border-border/50 flex-1">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Investimento</p>
@@ -136,7 +136,7 @@ const Pacotes = () => {
                   </div>
                   {svc && (
                     <div className="flex items-center gap-2 text-[10px] font-bold text-primary/70 uppercase tracking-tighter">
-                        <Check className="h-3 w-3" /> Válido para: {svc.name}
+                        <Check className="h-3 w-3" /> VÃ¡lido para: {svc.name}
                     </div>
                   )}
                 </div>
@@ -171,25 +171,25 @@ const Pacotes = () => {
                     <Input placeholder="Ex: Assinatura Mensal (4 cortes)" value={name} onChange={(e) => setName(e.target.value)} className="bg-background border-border h-12" />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Descrição das Vantagens</label>
-                    <Input placeholder="Ex: Ganhe uma cerveja por sessão" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-background border-border h-12 text-xs" />
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">DescriÃ§Ã£o das Vantagens</label>
+                    <Input placeholder="Ex: Ganhe uma cerveja por sessÃ£o" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-background border-border h-12 text-xs" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Preço de Venda (R$)</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">PreÃ§o de Venda (R$)</label>
                         <Input type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} className="bg-background border-border h-12 font-mono text-emerald-400 font-bold" />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Número de Sessões</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">NÃºmero de SessÃµes</label>
                         <Input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Serviço Vinculado</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">ServiÃ§o Vinculado</label>
                     <Select value={serviceId} onValueChange={setServiceId}>
                       <SelectTrigger className="bg-background border-border h-12"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-popover border-border text-popover-foreground">
-                        <SelectItem value="none">Qualquer Serviço</SelectItem>
+                        <SelectItem value="none">Qualquer ServiÃ§o</SelectItem>
                         {services.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -199,7 +199,7 @@ const Pacotes = () => {
               className="w-full premium-gradient text-primary-foreground font-black h-14 rounded-2xl shadow-premium transition-all active:scale-95"
               onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !name.trim()}>
               {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <PackageCheck className="h-5 w-5 mr-2" />}
-              {editing ? "Salvar Alterações" : "Lançar Pacote no Sistema"}
+              {editing ? "Salvar AlteraÃ§Ãµes" : "LanÃ§ar Pacote no Sistema"}
             </Button>
           </div>
         </DialogContent>

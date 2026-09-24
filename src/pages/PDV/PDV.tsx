@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -106,7 +106,7 @@ export default function PDV() {
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Caixa Aberto", description: "O PDV está liberado para uso." });
+      toast({ title: "Caixa Aberto", description: "O PDV estÃ¡ liberado para uso." });
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
     },
     onError: (error: any) => {
@@ -199,7 +199,7 @@ export default function PDV() {
       return sale;
     },
     onSuccess: () => {
-      toast({ title: "Venda concluída!", description: "Pagamentos registrados com sucesso." });
+      toast({ title: "Venda concluÃ­da!", description: "Pagamentos registrados com sucesso." });
       setCartItems([]);
       setCustomerName("");
       setCustomerId(null);
@@ -348,25 +348,25 @@ export default function PDV() {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col">
-      <div className="mb-4 bg-white dark:bg-slate-900 p-2 rounded-xl border shadow-sm w-max">
+      <div className="mb-4 bg-card p-2 rounded-xl border shadow-sm w-max">
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-[340px]">
            <TabsList className="grid w-full grid-cols-2 h-10">
              <TabsTrigger value="pdv" className="text-sm font-semibold">Operacional</TabsTrigger>
-             <TabsTrigger value="caixa" className="text-sm font-semibold">Gestão de Caixa</TabsTrigger>
+             <TabsTrigger value="caixa" className="text-sm font-semibold">GestÃ£o de Caixa</TabsTrigger>
            </TabsList>
         </Tabs>
       </div>
 
       {viewMode === "pdv" ? (
         !isRegisterOpen ? (
-          <div className="flex-1 flex items-center justify-center min-h-0 bg-white dark:bg-slate-900 border rounded-xl shadow-sm">
+          <div className="flex-1 flex items-center justify-center min-h-0 bg-card border rounded-xl shadow-sm">
             <div className="max-w-md w-full p-6 flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
                 <Lock className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold mb-2">Caixa Fechado</h2>
               <p className="text-muted-foreground mb-6">
-                O operacional está desabilitado. Para iniciar as operações do PDV e realizar vendas, você precisa abrir o caixa.
+                O operacional estÃ¡ desabilitado. Para iniciar as operaÃ§Ãµes do PDV e realizar vendas, vocÃª precisa abrir o caixa.
               </p>
               
               <form onSubmit={handleOpenRegister} className="w-full space-y-4 text-left">
@@ -384,7 +384,7 @@ export default function PDV() {
         ) : (
           <div className="flex-1 flex gap-4 min-h-0">
             <div className="w-2/3 flex flex-col gap-4">
-              <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
+              <div className="bg-card border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
                  <h2 className="text-lg font-semibold tracking-tight">Fila do Dia</h2>
                  <div className="flex gap-2">
                    <Button variant="outline" className="font-semibold" onClick={() => setShowRegisterMgmt(true)}>
@@ -395,7 +395,7 @@ export default function PDV() {
                    </Button>
                  </div>
               </div>
-              <div className="flex-1 bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+              <div className="flex-1 bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
                  <Tabs defaultValue="agendadas" className="w-full h-full flex flex-col">
                     <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 px-4 h-12">
                        <TabsTrigger value="agendadas" className="data-[state=active]:bg-background">Agendadas</TabsTrigger>
@@ -419,7 +419,7 @@ export default function PDV() {
               </div>
             </div>
 
-            <div className="w-1/3 bg-white dark:bg-slate-900 border rounded-xl shadow-sm flex flex-col overflow-hidden">
+            <div className="w-1/3 bg-card border rounded-xl shadow-sm flex flex-col overflow-hidden">
               <CartPanel 
                 items={cartItems} 
                 customerName={customerName}
@@ -432,7 +432,7 @@ export default function PDV() {
           </div>
         )
       ) : (
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 border rounded-xl shadow-sm p-4">
+        <div className="flex-1 overflow-y-auto bg-card border rounded-xl shadow-sm p-4">
           <CashRegisterPanel />
         </div>
       )}
@@ -463,3 +463,4 @@ export default function PDV() {
     </div>
   );
 }
+

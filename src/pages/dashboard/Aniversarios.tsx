@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { Loader2, Cake, Phone, MessageCircle, AlertTriangle, RefreshCw } from "lucide-react";
@@ -32,7 +32,7 @@ const Aniversarios = () => {
 
   const sendWhatsApp = (phone: string, name: string) => {
     if (!phone) return;
-    const msg = encodeURIComponent(`🎂 Parabéns, ${name}! Feliz Aniversário! 🎉 Como presente, você tem 10% de desconto no seu próximo corte. Agende já: ${window.location.origin}/agendamentos/${clinic?.slug}`);
+    const msg = encodeURIComponent(`ðŸŽ‚ ParabÃ©ns, ${name}! Feliz AniversÃ¡rio! ðŸŽ‰ Como presente, vocÃª tem 10% de desconto no seu prÃ³ximo corte. Agende jÃ¡: ${window.location.origin}/agendamentos/${clinic?.slug}`);
     const clean = phone.replace(/\D/g, "");
     const full = clean.startsWith("55") ? clean : `55${clean}`;
     window.open(`https://wa.me/${full}?text=${msg}`, "_blank");
@@ -54,7 +54,7 @@ const Aniversarios = () => {
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
         <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronia</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar a lista de aniversariantes.</p>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar a lista de aniversariantes.</p>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -66,7 +66,7 @@ const Aniversarios = () => {
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
       <div className="mb-10">
         <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight font-display">
-          <Cake className="h-8 w-8 text-primary" /> Aniversários
+          <Cake className="h-8 w-8 text-primary" /> AniversÃ¡rios
         </h1>
         <p className="text-muted-foreground text-sm mt-1 font-medium capitalize">
           {customers.length} aniversariante{customers.length !== 1 ? "s" : ""} identificado{customers.length !== 1 ? "s" : ""} em {monthName}
@@ -78,9 +78,9 @@ const Aniversarios = () => {
           <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
             <Cake className="h-10 w-10 text-muted-foreground/30" />
           </div>
-          <h3 className="text-xl font-bold text-foreground mb-2 capitalize">Mês tranquilo em {monthName}</h3>
+          <h3 className="text-xl font-bold text-foreground mb-2 capitalize">MÃªs tranquilo em {monthName}</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-            Cadastre as datas de nascimento dos seus clientes para criar promoções automáticas de marketing.
+            Cadastre as datas de nascimento dos seus clientes para criar promoÃ§Ãµes automÃ¡ticas de marketing.
           </p>
         </div>
       ) : (
@@ -95,7 +95,7 @@ const Aniversarios = () => {
               }`}>
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform group-hover:rotate-12 ${
                   isToday ? "bg-primary text-primary-foreground shadow-premium" : "bg-background border border-border"
-                }`}>🎂</div>
+                }`}>ðŸŽ‚</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-bold text-foreground truncate">{c.name}</p>

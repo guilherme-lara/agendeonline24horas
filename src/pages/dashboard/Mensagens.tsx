@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2, MessageSquare, Save, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +41,7 @@ const Mensagens = () => {
       } catch {
         toast({
           title: "Erro ao carregar template",
-          description: "Usando mensagem padrão.",
+          description: "Usando mensagem padrÃ£o.",
           variant: "destructive",
         });
       }
@@ -54,7 +54,7 @@ const Mensagens = () => {
   // Update preview with sample data
   useEffect(() => {
     const sample = fillMessageTemplate(template, {
-      cliente: "João Silva",
+      cliente: "JoÃ£o Silva",
       servico: "Corte Masculino",
       data: "15/04/2026",
       horario: "14:30",
@@ -67,7 +67,7 @@ const Mensagens = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!clinic?.id) throw new Error("Estabelecimento não identificado.");
+      if (!clinic?.id) throw new Error("Estabelecimento nÃ£o identificado.");
 
       const { data: current } = await supabase
         .from("barbershops")
@@ -95,13 +95,13 @@ const Mensagens = () => {
       queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
       toast({
         title: "Mensagem salva!",
-        description: "O template de confirmação foi atualizado.",
+        description: "O template de confirmaÃ§Ã£o foi atualizado.",
       });
     },
     onError: (err: any) => {
       toast({
         title: "Erro ao salvar",
-        description: err.message || "Verifique sua conexão.",
+        description: err.message || "Verifique sua conexÃ£o.",
         variant: "destructive",
       });
     },
@@ -119,7 +119,7 @@ const Mensagens = () => {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-xs text-muted-foreground animate-pulse uppercase tracking-widest font-bold">
-          Carregando configurações...
+          Carregando configuraÃ§Ãµes...
         </p>
       </div>
     );
@@ -129,7 +129,7 @@ const Mensagens = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronizaÃ§Ã£o</h2>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -153,10 +153,10 @@ const Mensagens = () => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight font-display">
-            Mensagens de Confirmação
+            Mensagens de ConfirmaÃ§Ã£o
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Personalize a mensagem enviada ao cliente após agendar.
+            Personalize a mensagem enviada ao cliente apÃ³s agendar.
           </p>
         </div>
       </div>
@@ -170,7 +170,7 @@ const Mensagens = () => {
                 <Sparkles className="h-4 w-4" /> Template da Mensagem
               </h2>
               <p className="text-xs text-muted-foreground">
-                Use as variáveis abaixo para personalizar a mensagem.
+                Use as variÃ¡veis abaixo para personalizar a mensagem.
               </p>
             </div>
             <Button
@@ -179,7 +179,7 @@ const Mensagens = () => {
               onClick={() => setTemplate(DEFAULT_CONFIRMATION_TEMPLATE)}
               className="text-xs border-border"
             >
-              Restaurar Padrão
+              Restaurar PadrÃ£o
             </Button>
           </div>
 
@@ -188,7 +188,7 @@ const Mensagens = () => {
             onChange={(e) => setTemplate(e.target.value)}
             rows={4}
             className="bg-background border-border text-foreground font-mono text-sm focus-visible:ring-primary/50"
-            placeholder="Olá {{cliente}}, seu agendamento para {{servico}} no dia {{data}} está confirmado!"
+            placeholder="OlÃ¡ {{cliente}}, seu agendamento para {{servico}} no dia {{data}} estÃ¡ confirmado!"
           />
 
           {/* VARIABLE CHIPS */}
@@ -210,7 +210,7 @@ const Mensagens = () => {
         {/* LIVE PREVIEW */}
         <div className="bg-card border border-border rounded-3xl p-8 shadow-card space-y-4">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-            Pré-visualização
+            PrÃ©-visualizaÃ§Ã£o
           </h2>
           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6">
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
@@ -240,3 +240,4 @@ const Mensagens = () => {
 };
 
 export default Mensagens;
+

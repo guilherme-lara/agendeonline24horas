@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/ui/skeleton";
 
 const DashboardSkeleton = () => (
   <div className="dashboard-theme min-h-screen bg-background">
@@ -13,7 +13,7 @@ const DashboardSkeleton = () => (
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 mb-8">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4">
+          <div key={i} className="rounded-xl border border-zinc-200 bg-card p-4">
             <Skeleton className="h-5 w-5 mb-2 rounded" />
             <Skeleton className="h-8 w-20 mb-1" />
             <Skeleton className="h-3 w-24" />
@@ -35,3 +35,4 @@ const DashboardSkeleton = () => (
 );
 
 export default DashboardSkeleton;
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -64,7 +64,7 @@ const Clientes = () => {
         _barbershop_id: clinic.id,
       });
       if (error) {
-        console.error("Erro ao buscar clientes com estatísticas:", error);
+        console.error("Erro ao buscar clientes com estatÃ­sticas:", error);
         throw new Error(error.message);
       }
       return data || [];
@@ -151,8 +151,8 @@ const Clientes = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de Sincronização</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar sua lista de clientes.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de SincronizaÃ§Ã£o</h2>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar sua lista de clientes.</p>
         <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -166,7 +166,7 @@ const Clientes = () => {
         <h1 className="text-3xl font-bold text-sys-text-primary flex items-center gap-3 tracking-tight font-display">
           <UserSearch className="h-8 w-8 text-sys-brand-primary" /> Carteira de Clientes
         </h1>
-        <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
+        <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histÃ³rico de agendamentos.</p>
       </div>
 
       {customers.length === 0 ? (
@@ -175,7 +175,7 @@ const Clientes = () => {
             <UserSearch className="h-10 w-10 text-sys-text-subtle" />
           </div>
           <h3 className="text-xl font-bold text-sys-text-primary mb-2">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
+          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes serÃ¡ preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
         <div className="bg-sys-surface border border-sys-border rounded-2xl shadow-sm overflow-hidden transition-all">
@@ -185,8 +185,8 @@ const Clientes = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Cliente</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Contagem</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Última Visita</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ãšltima Visita</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sys-border">
@@ -258,7 +258,7 @@ const Clientes = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-secondary/20">
               <p className="text-xs text-muted-foreground">
-                Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, customers.length)} de {customers.length}
+                Mostrando {(currentPage - 1) * PAGE_SIZE + 1}â€“{Math.min(currentPage * PAGE_SIZE, customers.length)} de {customers.length}
               </p>
               <div className="flex items-center gap-1">
                 <Button
@@ -298,7 +298,7 @@ const Clientes = () => {
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  Próximo
+                  PrÃ³ximo
                 </Button>
               </div>
             </div>
@@ -366,7 +366,7 @@ const Clientes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Essa ação não pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? Essa aÃ§Ã£o nÃ£o pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -389,3 +389,4 @@ const Clientes = () => {
 };
 
 export default Clientes;
+

@@ -1,4 +1,4 @@
-import PaymentSettingsTab from "@/components/PaymentSettingsTab";
+﻿import PaymentSettingsTab from "@/components/PaymentSettingsTab";
 import { useClinic } from "@/hooks/useClinic";
 import { Loader2, CreditCard, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ const Pagamentos = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-xs text-muted-foreground animate-pulse uppercase tracking-widest font-bold">Sincronizando métodos de recebimento...</p>
+        <p className="text-xs text-muted-foreground animate-pulse uppercase tracking-widest font-bold">Sincronizando mÃ©todos de recebimento...</p>
       </div>
     );
   }
@@ -20,8 +20,8 @@ const Pagamentos = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de conexão</h2>
-        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar suas configurações de pagamento.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de conexÃ£o</h2>
+        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar suas configuraÃ§Ãµes de pagamento.</p>
         <Button onClick={() => refetch()} className="premium-gradient text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -39,7 +39,7 @@ const Pagamentos = () => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight font-display">Pagamentos</h1>
-          <p className="text-muted-foreground text-sm font-medium">Configure o recebimento de sinais e a integração com a InfinitePay.</p>
+          <p className="text-muted-foreground text-sm font-medium">Configure o recebimento de sinais e a integraÃ§Ã£o com a InfinitePay.</p>
         </div>
       </div>
 
@@ -48,7 +48,7 @@ const Pagamentos = () => {
       </div>
       
       <p className="text-center text-[10px] text-muted-foreground/50 uppercase font-bold mt-8 tracking-widest">
-        🔒 Transações processadas com segurança via criptografia SSL
+        ðŸ”’ TransaÃ§Ãµes processadas com seguranÃ§a via criptografia SSL
       </p>
     </div>
   );

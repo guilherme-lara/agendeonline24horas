@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Building2, Users, DollarSign, CalendarDays, Loader2, LogOut,
@@ -104,7 +104,7 @@ const SuperAdmin = () => {
       const { error } = await supabase.from("system_settings").upsert({ key: "announcement", value: broadcastText }, { onConflict: 'key' });
       if (error) throw error;
     },
-    onSuccess: () => toast({ title: "Aviso enviado!", description: "Todos os usuários verão o aviso." })
+    onSuccess: () => toast({ title: "Aviso enviado!", description: "Todos os usuÃ¡rios verÃ£o o aviso." })
   });
 
   const renewTrialMutation = useMutation({
@@ -172,7 +172,7 @@ const SuperAdmin = () => {
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {dashboardStats.map((kpi, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div key={i} className="bg-card border border-gray-200 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{kpi.label}</p>
                 <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
@@ -183,14 +183,14 @@ const SuperAdmin = () => {
         </div>
 
         {/* BROADCAST */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-10 shadow-sm">
+        <div className="bg-card border border-gray-200 rounded-xl p-6 mb-10 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Bell className="h-4 w-4 text-amber-500" /> Aviso Global
           </h3>
           <Textarea 
             value={broadcastText} 
             onChange={(e) => setBroadcastText(e.target.value)} 
-            placeholder="Digite o aviso que aparecerá no Dashboard de todos os estabelecimentos..."
+            placeholder="Digite o aviso que aparecerÃ¡ no Dashboard de todos os estabelecimentos..."
             className="bg-gray-50 border-gray-200 min-h-[80px] rounded-lg resize-none" 
           />
           <Button 
@@ -204,7 +204,7 @@ const SuperAdmin = () => {
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-card border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-semibold text-gray-900">Estabelecimentos</h3>
@@ -226,10 +226,10 @@ const SuperAdmin = () => {
               <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left">Estabelecimento</th>
-                  <th className="px-6 py-3 text-left">Proprietário</th>
+                  <th className="px-6 py-3 text-left">ProprietÃ¡rio</th>
                   <th className="px-6 py-3 text-left">Plano</th>
                   <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-right">Ações</th>
+                  <th className="px-6 py-3 text-right">AÃ§Ãµes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -238,7 +238,7 @@ const SuperAdmin = () => {
                   const planName = plan?.plan_name || "essential";
                   const isActive = plan?.status === "active";
                   
-                  // Lógica de Trial
+                  // LÃ³gica de Trial
                   const now = new Date();
                   const trialEnd = shop.trial_ends_at ? new Date(shop.trial_ends_at) : null;
                   const isTrialActive = trialEnd && trialEnd > now && !isActive;
@@ -251,7 +251,7 @@ const SuperAdmin = () => {
                         <p className="font-medium text-gray-900 text-sm">{shop.name}</p>
                         <p className="text-xs text-gray-400 mt-0.5">/{shop.slug}</p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{metrics?.emailMap[shop.owner_id] || "—"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{metrics?.emailMap[shop.owner_id] || "â€”"}</td>
                       <td className="px-6 py-4">
                         <Badge variant="outline" className={`text-xs font-medium border ${
                           planName === "pro" ? "border-amber-200 text-amber-700 bg-amber-50" :
@@ -287,7 +287,7 @@ const SuperAdmin = () => {
                               <ChevronDown className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-lg rounded-lg w-48">
+                          <DropdownMenuContent align="end" className="bg-card border-gray-200 shadow-lg rounded-lg w-48">
                             <DropdownMenuItem
                               onClick={() => renewTrialMutation.mutate(shop.id)}
                               className="cursor-pointer text-sm gap-2 text-amber-600"
@@ -323,7 +323,7 @@ const SuperAdmin = () => {
 
       {/* MODAL */}
       <Dialog open={!!detailShop} onOpenChange={() => setDetailShop(null)}>
-        <DialogContent className="bg-white border-gray-200 max-w-md rounded-xl shadow-xl">
+        <DialogContent className="bg-card border-gray-200 max-w-md rounded-xl shadow-xl">
           <DialogHeader className="pb-4 border-b border-gray-100">
             <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <CreditCard className="text-blue-600 h-5 w-5" /> Gerenciar Plano
@@ -340,13 +340,13 @@ const SuperAdmin = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">Plano</label>
                 <Select value={editForm.plan} onValueChange={(v) => setEditForm({...editForm, plan: v})}>
-                  <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg text-sm">
+                  <SelectTrigger className="bg-card border-gray-200 h-10 rounded-lg text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 rounded-lg">
-                    <SelectItem value="essential">Essential — R$ 97/mês</SelectItem>
-                    <SelectItem value="growth">Growth — R$ 197/mês</SelectItem>
-                    <SelectItem value="pro">Pro — R$ 397/mês</SelectItem>
+                  <SelectContent className="bg-card border-gray-200 rounded-lg">
+                    <SelectItem value="essential">Essential â€” R$ 97/mÃªs</SelectItem>
+                    <SelectItem value="growth">Growth â€” R$ 197/mÃªs</SelectItem>
+                    <SelectItem value="pro">Pro â€” R$ 397/mÃªs</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -354,10 +354,10 @@ const SuperAdmin = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">Status</label>
                 <Select value={editForm.status} onValueChange={(v) => setEditForm({...editForm, status: v})}>
-                  <SelectTrigger className="bg-white border-gray-200 h-10 rounded-lg text-sm">
+                  <SelectTrigger className="bg-card border-gray-200 h-10 rounded-lg text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200 rounded-lg">
+                  <SelectContent className="bg-card border-gray-200 rounded-lg">
                     <SelectItem value="active">Ativo</SelectItem>
                     <SelectItem value="suspended">Suspenso</SelectItem>
                     <SelectItem value="overdue">Atrasado</SelectItem>
@@ -387,3 +387,4 @@ const SuperAdmin = () => {
 };
 
 export default SuperAdmin;
+

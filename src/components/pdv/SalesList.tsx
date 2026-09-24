@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,7 +61,7 @@ export function SalesList({ barbershopId, status, onSelectSale, createdBy }: Sal
   return (
     <div className="flex flex-col gap-2 p-2">
       {sales.map((sale: any) => (
-        <div key={sale.id} className="bg-white border rounded-xl p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
+        <div key={sale.id} className="bg-card border rounded-xl p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="font-bold text-sm text-foreground">Comanda #{sale.id.substring(0, 6)}</span>
@@ -81,3 +81,4 @@ export function SalesList({ barbershopId, status, onSelectSale, createdBy }: Sal
     </div>
   );
 }
+

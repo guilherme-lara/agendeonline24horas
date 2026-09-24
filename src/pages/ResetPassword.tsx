@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Rota pública /reset-password
+ * Rota pÃºblica /reset-password
  * O Supabase, com detectSessionInUrl: true, captura o token do #hash da URL
  * automaticamente e dispara PASSWORD_RECOVERY no onAuthStateChange (useAuth),
- * que nos redireciona pra cá. Aqui apenas trocamos a senha.
+ * que nos redireciona pra cÃ¡. Aqui apenas trocamos a senha.
  */
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -22,13 +22,13 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Garante que a sessão de recovery foi restaurada antes de permitir o submit
+    // Garante que a sessÃ£o de recovery foi restaurada antes de permitir o submit
     supabase.auth.getSession().then(({ data }) => {
       setReady(!!data.session);
       if (!data.session) {
         toast({
-          title: "Link inválido ou expirado",
-          description: "Solicite um novo e-mail de recuperação.",
+          title: "Link invÃ¡lido ou expirado",
+          description: "Solicite um novo e-mail de recuperaÃ§Ã£o.",
           variant: "destructive",
         });
       }
@@ -42,19 +42,19 @@ const ResetPassword = () => {
       return;
     }
     if (password !== confirm) {
-      toast({ title: "Senhas não coincidem", variant: "destructive" });
+      toast({ title: "Senhas nÃ£o coincidem", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast({ title: "Senha atualizada!", description: "Faça login com a nova senha." });
+      toast({ title: "Senha atualizada!", description: "FaÃ§a login com a nova senha." });
       await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (err: any) {
       toast({
-        title: "Não foi possível atualizar",
+        title: "NÃ£o foi possÃ­vel atualizar",
         description: err?.message || "Tente novamente.",
         variant: "destructive",
       });
@@ -67,7 +67,7 @@ const ResetPassword = () => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
       <div className="w-full max-w-[420px]">
         <div className="text-center mb-8">
-          <div className="mx-auto mb-6 h-20 w-20 flex items-center justify-center rounded-2xl bg-white border border-slate-200 shadow-xl">
+          <div className="mx-auto mb-6 h-20 w-20 flex items-center justify-center rounded-2xl bg-card border border-slate-200 shadow-xl">
             <ShieldCheck className="h-9 w-9 text-primary" />
           </div>
           <h1 className="text-3xl font-normal text-foreground tracking-tight font-display mb-2">
@@ -78,7 +78,7 @@ const ResetPassword = () => {
           </p>
         </div>
 
-        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl">
+        <div className="bg-card border border-slate-200 p-8 rounded-3xl shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
@@ -88,7 +88,7 @@ const ResetPassword = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type={show ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-slate-50 border-slate-200 pl-12 pr-12 h-14 rounded-2xl"
@@ -113,7 +113,7 @@ const ResetPassword = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type={show ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="bg-slate-50 border-slate-200 pl-12 h-14 rounded-2xl"
@@ -144,3 +144,4 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
+

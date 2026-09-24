@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+﻿import { Link, useLocation } from "react-router-dom";
 import {
   MessageCircle, MessageSquare, CalendarDays, Globe, TrendingDown, BarChart3,
   Smile, Users, Scissors, ShoppingBag, PackageCheck, Cake, Settings, LogOut,
@@ -31,10 +31,10 @@ const navItems = [
     ],
   },
   {
-    label: "Equipe & Serviços", icon: Store, path: "#",
+    label: "Equipe & ServiÃ§os", icon: Store, path: "#",
     subItems: [
       { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
-      { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
+      { label: "ServiÃ§os", icon: Scissors, path: "/dashboard/servicos" },
       { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
       { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
     ],
@@ -43,24 +43,24 @@ const navItems = [
     label: "Clientes", icon: Users, path: "#",
     subItems: [
       { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
-      { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
+      { label: "AniversÃ¡rios", icon: Cake, path: "/dashboard/aniversarios" },
     ],
   },
   {
     label: "Financeiro", icon: Briefcase, path: "#",
     subItems: [
-      { label: "Aprovação de Comandas", icon: PackageCheck, path: "/dashboard/aprovacoes" },
+      { label: "AprovaÃ§Ã£o de Comandas", icon: PackageCheck, path: "/dashboard/aprovacoes" },
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
-      { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
+      { label: "RelatÃ³rios", icon: BarChart3, path: "/dashboard/relatorios" },
     ],
   },
   {
-    label: "Configurações", icon: Settings, path: "#",
+    label: "ConfiguraÃ§Ãµes", icon: Settings, path: "#",
     subItems: [
       { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
       { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
       { label: "Sistema", icon: Settings, path: "/dashboard/configuracoes" },
-      { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
+      { label: "HorÃ¡rios", icon: Clock, path: "/dashboard/horarios" },
     ],
   },
   {
@@ -85,10 +85,10 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
-    "Equipe & Serviços": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
+    "Equipe & ServiÃ§os": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
     "Clientes": pathname.includes("/clientes") || pathname.includes("/aniversarios"),
     "Financeiro": pathname.includes("/despesas") || pathname.includes("/relatorios"),
-    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
+    "ConfiguraÃ§Ãµes": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
   });
 
   const toggleMenu = (label: string) => setOpenMenus((p) => ({ ...p, [label]: !p[label] }));
@@ -120,7 +120,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
           "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col transition-transform duration-300 ease-out",
           "w-[85vw] max-w-[300px] md:w-72",
           "md:translate-x-0 md:static md:z-auto",
-          "glass border-r border-border/60",
+          "bg-background/80 backdrop-blur-xl border-r border-border/50",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -159,7 +159,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
             <div className="flex items-center gap-2 mb-2">
               <Crown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-                Pro Trial · {trialDaysLeft}d restantes
+                Pro Trial Â· {trialDaysLeft}d restantes
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-amber-500/15 overflow-hidden">
@@ -263,7 +263,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-border/60 p-4 space-y-3 bg-card/40 shrink-0">
+        <div className="border-t border-border/50 p-5 pb-6 mt-auto space-y-3 shrink-0 bg-transparent">
           <div className="flex items-center justify-between">
             <ThemeToggle />
             <button
@@ -276,7 +276,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
           </div>
           <div className="flex items-center gap-2 px-1 pt-1 text-[9px] text-muted-foreground/70">
             <Sparkles className="h-3 w-3 text-primary/60" />
-            <span className="truncate">Desenvolvido por Jotatechinfo · v1.2.0</span>
+            <span className="truncate">Desenvolvido por Jotatechinfo Â· v1.2.0</span>
           </div>
         </div>
       </aside>
@@ -285,3 +285,4 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
 };
 
 export default DashboardSidebar;
+

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -61,16 +61,16 @@ const Aprovacoes = () => {
       
       if (error) {
         if (error.code === '42501' || error.message?.toLowerCase().includes('permission denied')) {
-          throw new Error("Permissão negada. Apenas gerentes podem aprovar.");
+          throw new Error("PermissÃ£o negada. Apenas gerentes podem aprovar.");
         }
         throw error;
       }
       
-      toast.success("Comissão liberada para o profissional");
+      toast.success("ComissÃ£o liberada para o profissional");
       queryClient.invalidateQueries({ queryKey: ["comissao-pendente"] });
       queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível liberar a comissão");
+      toast.error(err?.message || "NÃ£o foi possÃ­vel liberar a comissÃ£o");
     } finally {
       setBusyId(null);
     }
@@ -82,10 +82,10 @@ const Aprovacoes = () => {
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-primary" />
-            Aprovação de Comandas
+            AprovaÃ§Ã£o de Comandas
           </h1>
           <p className="text-sm text-muted-foreground">
-            Libere a comissão dos profissionais para atendimentos concluídos.
+            Libere a comissÃ£o dos profissionais para atendimentos concluÃ­dos.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -118,7 +118,7 @@ const Aprovacoes = () => {
             <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
             <p className="text-sm font-medium">Tudo em dia!</p>
             <p className="text-xs text-muted-foreground">
-              Nenhuma comanda aguardando aprovação.
+              Nenhuma comanda aguardando aprovaÃ§Ã£o.
             </p>
           </CardContent>
         </Card>
@@ -133,11 +133,11 @@ const Aprovacoes = () => {
                     {appt.client_name}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {appt.service_name} • Profissional: {appt.barber_name || "—"}
+                    {appt.service_name} â€¢ Profissional: {appt.barber_name || "â€”"}
                   </p>
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {format(toBRT(appt.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {format(toBRT(appt.scheduled_at), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ const Aprovacoes = () => {
                     ) : (
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                     )}
-                    Liberar comissão
+                    Liberar comissÃ£o
                   </Button>
                 </div>
               </CardContent>
@@ -171,3 +171,4 @@ const Aprovacoes = () => {
 };
 
 export default Aprovacoes;
+

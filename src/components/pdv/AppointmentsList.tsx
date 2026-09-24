@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { format, isToday, parseISO } from "date-fns";
@@ -62,7 +62,7 @@ export function AppointmentsList({ onSelect, professionalId }: AppointmentsListP
         </div>
         <h3 className="font-semibold text-lg">Nenhum agendamento hoje</h3>
         <p className="text-sm text-muted-foreground max-w-xs mt-1">
-          Os clientes agendados para hoje aparecerão aqui para o checkout.
+          Os clientes agendados para hoje aparecerÃ£o aqui para o checkout.
         </p>
       </div>
     );
@@ -81,7 +81,7 @@ export function AppointmentsList({ onSelect, professionalId }: AppointmentsListP
               className={`flex flex-col p-4 rounded-xl border transition-all ${
                 isFinished 
                   ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60" 
-                  : "bg-white dark:bg-slate-900 border-slate-200 shadow-sm hover:shadow hover:border-primary/50 cursor-pointer"
+                  : "bg-card border-slate-200 shadow-sm hover:shadow hover:border-primary/50 cursor-pointer"
               }`}
               onClick={() => !isFinished && onSelect(appt)}
             >
@@ -92,7 +92,7 @@ export function AppointmentsList({ onSelect, professionalId }: AppointmentsListP
                   </div>
                   {isFinished && (
                     <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
-                      <CheckCircle className="w-3 h-3" /> Concluído
+                      <CheckCircle className="w-3 h-3" /> ConcluÃ­do
                     </span>
                   )}
                   {appt.confirmation_status === "pending" && !isFinished && (
@@ -113,7 +113,7 @@ export function AppointmentsList({ onSelect, professionalId }: AppointmentsListP
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Scissors className="w-4 h-4" />
-                  <span className="truncate">{appt.service_name} • {appt.barber_name}</span>
+                  <span className="truncate">{appt.service_name} â€¢ {appt.barber_name}</span>
                 </div>
               </div>
             </div>
@@ -123,3 +123,4 @@ export function AppointmentsList({ onSelect, professionalId }: AppointmentsListP
     </ScrollArea>
   );
 }
+

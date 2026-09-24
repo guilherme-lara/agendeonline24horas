@@ -1,4 +1,4 @@
-import { useClinic } from "@/hooks/useClinic";
+﻿import { useClinic } from "@/hooks/useClinic";
 import { Globe, ExternalLink, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +32,8 @@ const AgendamentoOnline = () => {
       <div className="p-6 max-w-2xl mx-auto">
         <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400 shadow-lg">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Falha na Sincronização</AlertTitle>
-          <AlertDescription>Não conseguimos carregar o seu endereço de agendamento.</AlertDescription>
+          <AlertTitle>Falha na SincronizaÃ§Ã£o</AlertTitle>
+          <AlertDescription>NÃ£o conseguimos carregar o seu endereÃ§o de agendamento.</AlertDescription>
         </Alert>
         <Button onClick={() => window.location.reload()} variant="outline" className="mt-4 w-full border-border hover:bg-secondary">
            Tentar Novamente
@@ -55,7 +55,7 @@ const AgendamentoOnline = () => {
         <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">Agendamento Online</h1>
       </div>
       <p className="text-sm text-muted-foreground mb-8">
-        Seu endereço exclusivo está ativo. Divulgue no Instagram para receber agendamentos 24h.
+        Seu endereÃ§o exclusivo estÃ¡ ativo. Divulgue no Instagram para receber agendamentos 24h.
       </p>
 
       <div className="rounded-2xl border border-border bg-card p-8 space-y-6 shadow-card relative overflow-hidden group">
@@ -64,7 +64,7 @@ const AgendamentoOnline = () => {
         </div>
 
         <div className="space-y-3">
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Link Público</label>
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Link PÃºblico</label>
           <div className="flex gap-2">
             <Input value={bookingUrl} readOnly className="bg-background border-border text-primary font-mono text-xs focus-visible:ring-primary/50" />
             <Button variant="outline" onClick={handleCopy} className="border-border hover:bg-secondary hover:text-foreground transition-all">
@@ -78,10 +78,10 @@ const AgendamentoOnline = () => {
                 onClick={() => window.open(bookingUrl, "_blank")} 
                 className="w-full premium-gradient text-primary-foreground font-bold shadow-premium"
             >
-                <ExternalLink className="h-4 w-4 mr-2" /> Visualizar Página do Cliente
+                <ExternalLink className="h-4 w-4 mr-2" /> Visualizar PÃ¡gina do Cliente
             </Button>
             <p className="text-[10px] text-center text-muted-foreground/50 uppercase tracking-tight font-bold">
-                Dica: O link é atualizado automaticamente se você mudar seu slug
+                Dica: O link Ã© atualizado automaticamente se vocÃª mudar seu slug
             </p>
         </div>
       </div>

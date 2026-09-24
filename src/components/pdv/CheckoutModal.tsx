@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,8 @@ interface CheckoutModalProps {
 const PAYMENT_METHODS = [
   { id: "pix", label: "Pix (InfinitePay)" },
   { id: "payment_link", label: "Link de Pagamento" },
-  { id: "credit_card", label: "Cartão de Crédito" },
-  { id: "debit_card", label: "Cartão de Débito" },
+  { id: "credit_card", label: "CartÃ£o de CrÃ©dito" },
+  { id: "debit_card", label: "CartÃ£o de DÃ©bito" },
   { id: "cash", label: "Dinheiro" },
 ];
 
@@ -63,7 +63,7 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
 
   const handleGeneratePix = async (index: number) => {
     const p = payments[index];
-    if (p.amount <= 0) return toast.error("Valor inválido");
+    if (p.amount <= 0) return toast.error("Valor invÃ¡lido");
     
     setIsGeneratingPix(index);
     try {
@@ -78,7 +78,7 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
         appointment_id: items[0]?.source_appointment_id || "pdv-" + Date.now(), 
         barbershop_id: "", // Edge function handles missing if possible, but let's pass a generic or maybe we have clinic ID? We don't have clinic ID here directly.
       });
-      if (!res.success) throw new Error(res.error || "Falha ao gerar cobrança");
+      if (!res.success) throw new Error(res.error || "Falha ao gerar cobranÃ§a");
       
       const newPayments = [...payments];
       newPayments[index].qrCode = res.brcode || res.pix_key;
@@ -127,13 +127,13 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
 
         {/* Pagamentos List */}
         <div className="space-y-3 mb-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pagamentos Lançados</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pagamentos LanÃ§ados</h3>
           {payments.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">Nenhum pagamento registrado.</p>
           ) : (
             <div className="space-y-2">
               {payments.map((p, i) => (
-                <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border bg-white dark:bg-slate-950">
+                <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border bg-card">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">
@@ -192,9 +192,9 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
         {!isPaid && (
           <div className="flex gap-2 items-end bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-dashed">
             <div className="flex-1 space-y-1">
-              <label className="text-xs font-medium">Método</label>
+              <label className="text-xs font-medium">MÃ©todo</label>
               <Select value={currentMethod} onValueChange={setCurrentMethod}>
-                <SelectTrigger className="bg-white dark:bg-slate-950">
+                <SelectTrigger className="bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -209,7 +209,7 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
               <Input 
                 type="number" 
                 step="0.01" 
-                className="bg-white dark:bg-slate-950 font-bold"
+                className="bg-card font-bold"
                 placeholder={remaining.toFixed(2)}
                 value={currentAmount}
                 onChange={(e) => setCurrentAmount(e.target.value)}
@@ -241,3 +241,4 @@ export function CheckoutModal({ open, onOpenChange, items, customerName, onConfi
     </Dialog>
   );
 }
+
