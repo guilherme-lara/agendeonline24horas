@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toBRT } from "@/lib/timezone";
 import { toast } from "sonner";
+import { StatusBadge } from "@/components/ui/badge";
 
 const Aprovacoes = () => {
   const { clinic } = useClinic() as any;
@@ -141,11 +142,12 @@ const Aprovacoes = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-1">
                     <p className="text-[10px] font-black uppercase text-muted-foreground">Total</p>
                     <p className="text-base font-black text-primary">
                       R$ {Number(appt.total_price ?? appt.price ?? 0).toFixed(2)}
                     </p>
+                    <StatusBadge status={appt.status} />
                   </div>
                   <Button
                     size="sm"

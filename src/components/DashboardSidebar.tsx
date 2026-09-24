@@ -21,22 +21,13 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { label: "Caixa / PDV", icon: ShoppingCart, path: "/pdv" },
-  { label: "Painel", icon: LayoutDashboard, path: "/dashboard/painel" },
   {
-    label: "Agenda", icon: Calendar, path: "#",
+    label: "Operação", icon: LayoutDashboard, path: "#",
     subItems: [
+      { label: "Painel", icon: LayoutDashboard, path: "/dashboard/painel" },
+      { label: "Caixa / PDV", icon: ShoppingCart, path: "/pdv" },
       { label: "Agendamentos", icon: CalendarDays, path: "/dashboard/agenda" },
       { label: "Agendamento Online", icon: Globe, path: "/dashboard/agendamento-online" },
-    ],
-  },
-  {
-    label: "Equipe & Serviços", icon: Store, path: "#",
-    subItems: [
-      { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
-      { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
-      { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
-      { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
     ],
   },
   {
@@ -44,6 +35,15 @@ const navItems = [
     subItems: [
       { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
       { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
+    ],
+  },
+  {
+    label: "Equipe", icon: Store, path: "#",
+    subItems: [
+      { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
+      { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
+      { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
+      { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
     ],
   },
   {
@@ -55,7 +55,7 @@ const navItems = [
     ],
   },
   {
-    label: "Configurações", icon: Settings, path: "#",
+    label: "Administração", icon: Settings, path: "#",
     subItems: [
       { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
       { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
@@ -77,18 +77,18 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
   const visibleNavItems = useMemo(() => {
     if (isProfessional) {
       return navItems.filter((item) =>
-        ["Caixa / PDV", "Painel", "Agenda", "Clientes", "Suporte"].includes(item.label)
+        ["Operação", "Clientes", "Suporte"].includes(item.label)
       );
     }
     return navItems;
   }, [isProfessional]);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
-    "Equipe & Serviços": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
+    "Operação": pathname.includes("/painel") || pathname.includes("/pdv") || pathname.includes("/agenda"),
+    "Equipe": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
     "Clientes": pathname.includes("/clientes") || pathname.includes("/aniversarios"),
-    "Financeiro": pathname.includes("/despesas") || pathname.includes("/relatorios"),
-    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
+    "Financeiro": pathname.includes("/despesas") || pathname.includes("/relatorios") || pathname.includes("/aprovacoes"),
+    "Administração": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
   });
 
   const toggleMenu = (label: string) => setOpenMenus((p) => ({ ...p, [label]: !p[label] }));

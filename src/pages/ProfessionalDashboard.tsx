@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { StatusBadge } from "@/components/ui/badge";
 import { toBRT, nowBRT } from "@/lib/timezone";
 import BarberStatementPDF from "@/components/BarberStatementPDF";
 import { useSoundFeedback } from "@/hooks/useSoundFeedback";
@@ -499,7 +500,7 @@ const ProfessionalDashboard = () => {
                             )}
                           </div>
                         ) : (
-                          <span className={`text-[10px] font-bold ${status.color}`}>{status.text}</span>
+                          <StatusBadge status={appt.status} />
                         )}
                       </div>
                     );
@@ -534,7 +535,7 @@ const ProfessionalDashboard = () => {
                           </div>
                           <div className="text-right">
                             <p className="text-xs font-bold">R$ {appt.price}</p>
-                            <p className={`text-[9px] font-bold ${status.color}`}>{status.text}</p>
+                            <StatusBadge status={appt.status} />
                           </div>
                         </div>
                       );
