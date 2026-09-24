@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,13 +31,13 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabel: Record<string, { text: string; color: string }> = {
-  completed: { text: "Concluído", color: "text-emerald-500" },
+  completed: { text: "ConcluÃ­do", color: "text-emerald-500" },
   paid: { text: "Pago", color: "text-emerald-500" },
   confirmed: { text: "Agendado", color: "text-blue-500" },
   in_progress: { text: "Em Atendimento", color: "text-cyan-500" },
   pending: { text: "Pendente", color: "text-yellow-500" },
-  pending_payment: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
-  pendente_pagamento: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
+  pending_payment: { text: "â³ Aguard. Pagamento", color: "text-amber-500" },
+  pendente_pagamento: { text: "â³ Aguard. Pagamento", color: "text-amber-500" },
 };
 
 const DAILY_GOAL_KEY = "barber_daily_goal";
@@ -82,7 +82,7 @@ const ProfessionalDashboard = () => {
 
   const barberBarbershopId = barber?.barbershop_id;
 
-  // Realtime: escuta mudanças em appointments da clínica do profissional + som
+  // Realtime: escuta mudanÃ§as em appointments da clÃ­nica do profissional + som
   useEffect(() => {
     if (!barberBarbershopId) return;
     const channel = supabase
@@ -94,6 +94,8 @@ const ProfessionalDashboard = () => {
         filter: `barbershop_id=eq.${barberBarbershopId}`,
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
         if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
           playCaching();
@@ -176,14 +178,14 @@ const ProfessionalDashboard = () => {
     const todayEarnings = todayGross * (commissionRate / 100);
     const completedTodayCount = completedToday.length;
 
-    // A RECEBER: procedimentos concluídos aguardando aprovação de comissão pelo gerente
+    // A RECEBER: procedimentos concluÃ­dos aguardando aprovaÃ§Ã£o de comissÃ£o pelo gerente
     const aReceber = confirmedAppointments
       .filter((a: any) =>
         a.status === "completed" && a.payment_status === "paid" && !a.commission_approved
       )
       .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
 
-    // SALDO LIBERADO: procedimentos com comissão já aprovada pelo gerente via RPC
+    // SALDO LIBERADO: procedimentos com comissÃ£o jÃ¡ aprovada pelo gerente via RPC
     const saldoLiberado = confirmedAppointments
       .filter((a: any) => a.status === "completed" && a.payment_status === "paid" && a.commission_approved === true)
       .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
@@ -219,7 +221,7 @@ const ProfessionalDashboard = () => {
 
   const handleCloseDay = useCallback(() => {
     const todayStr = format(today, "dd/MM/yyyy");
-    const msg = `📊 *Relatório Final de Hoje (${todayStr})*%0A✅ Atendimentos: ${stats.completedTodayCount}%0A💰 Minha Comissão: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! 🎯`;
+    const msg = `ðŸ“Š *RelatÃ³rio Final de Hoje (${todayStr})*%0Aâœ… Atendimentos: ${stats.completedTodayCount}%0AðŸ’° Minha ComissÃ£o: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! ðŸŽ¯`;
     const phone = "";
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   }, [today, stats]);
@@ -238,12 +240,14 @@ const ProfessionalDashboard = () => {
       .update({ status: "in_progress" })
       .eq("id", appointmentId);
     queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
   };
 
   const handleFinalizeAndCharge = async (appt: any) => {
     try {
       setFinalizingId(appt.id);
-      // Recarrega valor atualizado (após triggers de recalc de items)
+      // Recarrega valor atualizado (apÃ³s triggers de recalc de items)
       const { data: fresh } = await supabase
         .from("appointments")
         .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone")
@@ -251,7 +255,7 @@ const ProfessionalDashboard = () => {
         .maybeSingle();
       setSplitPaymentAppt(fresh ?? appt);
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível abrir o checkout");
+      toast.error(err?.message || "NÃ£o foi possÃ­vel abrir o checkout");
     } finally {
       setFinalizingId(null);
     }
@@ -263,7 +267,7 @@ const ProfessionalDashboard = () => {
       const totalReais = Number(appt?.total_price ?? appt?.price ?? 0);
       const amountCents = Math.round(totalReais * 100);
       if (amountCents <= 0) {
-        toast.error("Total inválido");
+        toast.error("Total invÃ¡lido");
         return;
       }
       const [first, ...rest] = String(appt.client_name || "Cliente").trim().split(" ");
@@ -276,7 +280,7 @@ const ProfessionalDashboard = () => {
         barbershop_id: appt.barbershop_id,
       });
       if (!res.success) {
-        toast.error(res.error || "Falha ao gerar cobrança Pix");
+        toast.error(res.error || "Falha ao gerar cobranÃ§a Pix");
         return;
       }
       setPixModal({
@@ -307,8 +311,8 @@ const ProfessionalDashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <User className="h-12 w-12 text-muted-foreground mx-auto" />
-          <h1 className="text-xl font-bold">Conta não vinculada</h1>
-          <p className="text-sm text-muted-foreground">Sua conta não está vinculada a nenhuma clínica. Contate o administrador.</p>
+          <h1 className="text-xl font-bold">Conta nÃ£o vinculada</h1>
+          <p className="text-sm text-muted-foreground">Sua conta nÃ£o estÃ¡ vinculada a nenhuma clÃ­nica. Contate o administrador.</p>
           <Button variant="outline" onClick={signOut}>Sair</Button>
         </div>
       </div>
@@ -336,15 +340,15 @@ const ProfessionalDashboard = () => {
       <div className="p-4 space-y-6 max-w-lg mx-auto">
         {/* Comanda: A Receber x Saldo Liberado */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-border bg-card">
-            <CardContent className="p-4 text-center">
+          <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
+            <CardContent className="p-6 text-center">
               <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
               <p className="text-lg font-black text-foreground">R$ {stats.aReceber.toFixed(2)}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">A Receber</p>
             </CardContent>
           </Card>
-          <Card className="border-border bg-card">
-            <CardContent className="p-4 text-center">
+          <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
+            <CardContent className="p-6 text-center">
               <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
               <p className="text-lg font-black text-foreground">R$ {stats.saldoLiberado.toFixed(2)}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo Liberado</p>
@@ -354,8 +358,8 @@ const ProfessionalDashboard = () => {
 
         {/* Financial Cards */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="border-border bg-card">
-            <CardContent className="p-4 text-center">
+          <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
+            <CardContent className="p-6 text-center">
               <DollarSign className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
               <p className="text-lg font-black text-foreground">
                 R$ {stats.todayEarnings.toFixed(0)}
@@ -363,17 +367,17 @@ const ProfessionalDashboard = () => {
               <p className="text-[10px] text-muted-foreground font-bold uppercase">Meu Ganho Hoje</p>
             </CardContent>
           </Card>
-          <Card className="border-border bg-card">
-            <CardContent className="p-4 text-center">
+          <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
+            <CardContent className="p-6 text-center">
               <DollarSign className="h-5 w-5 mx-auto text-primary mb-1" />
               <p className="text-lg font-black text-foreground">
                 R$ {stats.monthCommission.toFixed(0)}
               </p>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase">Comissão Mês</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">ComissÃ£o MÃªs</p>
             </CardContent>
           </Card>
-          <Card className="border-border bg-card">
-            <CardContent className="p-4 text-center">
+          <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
+            <CardContent className="p-6 text-center">
               <Clock className="h-5 w-5 mx-auto text-yellow-500 mb-1" />
               <p className="text-lg font-black text-foreground">{stats.pendingCount}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">Pendentes</p>
@@ -382,15 +386,15 @@ const ProfessionalDashboard = () => {
         </div>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          Comissão: {commissionRate}% sobre serviços concluídos
+          ComissÃ£o: {commissionRate}% sobre serviÃ§os concluÃ­dos
         </p>
 
         {/* Daily Goal Progress */}
-        <Card className="border-border bg-card overflow-hidden">
-          <CardContent className="p-4 space-y-3">
+        <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300 overflow-hidden">
+          <CardContent className="p-6 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <Target className="h-3 w-3" /> Meta Diária
+                <Target className="h-3 w-3" /> Meta DiÃ¡ria
               </label>
               <div className="flex items-center gap-1">
                 <span className="text-[10px] text-muted-foreground">R$</span>
@@ -429,26 +433,26 @@ const ProfessionalDashboard = () => {
             <div>
               <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
-                Agenda de Hoje — {format(today, "dd/MM", { locale: ptBR })}
+                Agenda de Hoje â€” {format(today, "dd/MM", { locale: ptBR })}
               </h2>
 
               {todayAppointments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento para hoje.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {todayAppointments.map((appt: any) => {
                     const time = format(toBRT(appt.scheduled_at), "HH:mm");
                     const isDone = appt.status === "completed";
                     const status = statusLabel[appt.status] || statusLabel.pending;
                     const colorClass = statusColors[appt.status] || statusColors.pending;
                     return (
-                      <div key={appt.id} className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all ${colorClass} ${isDone ? "opacity-70" : ""}`}>
+                      <div key={appt.id} className={`flex items-center gap-4 rounded-2xl border px-5 py-4 shadow-[var(--shadow-elev-1)] hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)] transition-all ${colorClass} ${isDone ? "opacity-70" : ""}`}>
                         <div className="text-center min-w-[50px]">
                           <p className="text-sm font-black">{time}</p>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{appt.client_name}</p>
-                          <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {appt.price}</p>
+                          <p className="text-xs text-muted-foreground">{appt.service_name} â€¢ R$ {appt.price}</p>
                         </div>
                         {!isDone ? (
                           <div className="flex items-center gap-1">
@@ -457,7 +461,7 @@ const ProfessionalDashboard = () => {
                                 const cleanPhone = appt.client_phone.replace(/\D/g, "");
                                 const dateStr = format(toBRT(appt.scheduled_at), "dd/MM");
                                 const timeStr = format(toBRT(appt.scheduled_at), "HH:mm");
-                                const msg = encodeURIComponent(`Olá, ${appt.client_name}! Passando para confirmar seu agendamento na nossa clínica para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
+                                const msg = encodeURIComponent(`OlÃ¡, ${appt.client_name}! Passando para confirmar seu agendamento na nossa clÃ­nica para o dia ${dateStr} Ã s ${timeStr}. Qualquer dÃºvida, estamos Ã  disposiÃ§Ã£o!`);
                                 window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
                               }} className="h-8 text-xs text-emerald-500">
                                 <MessageSquare className="h-3.5 w-3.5" />
@@ -470,7 +474,7 @@ const ProfessionalDashboard = () => {
                                   variant="outline"
                                   onClick={() => setComandaAppt(appt)}
                                   className="h-8 text-xs"
-                                  title="Adicionar item à comanda"
+                                  title="Adicionar item Ã  comanda"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </Button>
@@ -510,8 +514,8 @@ const ProfessionalDashboard = () => {
               return d > endOfDay(today) && a.status !== "cancelled";
             }).length > 0 && (
               <div>
-                <h2 className="text-sm font-bold mb-3">Próximos Dias</h2>
-                <div className="space-y-2">
+                <h2 className="text-sm font-bold mb-3">PrÃ³ximos Dias</h2>
+                <div className="space-y-4">
                   {appointments
                     .filter((a: any) => toBRT(a.scheduled_at) > endOfDay(today) && a.status !== "cancelled")
                     .slice(0, 10)
@@ -519,7 +523,7 @@ const ProfessionalDashboard = () => {
                       const status = statusLabel[appt.status] || statusLabel.pending;
                       const colorClass = statusColors[appt.status] || statusColors.pending;
                       return (
-                        <div key={appt.id} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${colorClass}`}>
+                        <div key={appt.id} className={`flex items-center gap-4 rounded-2xl border px-5 py-4 shadow-[var(--shadow-elev-1)] hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)] ${colorClass}`}>
                           <div className="text-center min-w-[70px]">
                             <p className="text-[10px] text-muted-foreground">{format(toBRT(appt.scheduled_at), "dd/MM")}</p>
                             <p className="text-sm font-bold">{format(toBRT(appt.scheduled_at), "HH:mm")}</p>
@@ -543,22 +547,22 @@ const ProfessionalDashboard = () => {
 
         {activeTab === "ganhos" && (
           <div className="space-y-4">
-            <h2 className="text-sm font-bold">Serviços Concluídos no Mês</h2>
+            <h2 className="text-sm font-bold">ServiÃ§os ConcluÃ­dos no MÃªs</h2>
             {confirmedAppointments.filter((a: any) => a.status === "completed").length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço concluído este mês.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviÃ§o concluÃ­do este mÃªs.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {confirmedAppointments.filter((a: any) => a.status === "completed").map((appt: any) => {
                   const commission = (appt.price || 0) * (commissionRate / 100);
                   return (
-                    <div key={appt.id} className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                    <div key={appt.id} className="flex items-center gap-4 rounded-2xl border-0 shadow-[var(--shadow-elev-1)] bg-emerald-500/5 px-5 py-4 hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)]">
                       <div className="text-center min-w-[70px]">
                         <p className="text-[10px] text-muted-foreground">{format(toBRT(appt.scheduled_at), "dd/MM")}</p>
                         <p className="text-sm font-bold">{format(toBRT(appt.scheduled_at), "HH:mm")}</p>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{appt.client_name}</p>
-                        <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {appt.price}</p>
+                        <p className="text-xs text-muted-foreground">{appt.service_name} â€¢ R$ {appt.price}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Meu Ganho</p>
@@ -618,7 +622,7 @@ const ProfessionalDashboard = () => {
         />
       )}
 
-      {/* Adicionar à Comanda */}
+      {/* Adicionar Ã  Comanda */}
       {comandaAppt && (
         <AddToComandaModal
           open={!!comandaAppt}
@@ -628,7 +632,7 @@ const ProfessionalDashboard = () => {
         />
       )}
 
-      {/* QR Code Pix Dinâmico */}
+      {/* QR Code Pix DinÃ¢mico */}
       <PixPaymentModal
         open={pixModal.open}
         onClose={() => setPixModal((s) => ({ ...s, open: false }))}
@@ -639,6 +643,8 @@ const ProfessionalDashboard = () => {
         appointmentId={pixModal.appointmentId}
         onPaymentConfirmed={() => {
           queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
           setPixModal((s) => ({ ...s, open: false }));
         }}
       />
@@ -649,6 +655,8 @@ const ProfessionalDashboard = () => {
         onClose={() => setSplitPaymentAppt(null)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
           playCaching();
           confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
         }}
@@ -658,3 +666,6 @@ const ProfessionalDashboard = () => {
 };
 
 export default ProfessionalDashboard;
+
+
+

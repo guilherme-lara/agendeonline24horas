@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+﻿import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Scissors, Loader2, Check, AlertTriangle, CalendarDays,
@@ -69,8 +69,8 @@ const doesAppointmentBlockSlot = (appointment: any, now: Date) => {
     return true;
   }
 
-  // Regra de negócio: só agendamentos CONFIRMADOS ocupam o horário.
-  // Reservas aguardando pagamento não bloqueiam outros clientes.
+  // Regra de negÃ³cio: sÃ³ agendamentos CONFIRMADOS ocupam o horÃ¡rio.
+  // Reservas aguardando pagamento nÃ£o bloqueiam outros clientes.
   if (TEMPORARY_LOCK_STATUSES.has(status) || LEGACY_PENDING_STATUSES.has(status)) {
     void getFallbackExpiry; void now;
     return false;
@@ -86,7 +86,7 @@ const matchesSelectedBarber = (appointment: any, barber: any) => {
   return false;
 };
 
-// Minuto-do-dia atual no fuso de Bras├¡lia (UTC-3), independente do fuso do navegador.
+// Minuto-do-dia atual no fuso de Brasâ”œÂ¡lia (UTC-3), independente do fuso do navegador.
 const getNowBrtMinutes = () => {
   const now = new Date();
   const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -99,7 +99,7 @@ const getBrtMinutesFromScheduledAt = (scheduledAt: string) => {
   return (((totalUtcMinutes - 180) % 1440) + 1440) % 1440;
 };
 
-// In├¡cio do dia atual em BRT (UTC-3), independente do fuso do navegador.
+// Inâ”œÂ¡cio do dia atual em BRT (UTC-3), independente do fuso do navegador.
 const getTodayStartBrt = () => {
   const now = new Date();
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
@@ -132,11 +132,13 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [paymentOption, setPaymentOption] = useState<"online" | "local">("local");
-  // Pagamento antecipado não é mais obrigatório: cliente escolhe online ou no local.
+  // Pagamento antecipado nÃ£o Ã© mais obrigatÃ³rio: cliente escolhe online ou no local.
   const actualCartTotalAdvance = 0; void cartTotalAdvance;
   const [showCart, setShowCart] = useState(false);
   
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
   const [resetCategoryFlag, setResetCategoryFlag] = useState(false);
 
   const [success, setSuccess] = useState(searchParams.get("success") === "true");
@@ -164,7 +166,7 @@ const PublicBooking = () => {
         if (error) return;
 
         if (data?.status === "confirmed" || data?.status === "completed") {
-          // Payment confirmed by webhook ÔÇö update timer state too
+          // Payment confirmed by webhook Ã”Ã‡Ã¶ update timer state too
           setApptStatus("confirmed");
           setCartUpdateTick((t) => t + 1);
         } else if (data?.status === "cancelled" || data?.status === "expired") {
@@ -172,7 +174,7 @@ const PublicBooking = () => {
           sessionStorage.removeItem("payment_expires_at");
           sessionStorage.removeItem("pending_appt_id");
         } else {
-          // Still pending ÔÇö keep polling but also check if expiry passed
+          // Still pending Ã”Ã‡Ã¶ keep polling but also check if expiry passed
           const expiresAt = data?.expires_at ? new Date(data.expires_at).getTime() : null;
           if (expiresAt && Date.now() > expiresAt) {
             setApptStatus("expired");
@@ -183,7 +185,7 @@ const PublicBooking = () => {
           setApptStatus("pending");
         }
       } catch {
-        // Network error ÔÇö assume still pending
+        // Network error Ã”Ã‡Ã¶ assume still pending
         setApptStatus("pending");
       }
     };
@@ -249,7 +251,7 @@ const PublicBooking = () => {
 
           toast({
             title: "Reserva Expirada",
-            description: "O tempo para pagamento acabou. Escolha outro hor├írio.",
+            description: "O tempo para pagamento acabou. Escolha outro horário.",
             variant: "destructive",
           });
           sessionStorage.removeItem("payment_expires_at");
@@ -262,7 +264,7 @@ const PublicBooking = () => {
     checkBooking();
   }, [success]);
 
-  // Countdown timer ÔÇö reset when paymentExpiresAt changes (e.g. after redirect)
+  // Countdown timer Ã”Ã‡Ã¶ reset when paymentExpiresAt changes (e.g. after redirect)
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -394,7 +396,7 @@ const PublicBooking = () => {
     if (!shop?.id || !selectedDate) return [];
 
     const { dayStart, dayEnd } = getDayBoundsBRT(selectedDate);
-    // Only select fields needed for availability checking ÔÇö no client PII
+    // Only select fields needed for availability checking Ã”Ã‡Ã¶ no client PII
     const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
     const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
 
@@ -531,23 +533,23 @@ const PublicBooking = () => {
     setCartUpdateTick((t) => t + 1);
   }, [addToCart]);
 
-  // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-  // BOOKING MUTATION ÔÇö now supports cart with multiple services
-  // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
+  // BOOKING MUTATION Ã”Ã‡Ã¶ now supports cart with multiple services
+  // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
-      if (phoneDigits.length < 10) throw new Error("Telefone inv├ílido.");
+      if (phoneDigits.length < 11) throw new Error("Telefone inválido. Insira o DDD + 9 dígitos.");
       const actualCartTotalAdvance = 0;
       const totalToCharge = actualCartTotalAdvance > 0 ? actualCartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
         if (totalToCharge > 0 && !shop?.settings?.infinitepay_tag) {
           throw new Error("Erro: O estabelecimento ainda não configurou o método de pagamento.");
         }
-      if (cartItems.length === 0) throw new Error("Adicione pelo menos um servi├ºo ao agendamento.");
+      if (cartItems.length === 0) throw new Error("Adicione pelo menos um serviço ao agendamento.");
 
-      // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+      // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
       // PESSIMISTIC PRE-FLIGHT CHECK
-      // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+      // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
       const preFlightCheck = async (): Promise<boolean> => {
         const now = new Date();
 
@@ -578,7 +580,7 @@ const PublicBooking = () => {
 
       const isSlotFree = await preFlightCheck();
       if (!isSlotFree) {
-        throw new Error("Este hor├írio acabou de ser reservado por outra pessoa. Escolha outro hor├írio.");
+        throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
       }
 
       // 1. Find or create customer via secure RPC
@@ -593,7 +595,7 @@ const PublicBooking = () => {
       if (custErr) throw new Error(`Erro ao registrar cliente: ${custErr.message}`);
       const customerId: string = customerIdData as string;
 
-      // 2. Cria├º├úo do Agendamento via RPC com m├║ltiplos itens
+      // 2. Criaâ”œÂºâ”œÃºo do Agendamento via RPC com mâ”œâ•‘ltiplos itens
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -615,7 +617,7 @@ const PublicBooking = () => {
         };
       });
 
-      // O Supabase requer os argumentos antigos de servi├ºo base para resolver a sobrecarga (function overloading)
+      // O Supabase requer os argumentos antigos de serviâ”œÂºo base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
       const { data: apptId, error: rpcError } = await supabase.rpc(
@@ -624,7 +626,7 @@ const PublicBooking = () => {
           _barbershop_id: shop!.id,
           _client_name: clientData.name.trim(),
           _client_phone: phoneDigits,
-          _service_name: mainItem?.name || "Servi├ºo Adicional",
+          _service_name: mainItem?.name || "Serviço Adicional",
           _price: mainItem?.price || 0,
           _scheduled_at: formattedDateForDB,
           _payment_method: totalToCharge > 0 ? "pix_online" : "local",
@@ -636,8 +638,8 @@ const PublicBooking = () => {
       );
 
       if (rpcError) {
-        if (/hor├írio|reservad|indispon├¡vel|conflict/i.test(rpcError.message || "")) {
-          throw new Error("Este hor├írio acabou de ser reservado por outra pessoa. Escolha outro hor├írio.");
+        if (/horâ”œÃ­rio|reservad|indisponâ”œÂ¡vel|conflict/i.test(rpcError.message || "")) {
+          throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
         }
         throw new Error(rpcError.message);
       }
@@ -654,17 +656,17 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
-      // totalToCharge j├í foi calculado acima para o RPC
+      // totalToCharge jâ”œÃ­ foi calculado acima para o RPC
       const priceInCents = Math.round(totalToCharge * 100);
 
       if (priceInCents > 0 && priceInCents < 100) {
-        throw new Error("O valor total deve ser de no m├¡nimo R$ 1,00 para pagamento online.");
+        throw new Error("O valor total deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
-      // serviceItems e mainItem j├í foram declarados acima para uso no RPC
+      // serviceItems e mainItem jâ”œÃ­ foram declarados acima para uso no RPC
       const itemName = mainItem?.advance_payment_value && mainItem.advance_payment_value > 0
-        ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} servi├ºos`}`
-        : `Agendamento - ${shop?.name || 'Servi├ºos'}`;
+        ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} serviâ”œÂºos`}`
+        : `Agendamento - ${shop?.name || 'Serviâ”œÂºos'}`;
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
 
@@ -742,7 +744,7 @@ const PublicBooking = () => {
         if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
 
-        // Slot é válido se PELO MENOS UM candidato pode atender
+        // Slot Ã© vÃ¡lido se PELO MENOS UM candidato pode atender
         const canFulfill = candidateBarbers.some(b => {
            const sched = shopResources.schedules.find(s => s.barber_id === b.id && s.day_of_week === dayOfWeek);
            if (!sched) return false;
@@ -777,13 +779,13 @@ const PublicBooking = () => {
   if (errorShop || !shop) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
       <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
-      <h1 className="text-2xl font-black text-foreground font-display">Estabelecimento N├úo Encontrado</h1>
+      <h1 className="text-2xl font-black text-foreground font-display">Estabelecimento Nâ”œÃºo Encontrado</h1>
     </div>
   );
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 ${cartItems.length > 0 && step >= 2 && step < 4 && !success ? 'pb-28' : ''}`}>
-      <div className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="border-b border-border/50 bg-background/70 backdrop-blur-2xl sticky top-0 z-50">
         <div className="container max-w-2xl py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
              <div className="h-12 w-12 rounded-2xl bg-secondary border border-border flex items-center justify-center overflow-hidden">
@@ -792,11 +794,11 @@ const PublicBooking = () => {
              <div>
                 <h2 className="font-black text-lg truncate leading-none mb-1 font-display">{shop.name}</h2>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-tighter">
-                   <MapPin className="h-3 w-3" /> {shop.address || "Endere├ºo profissional"}
+                   <MapPin className="h-3 w-3" /> {shop.address || "Endereço profissional"}
                 </p>
              </div>
           </div>
-          {/* Cart button ÔÇö shown after step 2 */}
+          {/* Cart button Ã”Ã‡Ã¶ shown after step 2 */}
           {step >= 2 && cartItems.length > 0 && !success && (
             <button
               onClick={() => setShowCart(true)}
@@ -816,7 +818,7 @@ const PublicBooking = () => {
         <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={() => setShowCart(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-lg bg-card rounded-t-3xl p-6 pb-10 animate-in slide-in-from-bottom-50 duration-300"
+            className="relative w-full max-w-lg bg-card rounded-t-[2.5rem] p-8 pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-50 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -853,7 +855,7 @@ const PublicBooking = () => {
               <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-2 mb-4">
                 {cartItems.filter((i) => i.type === "service").length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground uppercase font-black">Servi├ºos</span>
+                    <span className="text-xs text-muted-foreground uppercase font-black">Serviâ”œÂºos</span>
                     <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} {cartItems.filter((i) => i.type === "service").length === 1 ? 'item' : 'itens'}</span>
                   </div>
                 )}
@@ -891,25 +893,25 @@ const PublicBooking = () => {
             {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                     <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">Escolha a categoria</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o tipo de servi├ºo</p>
+                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o tipo de serviâ”œÂºo</p>
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
                     ) : shopCategories.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {shopCategories.map((cat: any) => (
-                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 active:-translate-y-0.5">
+                            <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setStep(2); }} className="group rounded-3xl border-0 bg-card p-8 text-center shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-3)] hover:-translate-y-1 transition-all duration-500">
                                 <Tag className="h-8 w-8 mx-auto mb-4 text-primary" />
                                 <p className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{cat.name}</p>
                             </button>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border-0 shadow-[var(--shadow-elev-1)] rounded-[2.5rem]">
                           <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
                           <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem categorias</h1>
-                          <p className="text-muted-foreground text-sm">Nenhuma categoria de servi├ºo dispon├¡vel no momento.</p>
+                          <p className="text-muted-foreground text-sm">Nenhuma categoria de serviâ”œÂºo disponâ”œÂ¡vel no momento.</p>
                       </div>
                     )}
                 </div>
@@ -917,7 +919,7 @@ const PublicBooking = () => {
 
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
-                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha os servi├ºos</h3>
+                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha os serviâ”œÂºos</h3>
                     <p className="text-sm text-muted-foreground mb-4 font-medium">
                       Adicione quantos quiser de diferentes categorias
                     </p>
@@ -951,7 +953,7 @@ const PublicBooking = () => {
                             const isInCart = cartItems.some((ci) => ci.id === s.id);
                             return (
                             <div key={s.id}
-                              className={`rounded-2xl border bg-card p-6 text-left shadow-sm hover:shadow-md transition-all duration-300 ${
+                              className={`rounded-3xl border-0 bg-card p-6 text-left shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] hover:-translate-y-1 transition-all duration-500 ${
                                 isInCart
                                   ? "border-emerald-500/30 bg-emerald-500/5"
                                   : "border-border/60 hover:border-primary/30"
@@ -994,12 +996,12 @@ const PublicBooking = () => {
                         })}
                       </div>
                     ) : (
-                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border-0 shadow-[var(--shadow-elev-1)] rounded-[2.5rem]">
                           <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem servi├ºos</h1>
-                          <p className="text-muted-foreground text-sm">N├úo h├í servi├ºos nesta categoria.</p>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviâ”œÂºos</h1>
+                          <p className="text-muted-foreground text-sm">Nâ”œÃºo hâ”œÃ­ serviâ”œÂºos nesta categoria.</p>
                       </div>
                     )}
 
@@ -1023,7 +1025,7 @@ const PublicBooking = () => {
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
                     <p className="text-sm text-muted-foreground mb-6 font-medium">
                       {serviceIdsInCart.length > 1
-                        ? `Profissionais que realizam os ${serviceIdsInCart.length} servi├ºos selecionados`
+                        ? `Profissionais que realizam os ${serviceIdsInCart.length} serviâ”œÂºos selecionados`
                         : cartItems.filter((i) => i.type === "service").length === 1
                           ? `Profissionais que realizam ${cartItems.find((i) => i.type === "service")?.name}`
                           : "Selecione um profissional"
@@ -1035,7 +1037,7 @@ const PublicBooking = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {availableBarbers
                           .map((b: any) => (
-                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                            <button key={b.id} onClick={() => { setSelectedBarber(b); setStep(4); }} className="group rounded-3xl border-0 bg-card p-8 text-center shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-3)] hover:-translate-y-1 transition-all duration-500">
                                 <Avatar className="h-20 w-20 mx-auto mb-4 border-2 border-border group-hover:border-primary/50 transition-all">
                                     <AvatarImage src={b.avatar_url} />
                                     <AvatarFallback className="font-black text-xl bg-secondary">{b.name?.slice(0,2).toUpperCase()}</AvatarFallback>
@@ -1045,13 +1047,13 @@ const PublicBooking = () => {
                           ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border border-border rounded-3xl">
+                      <div className="text-center py-12 px-6 max-w-md mx-auto bg-card border-0 shadow-[var(--shadow-elev-1)] rounded-[2.5rem]">
                           <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
                               <AlertTriangle className="h-12 w-12 text-amber-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Combina├º├úo Incompat├¡vel</h1>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Combinaâ”œÂºâ”œÃºo Incompatâ”œÂ¡vel</h1>
                           <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
-                            N├úo encontramos um profissional que realize <span className="text-foreground font-bold">todos esses servi├ºos juntos</span>. Tente remover um item ou agendar em hor├írios separados.
+                            Nâ”œÃºo encontramos um profissional que realize <span className="text-foreground font-bold">todos esses serviâ”œÂºos juntos</span>. Tente remover um item ou agendar em horâ”œÃ­rios separados.
                           </p>
                           <Button
                             onClick={() => setStep(2)}
@@ -1066,7 +1068,7 @@ const PublicBooking = () => {
                       onClick={() => setStep(2)}
                       className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
                     >
-                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar aos Servi├ºos
+                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar aos Serviâ”œÂºos
                     </Button>
                 </div>
             )}
@@ -1075,9 +1077,9 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
                     <p className="text-sm text-muted-foreground text-center mb-6 -mt-4">
-                      Confira seus servi├ºos, escolha a data e o hor├írio
+                      Confira seus serviâ”œÂºos, escolha a data e o horâ”œÃ­rio
                     </p>
-                    <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-card space-y-6">
+                    <div className="bg-card border-0 rounded-3xl p-8 shadow-[var(--shadow-elev-3)] space-y-8">
                         {/* Show cart summary if there are items, otherwise single service summary */}
                         {cartItems.length > 0 ? (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
@@ -1087,7 +1089,7 @@ const PublicBooking = () => {
                             {cartItems.filter((i) => i.type === "service").length > 0 && (
                               <div className="border-t border-border pt-3">
                                 <p className="text-xs text-muted-foreground uppercase font-black mb-2 flex items-center gap-1">
-                                  <Scissors className="h-3 w-3" /> Servi├ºos ({cartItems.filter((i) => i.type === "service").length})
+                                  <Scissors className="h-3 w-3" /> Serviços ({cartItems.filter((i) => i.type === "service").length})
                                 </p>
                                 {cartItems.filter((i) => i.type === "service").map((item: CartItem) => (
                                   <div key={item.id} className="flex justify-between items-center py-1.5">
@@ -1116,7 +1118,7 @@ const PublicBooking = () => {
                         ) : (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Categoria</span><span className="font-bold text-foreground text-right">{shopResources?.categories.find((c: any) => c.id === selectedCategory)?.name || ""}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Servi├ºo</span><span className="font-bold text-foreground text-right">ÔÇö</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviâ”œÂºo</span><span className="font-bold text-foreground text-right">Ã”Ã‡Ã¶</span></div>
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
                           </div>
                         )}
@@ -1136,7 +1138,7 @@ const PublicBooking = () => {
                                 {loadingSlots ? (
                                   <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
                                 ) : timeSlots.length === 0 ? (
-                                  <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem hor├írios para este dia.</p>
+                                  <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horâ”œÃ­rios para este dia.</p>
                                 ) : (
                                   timeSlots.map(t => (
                                       <button key={t} onClick={() => setSelectedTime(t)} className={`h-12 rounded-xl border text-xs font-black transition-all ${selectedTime === t ? "border-primary text-primary bg-primary/10" : "border-border bg-secondary/50 text-foreground hover:border-primary/50 hover:text-primary"}`}>
@@ -1153,7 +1155,7 @@ const PublicBooking = () => {
                                 <Input
                                   value={clientData.name}
                                   onChange={(e) => setClientData({...clientData, name: e.target.value})}
-                                  placeholder="Ex: Jo├úo da Silva"
+                                  placeholder="Ex: João da Silva"
                                   className="bg-background border-border h-14 text-foreground font-bold"
                                 />
                             </div>
@@ -1180,7 +1182,7 @@ const PublicBooking = () => {
                               <div className={`grid ${actualCartTotalAdvance > 0 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>
                                 <button
                                   onClick={() => setPaymentOption("online")}
-                                  className={`p-4 rounded-2xl border text-center transition-all ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                                  className={`p-6 rounded-3xl border text-center transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "border-primary bg-primary/10" : "border-border bg-card"}`}
                                 >
                                   <QrCode className={`h-6 w-6 mx-auto mb-2 ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`} />
                                   <span className={`text-xs font-bold ${paymentOption === "online" || actualCartTotalAdvance > 0 ? "text-primary" : "text-muted-foreground"}`}>
@@ -1190,7 +1192,7 @@ const PublicBooking = () => {
                                 {actualCartTotalAdvance === 0 && (
                                   <button
                                     onClick={() => setPaymentOption("local")}
-                                    className={`p-4 rounded-2xl border text-center transition-all ${paymentOption === "local" ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                                    className={`p-6 rounded-3xl border text-center transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${paymentOption === "local" ? "border-primary bg-primary/10" : "border-border bg-card"}`}
                                   >
                                     <ShoppingBag className={`h-6 w-6 mx-auto mb-2 ${paymentOption === "local" ? "text-primary" : "text-muted-foreground"}`} />
                                     <span className={`text-xs font-bold ${paymentOption === "local" ? "text-primary" : "text-muted-foreground"}`}>Pagar no Local</span>
@@ -1220,13 +1222,22 @@ const PublicBooking = () => {
                         </div>
 
                         <div className="pt-4 flex items-center justify-between gap-4">
-                          <Button variant="ghost" onClick={() => { setStep(2); }} className="h-16 px-6 text-muted-foreground rounded-2xl"><ArrowLeft className="h-5 w-5" /></Button>
+                          <Button variant="ghost" onClick={() => { setStep(2); }} className="h-16 px-6 text-muted-foreground rounded-2xl hover:bg-secondary transition-all"><ArrowLeft className="h-5 w-5" /></Button>
                           <Button
-                              onClick={() => bookingMutation.mutate()}
-                              disabled={bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 10 || !selectedTime || cartItems.length === 0}
-                              className="flex-1 h-14 bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center"
+                              onClick={async () => {
+                                setIsSubmitting(true);
+                                try {
+                                  await bookingMutation.mutateAsync();
+                                } catch (e) {
+                                  console.error(e);
+                                } finally {
+                                  setIsSubmitting(false);
+                                }
+                              }}
+                              disabled={isSubmitting || bookingMutation.isPending || !clientData.name.trim() || clientData.phone.replace(/\D/g, "").length < 11 || !selectedTime || cartItems.length === 0}
+                              className="flex-1 h-16 bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-2xl shadow-[var(--shadow-elev-2)] hover:shadow-[var(--shadow-elev-3)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center text-lg"
                           >
-                              {bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : (actualCartTotalAdvance > 0 || paymentOption === "online" ? <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</> : <><CalendarDays className="mr-2 h-5 w-5" /> Confirmar Agendamento</>)}
+                              {isSubmitting || bookingMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : (actualCartTotalAdvance > 0 || paymentOption === "online" ? <><QrCode className="mr-2 h-5 w-5" /> Pagar e Agendar</> : <><CalendarDays className="mr-2 h-5 w-5" /> Confirmar Agendamento</>)}
                           </Button>
                         </div>
                     </div>
@@ -1237,9 +1248,9 @@ const PublicBooking = () => {
           <div />
         )}
 
-        {/* Sticky Cart Footer ÔÇö only during booking flow (steps 2-4) */}
+        {/* Sticky Cart Footer Ã”Ã‡Ã¶ only during booking flow (steps 2-4) */}
         {!success && !cancelled && cartItems.length > 0 && step >= 2 && step < 4 && (
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl border-t border-border/50 shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
             <div className="container max-w-2xl mx-auto px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -1256,7 +1267,7 @@ const PublicBooking = () => {
                   </div>
                   <div className="text-left min-w-0">
                     <p className="text-xs font-black text-foreground truncate">
-                      {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} ┬À {totalCartDuration} min
+                      {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} â”¬Ã€ {totalCartDuration} min
                     </p>
                     <p className="text-sm font-black text-primary">
                       R$ {cartTotalPrice.toFixed(2).replace('.', ',')}
@@ -1267,14 +1278,14 @@ const PublicBooking = () => {
                   onClick={() => setStep(step === 2 ? (barberId ? 4 : 3) : 4)}
                   className="h-12 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm whitespace-nowrap shrink-0 transition-colors"
                 >
-                  {step === 2 ? (barberId ? 'Escolher Horário' : 'Escolher Profissional') : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                  {step === 2 ? (barberId ? 'Escolher HorÃ¡rio' : 'Escolher Profissional') : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Payment in progress ÔÇö countdown + urgency */}
+        {/* Payment in progress Ã”Ã‡Ã¶ countdown + urgency */}
         {success && (apptStatus === "pending" || (timeLeft > 0 && !statusChecked)) && (
           <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
             <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
@@ -1287,11 +1298,11 @@ const PublicBooking = () => {
               <div className="flex items-center gap-2 mb-3 justify-center">
                 <AlertTriangle className="h-5 w-5 text-amber-500 animate-pulse" />
                 <p className="text-sm font-bold text-amber-500">
-                  Seu hor├írio est├í reservado por tempo limitado
+                  Seu horâ”œÃ­rio estâ”œÃ­ reservado por tempo limitado
                 </p>
               </div>
               <p className="text-muted-foreground text-sm mb-2">
-                Realize o pagamento do sinal para confirmar. Ap├│s a expira├º├úo, o hor├írio ser├í liberado para outros clientes.
+                Realize o pagamento do sinal para confirmar. Apâ”œâ”‚s a expiraâ”œÂºâ”œÃºo, o horâ”œÃ­rio serâ”œÃ­ liberado para outros clientes.
               </p>
               <p className={`text-3xl font-black tabular-nums ${timerColor}`}>
                 {timerText}
@@ -1300,7 +1311,7 @@ const PublicBooking = () => {
 
             {timeLeft <= 60 && timeLeft > 0 && (
               <p className="text-red-400 text-xs font-bold animate-pulse mb-4">
-                ÔÜá´©Å ├Ültimo minuto para pagar! O hor├írio ser├í perdido se o pagamento n├úo for confirmado.
+                Ã”ÃœÃ¡Â´Â©Ã… â”œÃœltimo minuto para pagar! O horâ”œÃ­rio serâ”œÃ­ perdido se o pagamento nâ”œÃºo for confirmado.
               </p>
             )}
 
@@ -1310,7 +1321,7 @@ const PublicBooking = () => {
                   <XCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
                   <h2 className="text-xl font-black text-foreground mb-2">Reserva Expirada</h2>
                   <p className="text-muted-foreground text-sm mb-4">
-                    O tempo para pagamento acabou. Escolha outro hor├írio e tente novamente.
+                    O tempo para pagamento acabou. Escolha outro horâ”œÃ­rio e tente novamente.
                   </p>
                 </div>
                 <Button
@@ -1326,7 +1337,7 @@ const PublicBooking = () => {
                   }}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
                 >
-                  Escolher Outro Hor├írio
+                  Escolher Outro Horâ”œÃ­rio
                 </Button>
               </div>
             )}
@@ -1349,7 +1360,7 @@ const PublicBooking = () => {
               Reserva Expirada
             </h1>
             <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-              O tempo para pagamento acabou. Escolha outro hor├írio e tente novamente.
+              O tempo para pagamento acabou. Escolha outro horâ”œÃ­rio e tente novamente.
             </p>
             <Button
               onClick={() => {
@@ -1364,7 +1375,7 @@ const PublicBooking = () => {
               }}
               className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
             >
-              Escolher Outro Hor├írio
+              Escolher Outro Horâ”œÃ­rio
             </Button>
           </div>
         )}
@@ -1379,14 +1390,14 @@ const PublicBooking = () => {
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-8 text-left">
                   <div className="flex items-center gap-2 mb-3">
                     <AlertTriangle className="h-6 w-6 text-amber-500" />
-                    <h3 className="font-bold text-amber-500">Atenção: Confirmação Obrigatória!</h3>
+                    <h3 className="font-bold text-amber-500">AtenÃ§Ã£o: ConfirmaÃ§Ã£o ObrigatÃ³ria!</h3>
                   </div>
                   <p className="text-sm text-foreground/80 mb-4">
-                    Para garantir sua vaga, você <strong>DEVE confirmar</strong> o agendamento pelo WhatsApp até <strong>2 horas antes</strong> do horário marcado (ou seja, se marcou às 10h, confirme até às 08h).
+                    Para garantir sua vaga, vocÃª <strong>DEVE confirmar</strong> o agendamento pelo WhatsApp atÃ© <strong>2 horas antes</strong> do horÃ¡rio marcado (ou seja, se marcou Ã s 10h, confirme atÃ© Ã s 08h).
                   </p>
                   <Button
                     onClick={() => {
-                      const msg = encodeURIComponent(`Olá, gostaria de confirmar meu agendamento para o dia ${format(selectedDate || new Date(), 'dd/MM/yyyy')} às ${selectedTime} com ${selectedBarber?.name || 'o profissional'}.`);
+                      const msg = encodeURIComponent(`OlÃ¡, gostaria de confirmar meu agendamento para o dia ${format(selectedDate || new Date(), 'dd/MM/yyyy')} Ã s ${selectedTime} com ${selectedBarber?.name || 'o profissional'}.`);
                       let cleanPhone = shop?.phone?.replace(/\D/g, '') || '';
                       if (cleanPhone && !cleanPhone.startsWith('55')) {
                         cleanPhone = '55' + cleanPhone;
@@ -1399,7 +1410,7 @@ const PublicBooking = () => {
                   </Button>
                 </div>
                 
-                <p className="text-muted-foreground mb-6 max-w-xs mx-auto">Te esperamos no dia {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ''} às {selectedTime}.</p>
+                <p className="text-muted-foreground mb-6 max-w-xs mx-auto">Te esperamos no dia {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ''} Ã s {selectedTime}.</p>
 
                  <div className="flex flex-col gap-3 mb-6">
                     <Button
@@ -1428,7 +1439,7 @@ const PublicBooking = () => {
                   )}
                 </div>
 
-                <Button onClick={() => navigate(`/`)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors">Ir para a P├ígina Inicial</Button>
+                <Button onClick={() => navigate(`/`)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors">Ir para a Pâ”œÃ­gina Inicial</Button>
             </div>
         )}
       </div>
@@ -1437,6 +1448,11 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
+
+
+
+
+
 
 
 

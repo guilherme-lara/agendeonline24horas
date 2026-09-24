@@ -1,28 +1,28 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [\u0026_svg]:pointer-events-none [\u0026_svg]:size-4 [\u0026_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-all duration-300 ease-in-out hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-system-blue text-white hover:bg-system-blue/90 shadow-sm",
-        destructive: "bg-system-red text-white hover:bg-system-red/90 shadow-sm",
-        success: "bg-system-green text-white hover:bg-system-green/90 shadow-sm",
-        warning: "bg-system-orange text-white hover:bg-system-orange/90 shadow-sm",
-        outline: "border-2 border-input bg-background hover:bg-secondary hover:text-foreground",
+        default: "bg-primary text-primary-foreground shadow-[0_4px_14px_0_rgba(0,0,0,0.04)] hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-[0_4px_14px_0_rgba(0,0,0,0.04)] hover:bg-destructive/90",
+        success: "bg-[#34C759] text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.04)] hover:bg-[#34C759]/90",
+        warning: "bg-[#FF9500] text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.04)] hover:bg-[#FF9500]/90",
+        outline: "border border-input bg-transparent hover:bg-secondary hover:text-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-12 px-6 py-2",
+        sm: "h-9 rounded-lg px-3 text-xs",
+        lg: "h-14 rounded-2xl px-8 text-base",
+        icon: "h-12 w-12 rounded-xl",
       },
     },
     defaultVariants: {
@@ -47,3 +47,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
+

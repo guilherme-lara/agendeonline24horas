@@ -1,4 +1,4 @@
-/* Mova para a linha 1 do index.css */
+﻿/* Mova para a linha 1 do index.css */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
@@ -7,96 +7,65 @@
 
 @layer base {
   :root {
-    /* ─── SYS-* SEMANTIC TOKENS — GLOBAL (Lightning / Amplimed HealthTech) ─── */
-    /* Foundation */
-    --sys-bg-base: 210 40% 98%;          /* slate-50 */
-    --sys-surface: 0 0% 100%;            /* white */
-    --sys-surface-raised: 210 40% 99%;
-    --sys-border: 214 32% 91%;           /* slate-200 */
-    --sys-border-strong: 215 20% 80%;    /* slate-300 */
-    --sys-text-primary: 222 47% 11%;     /* slate-900 */
-    --sys-text-muted: 215 16% 47%;       /* slate-500 */
-    --sys-text-subtle: 215 20% 65%;      /* slate-400 */
-    /* Brand & Status */
-    --sys-brand-primary: 199 89% 38%;    /* sky-700 (medical) */
-    --sys-brand-primary-hover: 199 89% 32%;
-    --sys-brand-primary-soft: 199 89% 95%;
-    --sys-brand-on-primary: 0 0% 100%;
-    --sys-status-success: 160 84% 39%;
-    --sys-status-warning: 38 92% 50%;
-    --sys-status-danger: 350 89% 60%;
-    --sys-status-info: 217 91% 60%;
-    --sys-focus-ring: 199 89% 48%;
-
-    /* ─── Shadcn aliases — mapeados para sys-* (mantém compat. com componentes existentes) ─── */
-    --background: var(--sys-bg-base);
-    --foreground: var(--sys-text-primary);
-    --card: var(--sys-surface);
-    --card-foreground: var(--sys-text-primary);
-    --popover: var(--sys-surface);
-    --popover-foreground: var(--sys-text-primary);
-    --primary: var(--sys-brand-primary);
-    --primary-foreground: var(--sys-brand-on-primary);
-    --secondary: 210 40% 96%;
-    --secondary-foreground: var(--sys-text-primary);
-    --muted: 210 40% 96%;
-    --muted-foreground: var(--sys-text-muted);
-    --accent: var(--sys-brand-primary);
-    --accent-foreground: var(--sys-brand-on-primary);
-    --destructive: var(--sys-status-danger);
+    --background: 240 20% 98%;
+    --foreground: 240 10% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 12%;
+    --primary: 240 10% 12%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 12%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 10% 12%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: var(--sys-status-success);
-    --warning: var(--sys-status-warning);
-    --info: var(--sys-status-info);
-    --border: var(--sys-border);
-    --input: var(--sys-border);
-    --ring: var(--sys-focus-ring);
-    --radius: 0.75rem;
-
-    /* Elevations & shadows */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 10% 12%;
+    --radius: 1rem;
     --surface-glass: 0 0% 100% / 0.78;
-    --shadow-elev-1: 0 1px 2px 0 hsl(215 28% 17% / 0.04), 0 1px 3px 0 hsl(215 28% 17% / 0.06);
-    --shadow-elev-2: 0 4px 14px -2px hsl(215 28% 17% / 0.08), 0 2px 6px -2px hsl(215 28% 17% / 0.04);
-    --shadow-elev-3: 0 18px 40px -12px hsl(215 28% 17% / 0.18), 0 6px 14px -6px hsl(215 28% 17% / 0.08);
-    --shadow-glow-primary: 0 10px 30px -10px hsl(var(--sys-brand-primary) / 0.45);
-
-    /* Legacy decorativos (mantidos para componentes que ainda referenciam) */
-    --premium-gradient: linear-gradient(135deg, hsl(var(--sys-brand-primary)), hsl(var(--sys-status-info)));
+    --shadow-elev-1: 0 4px 14px 0 rgba(0,0,0,0.03);
+    --shadow-elev-2: 0 8px 30px rgba(0,0,0,0.04);
+    --shadow-elev-3: 0 20px 40px rgba(0,0,0,0.06);
+    --shadow-glow-primary: 0 10px 30px -10px hsl(var(--primary) / 0.45);
+    --premium-gradient: linear-gradient(135deg, hsl(var(--primary)), hsl(217 91% 65%));
     --shadow-premium: var(--shadow-elev-2);
     --font-display: 'Inter', sans-serif;
     --font-body: 'Inter', sans-serif;
   }
 
   .dark {
-    --sys-bg-base: 222 47% 7%;
-    --sys-surface: 222 47% 11%;
-    --sys-surface-raised: 217 33% 14%;
-    --sys-border: 215 28% 18%;
-    --sys-border-strong: 215 20% 28%;
-    --sys-text-primary: 210 40% 98%;
-    --sys-text-muted: 215 20% 65%;
-    --sys-text-subtle: 215 16% 47%;
-    --sys-brand-primary: 199 89% 55%;
-    --sys-brand-primary-hover: 199 89% 62%;
-    --sys-brand-primary-soft: 199 60% 18%;
-    --sys-brand-on-primary: 222 47% 7%;
-    --sys-status-success: 160 70% 45%;
-    --sys-status-warning: 38 92% 55%;
-    --sys-status-danger: 350 89% 65%;
-    --sys-status-info: 217 91% 65%;
-    --sys-focus-ring: 199 89% 60%;
-
-    --secondary: 217 33% 17%;
-    --muted: 217 33% 14%;
-
-    --surface-glass: 222 47% 7% / 0.7;
-    --shadow-elev-1: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-    --shadow-elev-2: 0 4px 14px -2px hsl(0 0% 0% / 0.45);
-    --shadow-elev-3: 0 22px 50px -12px hsl(0 0% 0% / 0.6);
+    --background: 240 10% 0%;
+    --foreground: 0 0% 98%;
+    --card: 240 5% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 10% 12%;
+    --secondary: 240 5% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 5% 12%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 14%;
+    --input: 240 5% 14%;
+    --ring: 0 0% 98%;
+    --surface-glass: 240 10% 0% / 0.7;
+    --shadow-elev-1: 0 4px 14px 0 rgba(0,0,0,0.2);
+    --shadow-elev-2: 0 8px 30px rgba(0,0,0,0.3);
+    --shadow-elev-3: 0 20px 40px rgba(0,0,0,0.4);
   }
 
-  /* Compat: .dashboard-theme agora é um no-op (tokens já globais).
-     Mantido como classe wrapper para não quebrar referências existentes. */
+  /* Compat: .dashboard-theme agora Ã© um no-op (tokens jÃ¡ globais).
+     Mantido como classe wrapper para nÃ£o quebrar referÃªncias existentes. */
   .dashboard-theme { /* tokens herdados de :root / .dark */ }
 }
 
@@ -158,7 +127,7 @@
     @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98];
   }
 
-  /* ─── SYS-* COMPONENT PRIMITIVES (Lightning / Amplimed) ─── */
+  /* â”€â”€â”€ SYS-* COMPONENT PRIMITIVES (Lightning / Amplimed) â”€â”€â”€ */
   .sys-surface {
     @apply rounded-xl border;
     background-color: hsl(var(--sys-surface));
@@ -237,3 +206,4 @@
   .custom-scrollbar::-webkit-scrollbar { width: 6px; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 9999px; }
 }
+
