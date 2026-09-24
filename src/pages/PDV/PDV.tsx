@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Store, Lock } from "lucide-react";
 import { AppointmentsList } from "@/components/pdv/AppointmentsList";
+import { OpenComandasList } from "@/components/pdv/OpenComandasList";
 import { CartPanel, CartItem } from "@/components/pdv/CartPanel";
 import { CheckoutModal, PaymentSplit } from "@/components/pdv/CheckoutModal";
 import { AddItemModal } from "@/components/pdv/AddItemModal";
@@ -229,8 +230,8 @@ export default function PDV() {
       item_id: appt.id,
       name: appt.service_name,
       quantity: 1,
-      unit_price: appt.price,
-      total_price: appt.price,
+      unit_price: Number(appt.total_price ?? appt.price ?? 0),
+      total_price: Number(appt.total_price ?? appt.price ?? 0),
       barber_id: appt.barber_id,
       barber_name: appt.barber_name,
       source_appointment_id: appt.id
@@ -405,6 +406,10 @@ export default function PDV() {
                         <AppointmentsList onSelect={handleSelectAppointment} professionalId={isProfessional ? professionalId : undefined} />
                     </TabsContent>
                     <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
+                        <div className="p-4 border-b border-border">
+                          <h3 className="text-sm font-bold mb-3">Comandas de atendimento</h3>
+                          <OpenComandasList barbershopId={clinic?.id} professionalId={isProfessional ? professionalId : undefined} onSelect={handleSelectAppointment} />
+                        </div>
                         <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
                     </TabsContent>
                     <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
