@@ -39,7 +39,6 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
 
     return () => {
       supabase.removeChannel(appointmentsChannel);
-      supabase.removeChannel(ordersChannel);
     };
   }, [barbershopId, queryClient]);
 };

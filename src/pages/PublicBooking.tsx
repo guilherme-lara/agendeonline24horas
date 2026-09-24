@@ -69,14 +69,11 @@ const doesAppointmentBlockSlot = (appointment: any, now: Date) => {
     return true;
   }
 
-  if (TEMPORARY_LOCK_STATUSES.has(status)) {
-    const expiry = getFallbackExpiry(appointment);
-    return expiry ? expiry.getTime() > now.getTime() : true;
-  }
-
-  if (LEGACY_PENDING_STATUSES.has(status)) {
-    const expiry = getFallbackExpiry(appointment);
-    return expiry ? expiry.getTime() > now.getTime() : true;
+  // Regra de negócio: só agendamentos CONFIRMADOS ocupam o horário.
+  // Reservas aguardando pagamento não bloqueiam outros clientes.
+  if (TEMPORARY_LOCK_STATUSES.has(status) || LEGACY_PENDING_STATUSES.has(status)) {
+    void getFallbackExpiry; void now;
+    return false;
   }
 
   return true;
@@ -135,7 +132,8 @@ const PublicBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [clientData, setClientData] = useState({ name: "", phone: "" });
   const [paymentOption, setPaymentOption] = useState<"online" | "local">("local");
-  const actualCartTotalAdvance = shop?.settings?.infinitepay_tag ? cartTotalAdvance : 0;
+  // Pagamento antecipado não é mais obrigatório: cliente escolhe online ou no local.
+  const actualCartTotalAdvance = 0; void cartTotalAdvance;
   const [showCart, setShowCart] = useState(false);
   
   const [_cartUpdateTick, setCartUpdateTick] = useState(0);
@@ -540,7 +538,7 @@ const PublicBooking = () => {
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) throw new Error("Telefone inv├ílido.");
-      const actualCartTotalAdvance = shop?.settings?.infinitepay_tag ? cartTotalAdvance : 0;
+      const actualCartTotalAdvance = 0;
       const totalToCharge = actualCartTotalAdvance > 0 ? actualCartTotalAdvance : (paymentOption === "online" ? cartTotalPrice : 0);
         if (totalToCharge > 0 && !shop?.settings?.infinitepay_tag) {
           throw new Error("Erro: O estabelecimento ainda não configurou o método de pagamento.");
