@@ -55,7 +55,7 @@ const Mensagens = () => {
   useEffect(() => {
     const sample = fillMessageTemplate(template, {
       cliente: "JoÃ£o Silva",
-      servico: "Corte Masculino",
+      servico: "Procedimento Clínico",
       data: "15/04/2026",
       horario: "14:30",
       profissional: "Roberto",

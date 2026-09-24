@@ -117,6 +117,40 @@ const Clientes = () => {
     },
   });
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addPhone, setAddPhone] = useState("");
+  const [addBirth, setAddBirth] = useState("");
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("customers")
+        .insert({
+          barbershop_id: clinic!.id,
+          name: addName.trim(),
+          phone: addPhone.replace(/\D/g, ""),
+          birth_date: addBirth || null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers", clinic?.id] });
+      setIsAddOpen(false);
+      setAddName("");
+      setAddPhone("");
+      setAddBirth("");
+      import("@/hooks/use-toast").then(({ toast }) => {
+        toast({ title: "Cliente adicionado com sucesso!" });
+      });
+    },
+    onError: (err: any) => {
+      import("@/hooks/use-toast").then(({ toast }) => {
+        toast({ title: "Erro", description: err.message, variant: "destructive" });
+      });
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -151,8 +185,8 @@ const Clientes = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de SincronizaÃ§Ã£o</h2>
-        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar sua lista de clientes.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de Sincronização</h2>
+        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar sua lista de clientes.</p>
         <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -162,11 +196,16 @@ const Clientes = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-500 bg-sys-bg-base min-h-full">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-sys-text-primary flex items-center gap-3 tracking-tight font-display">
-          <UserSearch className="h-8 w-8 text-sys-brand-primary" /> Carteira de Clientes
-        </h1>
-        <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histÃ³rico de agendamentos.</p>
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-sys-text-primary flex items-center gap-3 tracking-tight font-display">
+            <UserSearch className="h-8 w-8 text-sys-brand-primary" /> Carteira de Clientes
+          </h1>
+          <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
+        </div>
+        <Button onClick={() => setIsAddOpen(true)} className="bg-primary text-primary-foreground font-bold shadow-elev-1 h-11 px-6 rounded-full w-full md:w-auto">
+          + Novo Cliente
+        </Button>
       </div>
 
       {customers.length === 0 ? (
@@ -175,7 +214,7 @@ const Clientes = () => {
             <UserSearch className="h-10 w-10 text-sys-text-subtle" />
           </div>
           <h3 className="text-xl font-bold text-sys-text-primary mb-2">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes serÃ¡ preenchida automaticamente a cada novo agendamento online.</p>
+          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
         </div>
       ) : (
         <div className="bg-sys-surface border border-sys-border rounded-2xl shadow-sm overflow-hidden transition-all">
@@ -185,7 +224,7 @@ const Clientes = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Cliente</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Contagem</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ãšltima Visita</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">ÚLTIMA VISITA</th>
                   <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">AÃ§Ãµes</th>
                 </tr>
               </thead>
@@ -298,13 +337,67 @@ const Clientes = () => {
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  PrÃ³ximo
+                  Próximo
                 </Button>
               </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Add Dialog */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Novo Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">Nome *</Label>
+              <Input
+                placeholder="Ex: João Silva"
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                disabled={addMutation.isPending}
+                className="h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">Celular *</Label>
+              <Input
+                placeholder="Ex: (11) 99999-9999"
+                value={addPhone}
+                onChange={(e) => setAddPhone(e.target.value)}
+                disabled={addMutation.isPending}
+                className="h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">Data de Nascimento (Opcional)</Label>
+              <Input
+                type="date"
+                value={addBirth}
+                onChange={(e) => setAddBirth(e.target.value)}
+                disabled={addMutation.isPending}
+                className="h-12"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsAddOpen(false)} disabled={addMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => addMutation.mutate()}
+              disabled={addMutation.isPending || !addName.trim() || !addPhone.trim()}
+              className="bg-primary text-primary-foreground font-bold"
+            >
+              {addMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && handleEditClose()}>
@@ -366,7 +459,7 @@ const Clientes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Essa aÃ§Ã£o nÃ£o pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? Essa aÃ§Ã£o Não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

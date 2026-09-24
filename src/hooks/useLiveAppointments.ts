@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Hook de Realtime para agendamentos.
- * Escuta INSERT, UPDATE e DELETE na tabela appointments filtrado por barbershop_id.
- * Quando detecta mudança, invalida silenciosamente a query — sem loading local.
+ * Hook de Realtime Global
+ * Escuta INSERT, UPDATE e DELETE nas tabelas appointments e customers
+ * filtrado por barbershop_id para manter a UI 100% atualizada sem reload.
  */
 export const useLiveAppointments = (barbershopId: string | undefined) => {
   const queryClient = useQueryClient();
@@ -20,8 +20,10 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
   useEffect(() => {
     if (!barbershopId) return;
 
-    const appointmentsChannel = supabase
-      .channel(`live-appointments-${barbershopId}`)
+    // Canal unificado para a clínica
+    const channel = supabase.channel(`live-barbershop-${barbershopId}`);
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -30,21 +32,20 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
           table: "appointments",
           filter: `barbershop_id=eq.${barbershopId}`,
         },
-        (payload) => { 
-          queryClient.invalidateQueries({ queryKey: ["orders"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
+        (payload) => {
+          // Invalida TODAS as chaves de queries relacionadas a appointments
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
           queryClient.invalidateQueries({ queryKey: ["daily-appointments"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
-
+          queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+          
           if (payload.eventType === 'INSERT') {
             const newAppt = payload.new as any;
-            
             try {
               const audio = new Audio('/notification.mp3');
-              audio.play().catch(() => console.log('Audio autoplay blocked'));
-            } catch (e) {
-              console.log('Error playing audio', e);
-            }
+              audio.play().catch(() => {});
+            } catch (e) {}
 
             const clientName = newAppt.client_name || 'Cliente';
             const serviceName = newAppt.service_name || 'Serviço';
@@ -58,10 +59,24 @@ export const useLiveAppointments = (barbershopId: string | undefined) => {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "customers",
+          filter: `barbershop_id=eq.${barbershopId}`,
+        },
+        (payload) => {
+          // Invalida a lista de clientes para a UI de Carteira atualizar imediatamente
+          queryClient.invalidateQueries({ queryKey: ["customers"] });
+          queryClient.invalidateQueries({ queryKey: ["birthdays"] });
+        }
+      )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(appointmentsChannel);
+      supabase.removeChannel(channel);
     };
   }, [barbershopId, queryClient]);
 };

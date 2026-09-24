@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -222,7 +222,7 @@ const ProfessionalDashboard = () => {
 
   const handleCloseDay = useCallback(() => {
     const todayStr = format(today, "dd/MM/yyyy");
-    const msg = `ðŸ“Š *RelatÃ³rio Final de Hoje (${todayStr})*%0Aâœ… Atendimentos: ${stats.completedTodayCount}%0AðŸ’° Minha ComissÃ£o: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! ðŸŽ¯`;
+    const msg = `ðŸ“Š *RelatÃ³rio Final de Hoje (${todayStr})*%0Aâœ… Atendimentos: ${stats.completedTodayCount}%0AðŸ’° Minha ComissÃ£o: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! 🎁¯`;
     const phone = "";
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   }, [today, stats]);

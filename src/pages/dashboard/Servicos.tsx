@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck, Users, Info, Tag
 } from "lucide-react";
@@ -471,7 +471,7 @@ const Servicos = () => {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-lg shadow-elev-3 rounded-2xl p-6">
+        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-lg fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
           <DialogHeader className="border-b border-border/50 pb-4">
             <DialogTitle className="flex items-center gap-3 text-xl font-black font-display"><Scissors className="text-primary h-6 w-6" /> {editing ? "Ajustar ServiÃ§o" : "Novo ServiÃ§o"}</DialogTitle>
           </DialogHeader>
@@ -622,14 +622,14 @@ const Servicos = () => {
           )}
 
           <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-            <DialogContent className="bg-card border-border text-foreground max-w-md shadow-elev-3 rounded-2xl p-6">
+            <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
               <DialogHeader className="border-b border-border/50 pb-4">
                 <DialogTitle className="flex items-center gap-2 text-lg font-black font-display"><Tag className="text-primary h-5 w-5" /> {editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
               </DialogHeader>
               <div className="pt-4 space-y-4">
                   <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nome da Categoria</label>
-                      <Input placeholder="Ex: Cabelo, Barba, Combo..." value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
+                      <Input placeholder="Ex: Tratamentos, Consultas, Exames..." value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className="bg-background border-border h-12 text-foreground font-bold" />
                   </div>
                   <Button
                     className="w-full bg-primary text-primary-foreground font-black h-12 rounded-xl shadow-sm transition-all active:scale-95"

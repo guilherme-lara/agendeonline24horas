@@ -105,7 +105,7 @@ const Pacotes = () => {
             <PackageCheck className="h-10 w-10 text-muted-foreground/30" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Nenhum pacote ativo</h3>
-          <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Venda 4 cortes pelo preÃ§o de 3 e garanta o retorno do cliente.</p>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">Venda 4 procedimentos pelo preÃ§o de 3 e garanta o retorno do cliente.</p>
           <Button onClick={openNew} variant="outline" className="border-border text-muted-foreground hover:text-foreground">Montar Primeiro Pacote</Button>
         </div>
       ) : (
@@ -168,7 +168,7 @@ const Pacotes = () => {
             <div className="space-y-4">
                 <div className="space-y-2">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nome do Combo</label>
-                    <Input placeholder="Ex: Assinatura Mensal (4 cortes)" value={name} onChange={(e) => setName(e.target.value)} className="bg-background border-border h-12" />
+                    <Input placeholder="Ex: Assinatura Mensal (4 procedimentos)" value={name} onChange={(e) => setName(e.target.value)} className="bg-background border-border h-12" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">DescriÃ§Ã£o das Vantagens</label>

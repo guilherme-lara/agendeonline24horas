@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy, ShieldCheck, Settings2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, Crown, Upload, Archive, ArchiveRestore, KeyRound, Power, PowerOff, Eye, EyeOff, Copy, ShieldCheck, Settings2, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,12 +41,9 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [addingDialogOpen, setAddingDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  // PONTO DE ATUALIZAÇÃO 4: REMOVIDO ESTADO DE COMISSÃO
-  // const [commission, setCommission] = useState("50"); 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
 
@@ -56,12 +53,15 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [creatingAccess, setCreatingAccess] = useState<string | null>(null);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBarber, setEditingBarber] = useState<Barber | null>(null);
+
   const limit = PLAN_LIMITS[planName] ?? 2;
 
   const fetchBarbers = async () => {
     const { data } = await (supabase
       .from("barbers") as any)
-      .select("id, name, phone, email, active, avatar_url, user_id") // Removido `commission_pct` da query
+      .select("id, name, phone, email, active, avatar_url, user_id")
       .eq("barbershop_id", barbershopId)
       .order("created_at");
     setBarbers((data as Barber[]) || []);
@@ -70,28 +70,62 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
 
   useEffect(() => { fetchBarbers(); }, [barbershopId]);
 
-  const handleAdd = async () => {
+  const openAdd = () => {
+    setEditingBarber(null);
+    setName("");
+    setPhone("");
+    setEmail("");
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (b: Barber) => {
+    setEditingBarber(b);
+    setName(b.name);
+    setPhone(b.phone || "");
+    setEmail(b.email || "");
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!name.trim()) return;
-    const activeCount = barbers.filter((b) => b.active).length;
-    if (activeCount >= limit) {
-      setUpgradeOpen(true);
-      return;
-    }
+    
     setAdding(true);
-    // PONTO DE ATUALIZAÇÃO 4: REMOVIDO `commission_pct` DO INSERT
-    const { error } = await (supabase.from("barbers") as any).insert({
-      barbershop_id: barbershopId,
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-    });
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (editingBarber) {
+      const { error } = await supabase.from("barbers").update({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+      }).eq("id", editingBarber.id);
+
+      if (error) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Profissional atualizado!" });
+        setIsModalOpen(false);
+        fetchBarbers();
+      }
     } else {
-      toast({ title: "Profissional adicionado!" });
-      setName(""); setPhone(""); setEmail("");
-      setAddingDialogOpen(false);
-      fetchBarbers();
+      const activeCount = barbers.filter((b) => b.active).length;
+      if (activeCount >= limit) {
+        setUpgradeOpen(true);
+        setAdding(false);
+        return;
+      }
+      
+      const { error } = await supabase.from("barbers").insert({
+        barbershop_id: barbershopId,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+      });
+
+      if (error) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Profissional adicionado!" });
+        setIsModalOpen(false);
+        fetchBarbers();
+      }
     }
     setAdding(false);
   };
@@ -201,17 +235,17 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
           <span className="text-xs text-muted-foreground hidden sm:block">
             {activeCount}/{limit === Infinity ? "∞" : limit} profissionais
           </span>
-          <Button onClick={() => setAddingDialogOpen(true)} className="h-9 px-4 bg-primary text-primary-foreground font-bold shadow-sm">
+          <Button onClick={openAdd} className="h-9 px-4 bg-primary text-primary-foreground font-bold shadow-sm">
             <Plus className="h-4 w-4 mr-2" /> Novo
           </Button>
         </div>
       </div>
 
-      {/* Dialog for Add form */}
-      <Dialog open={addingDialogOpen} onOpenChange={setAddingDialogOpen}>
-        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 sm:max-w-md rounded-xl p-6">
+      {/* Dialog for Add/Edit form */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
           <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold font-display">Adicionar Profissional</DialogTitle>
+            <DialogTitle className="text-xl font-bold font-display">{editingBarber ? "Editar Profissional" : "Adicionar Profissional"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -226,10 +260,10 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
               <label className="text-xs font-bold text-muted-foreground uppercase">E-mail</label>
               <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" className="bg-background border-border h-12" maxLength={100} />
             </div>
-            <Button onClick={handleAdd} disabled={adding || !name.trim()} className="w-full h-12 bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-elev-1 mt-4">
-              {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
-              Cadastrar Profissional
-              {activeCount >= limit && <Crown className="h-4 w-4 ml-2" />}
+            <Button onClick={handleSave} disabled={adding || !name.trim()} className="w-full h-12 bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-elev-1 mt-4">
+              {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : (!editingBarber && <Plus className="h-5 w-5 mr-2" />)}
+              {editingBarber ? "Salvar Alterações" : "Cadastrar Profissional"}
+              {!editingBarber && activeCount >= limit && <Crown className="h-4 w-4 ml-2" />}
             </Button>
           </div>
         </DialogContent>
@@ -270,6 +304,9 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
                     ) : (
                       <span className="text-[10px] font-black text-muted-foreground bg-secondary px-2.5 py-1 rounded-full uppercase tracking-wider">Sem Acesso</span>
                     )}
+                    <button onClick={() => openEdit(b)} className="text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors shrink-0" title="Editar Profissional">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
                     <button onClick={() => setSelectedBarber(b)} className="text-muted-foreground hover:text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors shrink-0" title="Gerenciar Escala e Acesso">
                       <Settings2 className="h-4 w-4" />
                     </button>

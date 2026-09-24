@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { Check, Crown, Star, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,7 +8,7 @@ const plans = [
     name: "Silver",
     price: 79.9,
     icon: Star,
-    features: ["3 cortes por mês", "Agendamento prioritário", "Desconto em produtos"],
+    features: ["3 procedimentos por mês", "Agendamento prioritário", "Desconto em produtos"],
     popular: false,
   },
   {
@@ -16,7 +16,7 @@ const plans = [
     name: "Gold",
     price: 99.9,
     icon: Crown,
-    features: ["1 corte por semana", "Agendamento prioritário", "Desconto em produtos", "Cerveja cortesia"],
+    features: ["1 procedimento por semana", "Agendamento prioritário", "Desconto em produtos", "Café premium cortesia"],
     popular: true,
   },
   {
@@ -25,11 +25,11 @@ const plans = [
     price: 149.9,
     icon: Gem,
     features: [
-      "1 corte por semana",
+      "1 procedimento por semana",
       "Barba inclusa",
       "Agendamento VIP",
       "Desconto em produtos",
-      "Cerveja cortesia",
+      "Café premium cortesia",
       "Sobrancelha inclusa",
     ],
     popular: false,

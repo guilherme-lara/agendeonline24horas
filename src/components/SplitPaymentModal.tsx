@@ -184,107 +184,122 @@ const SplitPaymentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Registrar pagamento</DialogTitle>
+      <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl font-black font-display text-center uppercase tracking-widest">Fechamento / PDV</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Comanda</p>
-              <p className="font-semibold text-sm">
-                {appointment?.client_name ?? "-"} · {appointment?.service_name ?? "-"}
-              </p>
+        <div className="space-y-6">
+          {/* Resumo da Comanda */}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3 shadow-inner">
+            <div className="flex justify-between items-center border-b border-primary/10 pb-3">
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Procedimento</p>
+                <p className="font-black text-sm">{appointment?.service_name ?? "-"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cliente</p>
+                <p className="font-black text-sm truncate max-w-[120px]">{appointment?.client_name ?? "-"}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-lg font-bold text-primary">{brl(total)}</p>
+            <div className="flex justify-between items-end pt-1">
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Devido</p>
+                <p className="text-4xl font-black text-primary font-mono tracking-tighter">{brl(total)}</p>
+              </div>
+              <Badge variant="outline" className="bg-background border-primary/20 text-primary uppercase text-[10px] font-black h-6">A Receber</Badge>
             </div>
           </div>
 
           {!registerId && (
-            <p className="text-xs text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
-              Nenhum caixa aberto. Os pagamentos serão registrados no atendimento, mas não
-              entrarão em uma sessão de caixa.
-            </p>
+            <div className="text-xs font-medium text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-start gap-2">
+              <span className="text-amber-500 font-bold mt-0.5">!</span>
+              <p>Nenhum caixa aberto. O pagamento não entrará no saldo do caixa atual.</p>
+            </div>
           )}
 
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+               <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Formas de Pagamento</h3>
+            </div>
             {rows.map((row, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="grid grid-cols-[1fr,110px,80px,auto] gap-2 items-center">
+              <div key={idx} className="bg-secondary/30 rounded-2xl p-4 border border-border space-y-3 relative group transition-all hover:border-primary/30">
+                <div className="grid grid-cols-[1fr,auto] gap-3">
                   <Select
                     value={row.method}
                     onValueChange={(v) => updateRow(idx, { method: v, qrCode: undefined })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-background border-border h-12 text-sm font-bold">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {METHODS.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
-                          {m.label}
+                          <div className="flex items-center gap-2"><m.icon className="h-4 w-4 text-primary" /> {m.label}</div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={row.amount}
-                    onChange={(e) => updateRow(idx, { amount: e.target.value, qrCode: undefined })}
-                    placeholder="0,00"
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    max={24}
-                    value={row.installments}
-                    onChange={(e) =>
-                      updateRow(idx, { installments: Math.max(1, Number(e.target.value) || 1) })
-                    }
-                    disabled={row.method !== "credit_card"}
-                    title="Parcelas (apenas crédito)"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRow(idx)}
-                    disabled={rows.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={row.amount}
+                      onChange={(e) => updateRow(idx, { amount: e.target.value, qrCode: undefined })}
+                      placeholder="0.00"
+                      className="bg-background border-border h-12 text-lg font-black font-mono text-emerald-400 w-32 text-right pr-4"
+                    />
+                  </div>
                 </div>
+
+                <div className="flex items-center gap-3">
+                    {row.method === "credit_card" && (
+                        <div className="flex-1 flex items-center gap-2">
+                            <span className="text-xs font-bold text-muted-foreground">Parcelas:</span>
+                            <Input
+                                type="number" min={1} max={12}
+                                value={row.installments}
+                                onChange={(e) => updateRow(idx, { installments: Math.max(1, Number(e.target.value) || 1) })}
+                                className="h-10 w-20 text-center font-bold bg-background border-border"
+                            />
+                        </div>
+                    )}
+                    {rows.length > 1 && (
+                        <Button variant="ghost" size="icon" onClick={() => removeRow(idx)} className="ml-auto h-10 w-10 text-destructive hover:bg-destructive/10 rounded-xl">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    )}
+                </div>
+
                 {(row.method === "pix" || row.method === "payment_link") && (
-                  <div className="flex flex-col gap-2 bg-secondary/30 p-2 rounded-md border border-border">
+                  <div className="pt-2 border-t border-border/50">
                     {!row.qrCode ? (
                       <Button 
                         size="sm" 
                         variant="secondary" 
-                        className="w-full text-xs h-7"
+                        className="w-full text-xs h-10 font-bold bg-primary/10 text-primary hover:bg-primary/20"
                         disabled={row.isGenerating || Number(row.amount.replace(",", ".")) <= 0}
                         onClick={() => handleGeneratePix(idx)}
                       >
-                        {row.isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <QrCode className="h-3 w-3 mr-1" />}
+                        {row.isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <QrCode className="h-4 w-4 mr-2" />}
                         Gerar {row.method === "pix" ? "Pix" : "Link"}
                       </Button>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 truncate text-[10px] bg-background p-1.5 rounded border select-all overflow-hidden text-ellipsis whitespace-nowrap">
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-xl border border-border">
+                        <code className="flex-1 text-[11px] font-mono select-all overflow-hidden text-ellipsis whitespace-nowrap text-muted-foreground">
                           {row.qrCode}
                         </code>
                         <Button 
                           size="icon" 
-                          variant="outline" 
-                          className="h-6 w-6 shrink-0" 
-                          title="Copiar"
+                          variant="ghost" 
+                          className="h-8 w-8 text-primary hover:bg-primary/10 shrink-0" 
                           onClick={() => {
                             navigator.clipboard.writeText(row.qrCode || "");
-                            toast.success("Copiado!");
+                            toast.success("Código copiado!");
                           }}
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                     )}
@@ -293,40 +308,32 @@ const SplitPaymentModal = ({
               </div>
             ))}
 
-            <Button variant="outline" size="sm" onClick={addRow} className="gap-1">
-              <Plus className="h-4 w-4" /> Adicionar forma de pagamento
+            <Button variant="outline" size="sm" onClick={addRow} className="w-full h-12 rounded-2xl border-dashed border-border text-muted-foreground hover:text-foreground font-bold hover:bg-secondary/50 transition-all">
+              <Plus className="h-4 w-4 mr-2" /> Dividir Pagamento
             </Button>
           </div>
 
-          <div className="flex items-center justify-between text-sm border-t border-border pt-3">
-            <div className="space-y-0.5">
-              <p className="text-muted-foreground text-xs">Pago</p>
-              <p className="font-semibold">{brl(paidTotal)}</p>
+          <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm">
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Informado</p>
+              <p className="text-xl font-black text-emerald-400 font-mono">{brl(paidTotal)}</p>
             </div>
-            <div className="text-right space-y-0.5">
-              <p className="text-muted-foreground text-xs">Restante</p>
-              <Badge
-                className={
-                  remaining === 0
-                    ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                    : remaining < 0
-                      ? "bg-rose-500/15 text-rose-600 border-rose-500/30"
-                      : "bg-amber-500/15 text-amber-600 border-amber-500/30"
-                }
-              >
-                {brl(remaining)}
-              </Badge>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Diferença</p>
+              <p className={`text-xl font-black font-mono ${remaining === 0 ? 'text-emerald-500' : remaining < 0 ? 'text-rose-500' : 'text-amber-500'}`}>
+                {remaining > 0 ? 'Falta ' : remaining < 0 ? 'Troco ' : ''}{brl(Math.abs(remaining))}
+              </p>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>
+        <DialogFooter className="mt-6 sm:mt-6 grid grid-cols-2 gap-3 pb-2">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="h-14 md:h-16 rounded-2xl font-bold text-sm border-border w-full">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirmar pagamento
+          <Button onClick={handleSubmit} disabled={!isValid || saving} className="h-14 md:h-16 rounded-2xl font-black text-sm bg-primary text-primary-foreground hover:opacity-90 shadow-elev-1 w-full">
+            {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Banknote className="mr-2 h-5 w-5" />}
+            Confirmar
           </Button>
         </DialogFooter>
       </DialogContent>
