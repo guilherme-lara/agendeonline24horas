@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Scissors, Loader2, Plus, Trash2, GripVertical, Settings, AlertTriangle, RefreshCw, Check, ShieldCheck, Users, Info, Tag
 } from "lucide-react";
@@ -419,10 +419,10 @@ const Servicos = () => {
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in duration-500">
       <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-zinc-900" /> CatÃ¡logo de ServiÃ§os</h1>
-          <p className="text-zinc-500 text-sm mt-1 font-medium">Defina os preÃ§os, tempos e quais profissionais realizam cada serviÃ§o.</p>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3 tracking-tight font-display"><Scissors className="h-8 w-8 text-foreground" /> CatÃ¡logo de ServiÃ§os</h1>
+          <p className="text-muted-foreground text-sm mt-1 font-medium">Defina os preÃ§os, tempos e quais profissionais realizam cada serviÃ§o.</p>
         </div>
-        <Button onClick={openNew} className="bg-zinc-900 text-white font-bold h-12 px-6 rounded-xl shadow-sm transition-all active:scale-95"><Plus className="h-5 w-5 mr-2" /> Novo ServiÃ§o</Button>
+        <Button onClick={openNew} className="bg-primary text-primary-foreground font-medium h-10 px-4 rounded-md shadow-sm transition-all"><Plus className="h-5 w-5 mr-2" /> Novo ServiÃ§o</Button>
       </div>
 
       <Tabs defaultValue="services" className="w-full">
@@ -443,18 +443,18 @@ const Servicos = () => {
       ) : (
         <div className="grid gap-3">
           {services.map((s) => (
-            <div key={s.id} className={`group flex items-center gap-4 rounded-xl border transition-all duration-300 p-5 shadow-sm ${!s.active ? "bg-secondary border-border/50 opacity-60" : "bg-card border-border hover:border-zinc-300"}`}>
-              <GripVertical className="h-5 w-5 text-zinc-200 flex-shrink-0 cursor-grab group-hover:text-zinc-400 transition-colors" />
+            <div key={s.id} className={`group flex items-center gap-4 rounded-xl border transition-all duration-300 p-5 shadow-sm ${!s.active ? "bg-secondary border-border/50 opacity-60" : "bg-card border-border hover:border-muted-foreground/30"}`}>
+              <GripVertical className="h-5 w-5 text-muted-foreground/30 flex-shrink-0 cursor-grab group-hover:text-muted-foreground transition-colors" />
               <div className="flex-1 min-w-0">
-                  <p className="font-bold text-zinc-900 text-lg tracking-tight truncate">{s.name}</p>
-                  <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
+                  <p className="font-medium text-foreground text-lg tracking-tight truncate">{s.name}</p>
+                  <div className="flex items-center gap-3 text-[11px] font-medium text-muted-foreground uppercase tracking-widest mt-1">
                       {s.category_id && categories.find(c => c.id === s.category_id) && (
-                        <Badge variant="secondary" className="text-[10px] font-bold bg-zinc-100 text-zinc-500 border-none">{categories.find(c => c.id === s.category_id)?.name}</Badge>
+                        <Badge variant="secondary" className="text-[10px] font-medium bg-secondary text-secondary-foreground border-none">{categories.find(c => c.id === s.category_id)?.name}</Badge>
                       )}
-                      <span className="text-zinc-900">R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
+                      <span className="text-foreground">R$ {Number(s.price).toFixed(2).replace(".", ",")}</span>
                       <span>&bull;</span>
                       <span>{s.duration} Minutos</span>
-                      {s.requires_advance_payment && s.advance_payment_value > 0 && <><span className="text-zinc-600">&bull; Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span></>}
+                      {s.requires_advance_payment && s.advance_payment_value > 0 && <><span className="text-muted-foreground">&bull; Sinal: R$ {Number(s.advance_payment_value).toFixed(2).replace(".", ",")}</span></>}
                   </div>
               </div>
               <div className="flex items-center gap-2">

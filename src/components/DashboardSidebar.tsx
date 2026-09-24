@@ -1,4 +1,4 @@
-﻿import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   MessageCircle, MessageSquare, CalendarDays, Globe, TrendingDown, BarChart3,
   Smile, Users, Scissors, ShoppingBag, PackageCheck, Cake, Settings, LogOut,
@@ -31,10 +31,10 @@ const navItems = [
     ],
   },
   {
-    label: "Equipe & ServiÃ§os", icon: Store, path: "#",
+    label: "Equipe & Serviços", icon: Store, path: "#",
     subItems: [
       { label: "Profissionais", icon: Users, path: "/dashboard/profissionais" },
-      { label: "ServiÃ§os", icon: Scissors, path: "/dashboard/servicos" },
+      { label: "Serviços", icon: Scissors, path: "/dashboard/servicos" },
       { label: "Produtos", icon: ShoppingBag, path: "/dashboard/produtos" },
       { label: "Pacotes", icon: PackageCheck, path: "/dashboard/pacotes" },
     ],
@@ -43,24 +43,24 @@ const navItems = [
     label: "Clientes", icon: Users, path: "#",
     subItems: [
       { label: "Clientes", icon: Smile, path: "/dashboard/clientes" },
-      { label: "AniversÃ¡rios", icon: Cake, path: "/dashboard/aniversarios" },
+      { label: "Aniversários", icon: Cake, path: "/dashboard/aniversarios" },
     ],
   },
   {
     label: "Financeiro", icon: Briefcase, path: "#",
     subItems: [
-      { label: "AprovaÃ§Ã£o de Comandas", icon: PackageCheck, path: "/dashboard/aprovacoes" },
+      { label: "Aprovação de Comandas", icon: PackageCheck, path: "/dashboard/aprovacoes" },
       { label: "Despesas", icon: TrendingDown, path: "/dashboard/despesas" },
-      { label: "RelatÃ³rios", icon: BarChart3, path: "/dashboard/relatorios" },
+      { label: "Relatórios", icon: BarChart3, path: "/dashboard/relatorios" },
     ],
   },
   {
-    label: "ConfiguraÃ§Ãµes", icon: Settings, path: "#",
+    label: "Configurações", icon: Settings, path: "#",
     subItems: [
       { label: "Pagamentos", icon: CreditCard, path: "/dashboard/pagamentos" },
       { label: "Mensagens", icon: MessageSquare, path: "/dashboard/mensagens" },
       { label: "Sistema", icon: Settings, path: "/dashboard/configuracoes" },
-      { label: "HorÃ¡rios", icon: Clock, path: "/dashboard/horarios" },
+      { label: "Horários", icon: Clock, path: "/dashboard/horarios" },
     ],
   },
   {
@@ -85,10 +85,10 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "Agenda": pathname.includes("/agenda") || pathname.includes("/agendamento-online"),
-    "Equipe & ServiÃ§os": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
+    "Equipe & Serviços": pathname.includes("/profissionais") || pathname.includes("/servicos") || pathname.includes("/produtos") || pathname.includes("/pacotes"),
     "Clientes": pathname.includes("/clientes") || pathname.includes("/aniversarios"),
     "Financeiro": pathname.includes("/despesas") || pathname.includes("/relatorios"),
-    "ConfiguraÃ§Ãµes": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
+    "Configurações": pathname.includes("/configuracoes") || pathname.includes("/horarios") || pathname.includes("/mensagens") || pathname.includes("/pagamentos"),
   });
 
   const toggleMenu = (label: string) => setOpenMenus((p) => ({ ...p, [label]: !p[label] }));
@@ -120,7 +120,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
           "fixed top-0 left-0 z-50 h-screen h-[100dvh] flex flex-col transition-transform duration-300 ease-out",
           "w-[85vw] max-w-[300px] md:w-72",
           "md:translate-x-0 md:static md:z-auto",
-          "bg-background/80 backdrop-blur-xl border-r border-border/50",
+          "bg-background border-r border-border",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -128,11 +128,11 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
         <div className="flex items-center justify-between px-5 py-5 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {clinic?.logo_url ? (
-              <div className="h-10 w-10 rounded-2xl overflow-hidden border border-border elev-1 shrink-0 bg-card">
+              <div className="h-10 w-10 rounded-xl overflow-hidden border border-border shrink-0 bg-card">
                 <img src={clinic.logo_url} alt="Logo" className="h-full w-full object-cover" />
               </div>
             ) : (
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-base elev-2 shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-base shrink-0">
                 {clinic?.name?.charAt(0)?.toUpperCase() || "T"}
               </div>
             )}
@@ -155,16 +155,16 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
 
         {/* Trial banner */}
         {trialDaysLeft && (
-          <div className="mx-3 mt-3 rounded-2xl p-3 bg-gradient-to-br from-amber-500/15 to-orange-500/10 border border-amber-500/20 shrink-0">
+          <div className="mx-3 mt-3 rounded-xl p-3 bg-secondary/50 border border-border shrink-0">
             <div className="flex items-center gap-2 mb-2">
-              <Crown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-                Pro Trial Â· {trialDaysLeft}d restantes
+              <Crown className="h-3.5 w-3.5 text-foreground" />
+              <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
+                Pro Trial · {trialDaysLeft}d restantes
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-amber-500/15 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-border overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
+                className="h-full bg-foreground transition-all duration-1000"
                 style={{ width: `${Math.max(5, (trialDaysLeft / 30) * 100)}%` }}
               />
             </div>
@@ -181,7 +181,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
                   href={(item as any).external}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all duration-300"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300"
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
                   <span className="truncate flex-1">{item.label}</span>
@@ -201,11 +201,11 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
                       "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 relative",
                       hasActiveChild
                         ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild && "text-primary")} />
+                      <item.icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild && "text-foreground")} />
                       <span className="truncate text-left">{item.label}</span>
                     </div>
                     {isMenuOpen ? <ChevronDown className="h-3.5 w-3.5 opacity-60" /> : <ChevronRight className="h-3.5 w-3.5 opacity-60" />}
@@ -226,13 +226,13 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 relative",
                             active
-                              ? "bg-primary/10 text-primary font-semibold"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                              ? "bg-secondary text-foreground font-semibold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                           )}
                         >
                           <s.icon className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate flex-1">{s.label}</span>
-                          {active && <span className="absolute -left-[17px] top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />}
+                          {active && <span className="absolute -left-[17px] top-1.5 bottom-1.5 w-0.5 rounded-full bg-foreground" />}
                         </Link>
                       );
                     })}
@@ -250,20 +250,19 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 relative",
                   active
-                    ? "bg-primary/10 text-primary font-semibold elev-1"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+                    ? "bg-secondary text-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 )}
               >
-                <item.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
+                <item.icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-foreground")} />
                 <span className="flex-1 truncate text-left">{item.label}</span>
-                {active && <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" />}
               </Link>
             );
           })}
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-border/50 p-5 pb-6 mt-auto space-y-3 shrink-0 bg-transparent">
+        <div className="border-t border-border p-5 pb-6 mt-auto space-y-3 shrink-0 bg-transparent">
           <div className="flex items-center justify-between">
             <ThemeToggle />
             <button
@@ -276,7 +275,7 @@ const DashboardSidebar = ({ open, onClose }: SidebarProps) => {
           </div>
           <div className="flex items-center gap-2 px-1 pt-1 text-[9px] text-muted-foreground/70">
             <Sparkles className="h-3 w-3 text-primary/60" />
-            <span className="truncate">Desenvolvido por Jotatechinfo Â· v1.2.0</span>
+            <span className="truncate">Desenvolvido por Jotatechinfo · v1.2.0</span>
           </div>
         </div>
       </aside>

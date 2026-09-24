@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import { format, isSameDay, addDays, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
@@ -30,12 +30,12 @@ interface CalendarViewProps {
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
 
 const statusConfig: Record<string, { bg: string; bar: string; text: string; dot: string; pill: string; label: string }> = {
-  confirmed:          { bg: "bg-blue-500/10 dark:bg-blue-500/20", bar: "", text: "text-blue-700 dark:text-blue-300", dot: "bg-blue-500", pill: "bg-blue-500/10 text-blue-700 dark:text-blue-300", label: "Confirmado" },
-  pending:            { bg: "bg-amber-500/10 dark:bg-amber-500/20", bar: "", text: "text-amber-700 dark:text-amber-300", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-700 dark:text-amber-300", label: "Pendente" },
-  completed:          { bg: "bg-emerald-500/10 dark:bg-emerald-500/20", bar: "", text: "text-emerald-700 dark:text-emerald-300", dot: "bg-emerald-500", pill: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", label: "Concluído" },
-  cancelled:          { bg: "bg-rose-500/10 dark:bg-rose-500/20", bar: "", text: "text-rose-700 dark:text-rose-300", dot: "bg-rose-500", pill: "bg-rose-500/10 text-rose-700 dark:text-rose-300", label: "Cancelado" },
-  pending_payment:    { bg: "bg-amber-500/10 dark:bg-amber-500/20", bar: "", text: "text-amber-700 dark:text-amber-300", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-700 dark:text-amber-300", label: "Aguardando" },
-  pendente_pagamento: { bg: "bg-amber-500/10 dark:bg-amber-500/20", bar: "", text: "text-amber-700 dark:text-amber-300", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-700 dark:text-amber-300", label: "Aguardando" },
+  confirmed:          { bg: "bg-emerald-500/10", bar: "", text: "text-emerald-500", dot: "bg-emerald-500", pill: "bg-emerald-500/10 text-emerald-500", label: "Confirmado" },
+  pending:            { bg: "bg-amber-500/10", bar: "", text: "text-amber-500", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-500", label: "Pendente" },
+  completed:          { bg: "bg-blue-500/10", bar: "", text: "text-blue-500", dot: "bg-blue-500", pill: "bg-blue-500/10 text-blue-500", label: "Concluído" },
+  cancelled:          { bg: "bg-rose-500/10", bar: "", text: "text-rose-500", dot: "bg-rose-500", pill: "bg-rose-500/10 text-rose-500", label: "Cancelado" },
+  pending_payment:    { bg: "bg-amber-500/10", bar: "", text: "text-amber-500", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-500", label: "Aguardando" },
+  pendente_pagamento: { bg: "bg-amber-500/10", bar: "", text: "text-amber-500", dot: "bg-amber-500", pill: "bg-amber-500/10 text-amber-500", label: "Aguardando" },
 };
 
 const LONG_PRESS_DELAY = 400; // ms
@@ -197,7 +197,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
 
   return (
     <div 
-      className="rounded-2xl border border-black/5 dark:border-white/5 bg-sys-surface overflow-hidden shadow-sm relative"
+      className="rounded-2xl border border-border bg-sys-surface overflow-hidden shadow-sm relative"
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
@@ -212,7 +212,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
       )}
 
       {/* Week navigation */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-black/5 dark:border-white/5 bg-sys-bg-base">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-sys-bg-base">
         <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, -7))} className="h-8 w-8 p-0 hover:bg-sys-brand-primary/10 hover:text-sys-brand-primary rounded-lg">
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -227,14 +227,14 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
       <div className="overflow-x-auto">
         <div className="min-w-[800px]">
           {/* Day headers */}
-          <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-black/5 dark:border-white/5 bg-sys-surface sticky top-0 z-10">
+          <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border bg-sys-surface sticky top-0 z-10">
             <div className="p-2" />
             {days.map((day) => {
               const isToday = isSameDay(day, new Date());
               return (
-                <div key={day.toISOString()} className={`p-2 text-center border-l border-black/5 dark:border-white/5 ${isToday ? "bg-sys-brand-primary/5" : ""}`}>
+                <div key={day.toISOString()} className={`p-2 text-center border-l border-border ${isToday ? "bg-secondary/50" : ""}`}>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-sys-text-muted">{format(day, "EEE", { locale: ptBR })}</p>
-                  <p className={`text-base font-bold mt-0.5 ${isToday ? "text-sys-brand-primary" : "text-sys-text-primary"}`}>
+                  <p className={`text-base font-bold mt-0.5 ${isToday ? "text-foreground" : "text-sys-text-primary"}`}>
                     {format(day, "dd")}
                   </p>
                 </div>
@@ -245,7 +245,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
           {/* Time grid */}
           <div className="relative">
             {HOURS.map((hour) => (
-              <div key={hour} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-black/5 dark:border-white/5 min-h-[56px] group">
+              <div key={hour} className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border min-h-[56px] group">
                 <div className="p-1.5 text-[10px] font-semibold tabular-nums text-sys-text-muted text-right pr-2 pt-1.5">
                   {String(hour).padStart(2, "0")}:00
                 </div>
@@ -261,9 +261,9 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                       data-cell-key={cellKey}
                       data-day-idx={dayIdx}
                       data-hour={hour}
-                      className={`border-l border-black/5 dark:border-white/5 p-1 relative transition-colors hover:bg-sys-brand-primary/5
-                        ${isHighlighted ? 'bg-sys-brand-primary/15' : ''}
-                        data-[is-dragover=true]:bg-sys-brand-primary/15`}
+                      className={`border-l border-border p-1 relative transition-colors hover:bg-secondary/50
+                        ${isHighlighted ? 'bg-secondary' : ''}
+                        data-[is-dragover=true]:bg-secondary`}
                       onDragOver={handleDragOver}
                       onDragEnter={(e) => e.currentTarget.setAttribute('data-is-dragover', 'true')}
                       onDragLeave={(e) => e.currentTarget.removeAttribute('data-is-dragover')}
@@ -284,10 +284,10 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                             onDragEnd={() => setDraggingApptId(null)}
                             onTouchStart={(e) => handleTouchStart(e, a.id)}
                             onClick={() => !touchDragActive && onEventClick && onEventClick(a)}
-                            className={`group relative rounded-xl p-2.5 mb-1 transition-all
+                            className={`group relative rounded-md p-2.5 mb-1 transition-all
                                 ${cfg.bg} ${cfg.bar} ${cfg.text}
                                 cursor-grab active:cursor-grabbing
-                                hover:shadow-md hover:scale-[1.02]
+                                hover:shadow-sm
                                 ${a.status === 'cancelled' ? 'line-through opacity-70' : ''}
                                 ${a.status === 'pendente_pagamento' || a.status === 'pending_payment' ? 'animate-pulse' : ''}
                                 ${isDraggingThis ? "opacity-30 scale-95" : "opacity-100"}
@@ -296,7 +296,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                             title={`${a.client_name} â€” ${a.service_name} â€¢ ${cfg.label}`}
                           >
                             <div className="flex items-center justify-between gap-1 pointer-events-none mb-0.5">
-                              <span className="font-bold text-[10px] tabular-nums text-sys-text-muted tracking-tight">
+                              <span className="font-medium text-[10px] tabular-nums text-muted-foreground tracking-tight">
                                 {format(new Date(a.scheduled_at), "HH:mm")}
                               </span>
                               <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide ${cfg.pill}`}>
@@ -304,14 +304,14 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                                 {cfg.label}
                               </span>
                             </div>
-                            <p className="font-semibold text-xs truncate leading-tight pointer-events-none text-sys-text-primary">{a.client_name}</p>
+                            <p className="font-medium text-xs truncate leading-tight pointer-events-none text-foreground">{a.client_name}</p>
                             <div className="flex items-center justify-between gap-1 mt-0.5 pointer-events-none">
-                              <p className="text-[10px] truncate text-sys-text-muted flex-1">{a.service_name}</p>
+                              <p className="text-[10px] truncate text-muted-foreground flex-1">{a.service_name}</p>
                               {a.has_signal && <DollarSign className="h-3 w-3 text-sys-status-warning shrink-0" />}
                             </div>
                             {a.barber_name && (
                               <div className="flex items-center gap-1 mt-1 pointer-events-none">
-                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-black/5 dark:border-white/5 text-sys-text-muted bg-sys-bg-base font-medium">
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-border text-muted-foreground bg-sys-bg-base font-medium">
                                   {a.barber_name.split(' ')[0]}
                                 </Badge>
                               </div>

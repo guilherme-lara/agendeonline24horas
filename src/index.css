@@ -1,5 +1,4 @@
-﻿/* Mova para a linha 1 do index.css */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,65 +6,66 @@
 
 @layer base {
   :root {
-    --background: 240 20% 98%;
-    --foreground: 240 10% 12%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 12%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 12%;
-    --primary: 240 10% 12%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 12%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 10% 12%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 240 10% 12%;
-    --radius: 1rem;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%; /* zinc-500 */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    
+    --radius: 0.5rem; /* 8px, sculpted geometry */
+
     --surface-glass: 0 0% 100% / 0.78;
-    --shadow-elev-1: 0 4px 14px 0 rgba(0,0,0,0.03);
-    --shadow-elev-2: 0 8px 30px rgba(0,0,0,0.04);
-    --shadow-elev-3: 0 20px 40px rgba(0,0,0,0.06);
-    --shadow-glow-primary: 0 10px 30px -10px hsl(var(--primary) / 0.45);
-    --premium-gradient: linear-gradient(135deg, hsl(var(--primary)), hsl(217 91% 65%));
-    --shadow-premium: var(--shadow-elev-2);
+    --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-elev-2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-elev-3: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    
     --font-display: 'Inter', sans-serif;
     --font-body: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 240 10% 0%;
-    --foreground: 0 0% 98%;
-    --card: 240 5% 6%;
+    --background: 240 10% 3.9%; /* zinc-950 (#09090b) */
+    --foreground: 0 0% 98%; /* zinc-50 */
+    --card: 240 5.9% 10%; /* zinc-900 (#18181b) */
     --card-foreground: 0 0% 98%;
-    --popover: 240 5% 6%;
+    --popover: 240 5.9% 10%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 240 10% 12%;
-    --secondary: 240 5% 12%;
+    --primary-foreground: 240 5.9% 10%; /* zinc-900 */
+    --secondary: 240 3.7% 15.9%; /* zinc-800 */
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 5% 12%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 240 5% 12%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%; /* zinc-400 */
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5% 14%;
-    --input: 240 5% 14%;
-    --ring: 0 0% 98%;
-    --surface-glass: 240 10% 0% / 0.7;
-    --shadow-elev-1: 0 4px 14px 0 rgba(0,0,0,0.2);
-    --shadow-elev-2: 0 8px 30px rgba(0,0,0,0.3);
-    --shadow-elev-3: 0 20px 40px rgba(0,0,0,0.4);
+    --border: 240 3.7% 15.9%; /* zinc-800 - extremely subtle */
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    --surface-glass: 240 10% 3.9% / 0.7;
+    /* Sombras no dark mode: evitar drop shadow pesado, focar em bordas/glow */
+    --shadow-elev-1: 0 0 0 1px hsl(var(--border));
+    --shadow-elev-2: 0 0 0 1px hsl(var(--border)), 0 4px 6px -1px rgb(0 0 0 / 0.5);
+    --shadow-elev-3: 0 0 0 1px hsl(var(--border)), 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --shadow-glow-primary: 0 0 15px -3px hsl(var(--primary) / 0.3);
   }
 
-  /* Compat: .dashboard-theme agora Ã© um no-op (tokens jÃ¡ globais).
-     Mantido como classe wrapper para nÃ£o quebrar referÃªncias existentes. */
   .dashboard-theme { /* tokens herdados de :root / .dark */ }
 }
 
@@ -81,129 +81,64 @@
 }
 
 @layer components {
-  /* Glass surfaces (Apple) */
-  .glass {
-    background-color: hsl(var(--surface-glass));
-    @apply backdrop-blur-xl backdrop-saturate-150 border border-white/40 dark:border-white/5;
-  }
-  .glass-strong {
-    background-color: hsl(var(--card) / 0.85);
-    @apply backdrop-blur-2xl border border-border/60;
-  }
-
   /* Material elevation tiers */
   .elev-1 { box-shadow: var(--shadow-elev-1); }
   .elev-2 { box-shadow: var(--shadow-elev-2); }
   .elev-3 { box-shadow: var(--shadow-elev-3); }
 
-  /* Interactive lift (Apple-feel) */
-  .lift {
-    @apply transition-all duration-300 ease-out;
-  }
-  .lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-elev-2); }
-
-  /* Premium card */
+  /* Premium card - New Age SaaS */
   .card-elev {
-    @apply rounded-2xl bg-card border border-border/60;
+    @apply rounded-xl bg-card border border-border;
     box-shadow: var(--shadow-elev-1);
   }
   .card-elev-hover {
-    @apply card-elev lift hover:border-primary/30;
+    @apply card-elev transition-colors duration-200 hover:border-muted-foreground/30;
   }
 
   /* Status pills (translucent) */
-  .pill { @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold; }
-  .pill-success { @apply pill bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300; }
-  .pill-warning { @apply pill bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300; }
-  .pill-danger  { @apply pill bg-rose-500/10 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
-  .pill-info    { @apply pill bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300; }
-  .pill-neutral { @apply pill bg-slate-500/10 text-slate-700 dark:bg-slate-400/15 dark:text-slate-300; }
+  .pill { @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-medium border border-transparent; }
+  .pill-success { @apply pill bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20; }
+  .pill-warning { @apply pill bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20; }
+  .pill-danger  { @apply pill bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20; }
+  .pill-info    { @apply pill bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20; }
+  .pill-neutral { @apply pill bg-slate-500/10 text-slate-700 dark:text-zinc-400 border-slate-500/20; }
 
-  /* Vibrant primary button */
+  /* Vibrant primary button -> Clean SaaS Button */
   .btn-primary-vibrant {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white;
-    background: linear-gradient(135deg, hsl(239 84% 60%), hsl(258 90% 66%));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-primary-foreground bg-primary transition-all;
     box-shadow: var(--shadow-glow-primary);
-    @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.98];
   }
-
-  /* â”€â”€â”€ SYS-* COMPONENT PRIMITIVES (Lightning / Amplimed) â”€â”€â”€ */
-  .sys-surface {
-    @apply rounded-xl border;
-    background-color: hsl(var(--sys-surface));
-    border-color: hsl(var(--sys-border));
-    box-shadow: var(--shadow-elev-1);
+  .btn-primary-vibrant:hover {
+    @apply opacity-90;
   }
-  .sys-surface-flat {
-    @apply rounded-xl border;
-    background-color: hsl(var(--sys-surface));
-    border-color: hsl(var(--sys-border));
-  }
-  .sys-divider { border-color: hsl(var(--sys-border)); }
 
   /* Buttons */
   .sys-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-opacity;
-    background-color: hsl(var(--sys-brand-primary));
-    color: hsl(var(--sys-brand-on-primary));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium bg-primary text-primary-foreground transition-opacity;
   }
   .sys-btn-primary:hover { opacity: 0.9; }
+  
   .sys-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border bg-transparent transition-colors;
-    color: hsl(var(--sys-text-primary));
-    border-color: hsl(var(--sys-border));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium border border-border bg-transparent transition-colors text-foreground;
   }
-  .sys-btn-secondary:hover { background-color: hsl(var(--sys-brand-primary) / 0.06); }
+  .sys-btn-secondary:hover { @apply bg-secondary text-secondary-foreground; }
+  
   .sys-btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
-    color: hsl(var(--sys-text-muted));
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors text-muted-foreground;
   }
-  .sys-btn-ghost:hover { color: hsl(var(--sys-text-primary)); background-color: hsl(var(--sys-bg-base)); }
-
-  /* Status pills (sys) */
-  .sys-pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
-  .sys-pill-success { @apply sys-pill; background-color: hsl(var(--sys-status-success) / 0.12); color: hsl(var(--sys-status-success)); }
-  .sys-pill-warning { @apply sys-pill; background-color: hsl(var(--sys-status-warning) / 0.14); color: hsl(var(--sys-status-warning)); }
-  .sys-pill-danger  { @apply sys-pill; background-color: hsl(var(--sys-status-danger)  / 0.12); color: hsl(var(--sys-status-danger)); }
-  .sys-pill-info    { @apply sys-pill; background-color: hsl(var(--sys-status-info)    / 0.12); color: hsl(var(--sys-status-info)); }
-  .sys-pill-neutral { @apply sys-pill; background-color: hsl(var(--sys-text-muted)     / 0.12); color: hsl(var(--sys-text-muted)); }
+  .sys-btn-ghost:hover { @apply text-foreground bg-secondary; }
 
   /* Typography */
-  .sys-h1 { @apply text-2xl font-semibold tracking-tight; color: hsl(var(--sys-text-primary)); }
-  .sys-h2 { @apply text-lg font-semibold; color: hsl(var(--sys-text-primary)); }
-  .sys-label { @apply text-xs font-medium uppercase tracking-wide; color: hsl(var(--sys-text-muted)); }
-  .sys-muted { color: hsl(var(--sys-text-muted)); }
+  .sys-h1 { @apply text-2xl font-semibold tracking-tight text-foreground; }
+  .sys-h2 { @apply text-lg font-semibold text-foreground; }
+  .sys-label { @apply text-xs font-medium uppercase tracking-wide text-muted-foreground; }
+  .sys-muted { @apply text-muted-foreground; }
 }
 
 @layer utilities {
-  .premium-gradient { background: var(--premium-gradient); }
-  .text-premium-gradient {
-    background: var(--premium-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .shadow-premium { box-shadow: var(--shadow-premium); }
   .shadow-card { box-shadow: var(--shadow-elev-1); }
-  .card-gradient { background: linear-gradient(145deg, hsl(0 0% 100%), hsl(60 9% 98%)); }
   .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-  .text-gradient-primary {
-    background: linear-gradient(135deg, hsl(239 84% 60%), hsl(280 80% 65%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Soft mesh background for dashboard */
-  .bg-mesh {
-    background-image:
-      radial-gradient(at 20% 0%, hsl(239 84% 60% / 0.08) 0, transparent 50%),
-      radial-gradient(at 80% 0%, hsl(280 80% 65% / 0.06) 0, transparent 50%),
-      radial-gradient(at 50% 100%, hsl(217 91% 60% / 0.05) 0, transparent 50%);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 9999px; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
 }
-
