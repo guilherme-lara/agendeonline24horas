@@ -232,80 +232,80 @@ const Clientes = () => {
                 </tr>
               </thead>
              <tbody className="divide-y divide-sys-border">
-  {paginated.map((customer) => (
-    <tr key={customer.id} className="hover:bg-sys-bg-base transition-colors group">
-      
-      {/* Coluna 1: Identificação (Limpa e com hierarquia clara) */}
-      <td className="px-6 py-3 whitespace-nowrap">
-        <div className="text-sm font-semibold text-sys-text-primary">{customer.name}</div>
-        <div className="text-xs text-sys-text-muted mt-0.5">{formatPhoneNumber(customer.phone)}</div>
-      </td>
+                {paginated.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-sys-bg-base transition-colors group">
+                    
+                    {/* Coluna 1: Identificação (Limpa e com hierarquia clara) */}
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-sys-text-primary">{customer.name}</div>
+                      <div className="text-xs text-sys-text-muted mt-0.5">{formatPhoneNumber(customer.phone)}</div>
+                    </td>
 
-      {/* Coluna 2: Frequência (Badge contido) */}
-      <td className="px-6 py-3 whitespace-nowrap">
-        <Badge variant="secondary" className="font-medium text-xs bg-sys-surface border-sys-border text-sys-text-primary">
-          {customer.appointment_count} {customer.appointment_count === 1 ? 'visita' : 'visitas'}
-        </Badge>
-      </td>
+                    {/* Coluna 2: Frequência (Badge contido) */}
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <Badge variant="secondary" className="font-medium text-xs bg-sys-surface border-sys-border text-sys-text-primary">
+                        {customer.appointment_count} {customer.appointment_count === 1 ? 'visita' : 'visitas'}
+                      </Badge>
+                    </td>
 
-      {/* Coluna 3: Última Visita (Data legível como principal, tempo relativo como secundário) */}
-      <td className="px-6 py-3 whitespace-nowrap">
-        {customer.last_seen ? (
-          <div className="flex flex-col">
-            <span className="text-sm text-sys-text-primary font-medium">
-              {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
-            </span>
-            <span className="text-xs text-sys-text-muted capitalize">
-              {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
-            </span>
-          </div>
-        ) : (
-          <span className="text-sys-text-muted text-sm italic">Sem histórico</span>
-        )}
-      </td>
+                    {/* Coluna 3: Última Visita (Data legível como principal, tempo relativo como secundário) */}
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      {customer.last_seen ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm text-sys-text-primary font-medium">
+                            {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
+                          </span>
+                          <span className="text-xs text-sys-text-muted capitalize">
+                            {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sys-text-muted text-sm italic">Sem histórico</span>
+                      )}
+                    </td>
 
-      {/* Coluna 4: Ações (Botões Ghost padronizados, sem animação de pulo) */}
-      <td className="px-6 py-3 whitespace-nowrap text-right">
-        <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-brand-primary-soft hover:text-sys-brand-primary"
-            onClick={() => handleEditOpen(customer)}
-            title="Editar"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-status-danger/10 hover:text-sys-status-danger"
-            onClick={() => setDeleteCustomerId(customer.id)}
-            disabled={deleteMutation.isPending}
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+                    {/* Coluna 4: Ações (Botões Ghost padronizados, sem animação de pulo) */}
+                    <td className="px-6 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-brand-primary-soft hover:text-sys-brand-primary"
+                          onClick={() => handleEditOpen(customer)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-status-danger/10 hover:text-sys-status-danger"
+                          onClick={() => setDeleteCustomerId(customer.id)}
+                          disabled={deleteMutation.isPending}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="h-8 px-3 rounded-md border-sys-border bg-transparent hover:bg-[#25D366] hover:text-white hover:border-[#25D366] transition-colors ml-2"
-          >
-            <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-              <MessageSquare className="h-3.5 w-3.5 mr-2" /> 
-              WhatsApp
-            </a>
-          </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="h-8 px-3 rounded-md border-sys-border bg-transparent hover:bg-[#25D366] hover:text-white hover:border-[#25D366] transition-colors ml-2"
+                        >
+                          <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                            <MessageSquare className="h-3.5 w-3.5 mr-2" /> 
+                            WhatsApp
+                          </a>
+                        </Button>
 
-        </div>
-      </td>
-    </tr>
-  ))}
-</tbody>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
 
