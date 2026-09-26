@@ -1,8 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
-import { Loader2, AlertTriangle, UserSearch, RefreshCw, MessageSquare, Pencil, Trash2 } from "lucide-react";
+import { Loader2, AlertTriangle, UserSearch, RefreshCw, MessageSquare, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,7 +64,7 @@ const Clientes = () => {
         _barbershop_id: clinic.id,
       });
       if (error) {
-        console.error("Erro ao buscar clientes com estatÃ­sticas:", error);
+        console.error("Erro ao buscar clientes com estatísticas:", error);
         throw new Error(error.message);
       }
       return data || [];
@@ -203,8 +203,8 @@ const Clientes = () => {
           </h1>
           <p className="text-sys-text-muted text-sm mt-1 font-medium">Gerencie seus clientes e veja o histórico de agendamentos.</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="bg-primary text-primary-foreground font-bold shadow-elev-1 h-11 px-6 rounded-full w-full md:w-auto">
-          + Novo Cliente
+        <Button onClick={() => setIsAddOpen(true)} className="bg-primary text-primary-foreground font-bold shadow-elev-1 h-11 px-6 rounded-xl w-full md:w-auto">
+          <Plus className="h-4 w-4 mr-2" /> Novo Cliente
         </Button>
       </div>
 
@@ -214,7 +214,10 @@ const Clientes = () => {
             <UserSearch className="h-10 w-10 text-sys-text-subtle" />
           </div>
           <h3 className="text-xl font-bold text-sys-text-primary mb-2">Nenhum cliente cadastrado</h3>
-          <p className="text-sm text-sys-text-muted max-w-xs mx-auto">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
+          <p className="text-sm text-sys-text-muted max-w-xs mx-auto mb-6">Sua carteira de clientes será preenchida automaticamente a cada novo agendamento online.</p>
+          <Button onClick={() => setIsAddOpen(true)} className="bg-primary text-primary-foreground font-bold shadow-elev-1 h-11 px-6 rounded-xl">
+            <Plus className="h-4 w-4 mr-2" /> Cadastrar Primeiro Cliente
+          </Button>
         </div>
       ) : (
         <div className="bg-sys-surface border border-sys-border rounded-2xl shadow-sm overflow-hidden transition-all">
@@ -225,7 +228,7 @@ const Clientes = () => {
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Cliente</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Contagem</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-sys-text-subtle uppercase tracking-wider">ÚLTIMA VISITA</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">AÃ§Ãµes</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sys-border">
@@ -297,7 +300,7 @@ const Clientes = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-secondary/20">
               <p className="text-xs text-muted-foreground">
-                Mostrando {(currentPage - 1) * PAGE_SIZE + 1}â€“{Math.min(currentPage * PAGE_SIZE, customers.length)} de {customers.length}
+                Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, customers.length)} de {customers.length}
               </p>
               <div className="flex items-center gap-1">
                 <Button
@@ -347,7 +350,7 @@ const Clientes = () => {
 
       {/* Add Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
+        <DialogContent className="bg-card border-border text-foreground max-w-md shadow-elev-3 rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Novo Cliente</DialogTitle>
           </DialogHeader>
@@ -459,7 +462,7 @@ const Clientes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Essa aÃ§Ã£o Não pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? Essa ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
