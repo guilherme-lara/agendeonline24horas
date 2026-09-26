@@ -1,24 +1,21 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Store, Lock } from "lucide-react";
+import { Loader2, Plus, Calendar, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
 import { AppointmentsList } from "@/components/pdv/AppointmentsList";
 import { OpenComandasList } from "@/components/pdv/OpenComandasList";
 import { CartPanel, CartItem } from "@/components/pdv/CartPanel";
-import { CheckoutModal, PaymentSplit } from "@/components/pdv/CheckoutModal";
+import { CheckoutModal } from "@/components/pdv/CheckoutModal";
 import { AddItemModal } from "@/components/pdv/AddItemModal";
-import { RegisterManagementModal } from "@/components/pdv/RegisterManagementModal";
-import { Settings2 } from "lucide-react";
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesList } from "@/components/pdv/SalesList";
-import CashRegisterPanel from "@/components/CashRegisterPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PDV() {
   const { clinic, professionalId, loading: clinicLoading } = useClinic() as any;
@@ -26,17 +23,15 @@ export default function PDV() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [initialBalance, setInitialBalance] = useState("");
-  const [viewMode, setViewMode] = useState<"pdv" | "caixa">("pdv");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
-  const [showRegisterMgmt, setShowRegisterMgmt] = useState(false);
 
-  const { data: openRegister, isLoading: registerLoading } = useQuery({
+  // Active Cash Register Query
+  const { data: openRegister } = useQuery({
     queryKey: ["active-cash-register", clinic?.id],
     queryFn: async () => {
       if (!clinic?.id) return null;
@@ -53,7 +48,63 @@ export default function PDV() {
     enabled: !!clinic?.id,
   });
 
-  // Realtime: atualiza comandas, caixa e vendas ao vivo, sem reload.
+  // Silently ensure an open register exists for the day without blocking the user
+  const ensureOpenRegister = useCallback(async (): Promise<string> => {
+    if (openRegister?.id) return openRegister.id;
+
+    // 1. Check if a register is already open in the DB
+    const { data: existingReg } = await supabase
+      .from("cash_registers")
+      .select("id")
+      .eq("barbershop_id", clinic.id)
+      .eq("status", "open")
+      .maybeSingle();
+
+    if (existingReg?.id) {
+      return existingReg.id;
+    }
+
+    // 2. Silently create a daily cash register
+    const { data: newReg, error: regError } = await supabase
+      .from("cash_registers")
+      .insert({
+        barbershop_id: clinic.id,
+        opened_by: user?.id || null,
+        initial_balance: 0,
+        status: "open",
+        opened_at: new Date().toISOString(),
+        notes: "Caixa automático do dia (Comandeira Ágil)",
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (regError) {
+      // In case of race condition with another terminal opening at the same time
+      const { data: fallbackReg } = await supabase
+        .from("cash_registers")
+        .select("id")
+        .eq("barbershop_id", clinic.id)
+        .eq("status", "open")
+        .maybeSingle();
+
+      if (fallbackReg?.id) return fallbackReg.id;
+      throw regError;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+    return newReg!.id;
+  }, [clinic?.id, openRegister?.id, queryClient, user?.id]);
+
+  // Silent automatic register opening in background on mount
+  useEffect(() => {
+    if (clinic?.id && !openRegister) {
+      ensureOpenRegister().catch((err) => {
+        console.warn("Silent register init:", err);
+      });
+    }
+  }, [clinic?.id, openRegister, ensureOpenRegister]);
+
+  // Realtime updates
   useEffect(() => {
     if (!clinic?.id) return;
     const filter = `barbershop_id=eq.${clinic.id}`;
@@ -81,6 +132,9 @@ export default function PDV() {
         queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
         queryClient.invalidateQueries({ queryKey: ["sales"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales", filter }, () => {
+        queryClient.invalidateQueries({ queryKey: ["sales"] });
+      })
       .subscribe();
 
     return () => {
@@ -88,40 +142,18 @@ export default function PDV() {
     };
   }, [clinic?.id, queryClient]);
 
-  const openRegisterMutation = useMutation({
-    mutationFn: async (balance: number) => {
-      if (!clinic?.id || !user?.id) throw new Error("Faltam dados");
-      const { data, error } = await supabase
-        .from("cash_registers")
-        .insert({
-          barbershop_id: clinic.id,
-          opened_by: user.id,
-          initial_balance: balance,
-          status: "open",
-          opened_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast({ title: "Caixa Aberto", description: "O PDV estÃ¡ liberado para uso." });
-      queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
-    },
-    onError: (error: any) => {
-      toast({ title: "Erro ao abrir caixa", description: error.message, variant: "destructive" });
-    },
-  });
-
+  // Direct and simple checkout mutation
   const checkoutMutation = useMutation({
-    mutationFn: async (payments: PaymentSplit[]) => {
-      if (!clinic?.id || !user?.id || !openRegister?.id) throw new Error("Faltam dados ou Caixa Fechado");
-      
+    mutationFn: async ({ paymentMethod, amount }: { paymentMethod: string; amount: number }) => {
+      if (!clinic?.id || !user?.id) throw new Error("Faltam dados de autenticação ou clínica");
+
+      // 1. Ensure silent cash register
+      const registerId = await ensureOpenRegister();
+
       const total = cartItems.reduce((acc, item) => acc + item.total_price, 0);
 
-      // 1. Create or Update Sale
-      let sale;
+      // 2. Create or Update Sale
+      let sale: any;
       if (currentSaleId) {
         const { data, error: saleError } = await supabase
           .from("sales")
@@ -133,10 +165,10 @@ export default function PDV() {
           .eq("id", currentSaleId)
           .select()
           .single();
+
         if (saleError) throw saleError;
         sale = data;
 
-        // delete old items to recreate
         await supabase.from("sales_items").delete().eq("sale_id", currentSaleId);
       } else {
         const { data, error: saleError } = await supabase
@@ -150,18 +182,16 @@ export default function PDV() {
           })
           .select()
           .single();
+
         if (saleError) throw saleError;
         sale = data;
       }
 
-
-
-
-      // 2. Create Sale Items
-      const itemsToInsert = cartItems.map(item => ({
+      // 3. Create Sale Items
+      const itemsToInsert = cartItems.map((item) => ({
         sale_id: sale.id,
         item_type: item.item_type,
-        item_id: item.item_id || item.id, // Fallback to temp id if needed
+        item_id: item.item_id || item.id,
         name: item.name,
         quantity: item.quantity,
         unit_price: item.unit_price,
@@ -171,35 +201,50 @@ export default function PDV() {
       const { error: itemsError } = await supabase.from("sales_items").insert(itemsToInsert);
       if (itemsError) throw itemsError;
 
-      // 3. Create Cash Movements (Payments)
-      const movementsToInsert = payments.map(payment => ({
-        barbershop_id: clinic.id,
-        register_id: openRegister.id,
-        amount: payment.amount,
-        movement_type: "sale",
-        origin_type: "sale",
-        origin_id: sale.id,
-        payment_method: payment.method,
-        created_by: user.id,
-        description: `Venda #${sale.id.substring(0,6)}`
-      }));
+      // 4. Create Cash Movements (Payment recorded at checkout)
+      if (amount > 0) {
+        const movement = {
+          barbershop_id: clinic.id,
+          register_id: registerId,
+          amount: amount,
+          movement_type: "sale",
+          origin_type: "sale",
+          origin_id: sale.id,
+          payment_method: paymentMethod,
+          created_by: user.id,
+          description: `Venda #${sale.id.substring(0, 6)} - ${paymentMethod}`,
+        };
 
-      const { error: movementsError } = await supabase.from("cash_movements").insert(movementsToInsert as any);
-      if (movementsError) throw movementsError;
-
-      // 4. Update Appointments (if any)
-      const appointmentIds = cartItems.filter(i => i.source_appointment_id).map(i => i.source_appointment_id);
-      if (appointmentIds.length > 0) {
-        await supabase
-          .from("appointments")
-          .update({ payment_status: "paid", status: "completed" })
-          .in("id", appointmentIds);
+        const { error: movementError } = await supabase.from("cash_movements").insert(movement as any);
+        if (movementError) throw movementError;
       }
-      
+
+      // 5. Update Appointments to completed and paid
+      const appointmentIds = cartItems
+        .filter((i) => i.source_appointment_id)
+        .map((i) => i.source_appointment_id as string);
+
+      if (appointmentIds.length > 0) {
+        const { error: apptError } = await supabase
+          .from("appointments")
+          .update({
+            payment_status: "paid",
+            status: "completed",
+            payment_method: paymentMethod,
+            payment_confirmed_at: new Date().toISOString(),
+          })
+          .in("id", appointmentIds);
+
+        if (apptError) throw apptError;
+      }
+
       return sale;
     },
     onSuccess: () => {
-      toast({ title: "Venda concluÃ­da!", description: "Pagamentos registrados com sucesso." });
+      toast({
+        title: "Venda finalizada com sucesso!",
+        description: "Comanda concluída e pagamento registrado.",
+      });
       setCartItems([]);
       setCustomerName("");
       setCustomerId(null);
@@ -207,35 +252,58 @@ export default function PDV() {
       setShowCheckout(false);
       queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
     },
     onError: (error: any) => {
-      toast({ title: "Erro na Venda", description: error.message, variant: "destructive" });
-    }
+      toast({
+        title: "Erro ao processar venda",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
-
-  const handleOpenRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    const balance = parseFloat(initialBalance.replace(",", "."));
-    if (isNaN(balance) || balance < 0) return;
-    openRegisterMutation.mutate(balance);
-  };
 
   const handleSelectAppointment = (appt: any) => {
     // Evita duplicar no carrinho
-    if (cartItems.some(i => i.source_appointment_id === appt.id)) return;
-    
-    setCartItems(prev => [...prev, {
-      id: appt.id,
-      item_type: "service",
-      item_id: appt.id,
-      name: appt.service_name,
-      quantity: 1,
-      unit_price: Number(appt.total_price ?? appt.price ?? 0),
-      total_price: Number(appt.total_price ?? appt.price ?? 0),
-      barber_id: appt.barber_id,
-      barber_name: appt.barber_name,
-      source_appointment_id: appt.id
-    }]);
+    if (cartItems.some((i) => i.source_appointment_id === appt.id)) return;
+
+    const signal = (appt.has_signal && appt.signal_value ? Number(appt.signal_value) : 0) || Number(appt.advance_payment_amount || 0);
+
+    // Se o agendamento já tiver itens de procedimento detalhados
+    if (appt.appointment_items && appt.appointment_items.length > 0) {
+      const newItems: CartItem[] = appt.appointment_items.map((subItem: any, idx: number) => ({
+        id: `${appt.id}-${subItem.id || idx}`,
+        item_type: "service" as const,
+        item_id: subItem.id || appt.id,
+        name: subItem.service_name || appt.service_name,
+        quantity: 1,
+        unit_price: Number(subItem.price || 0),
+        total_price: Number(subItem.price || 0),
+        barber_id: appt.barber_id,
+        barber_name: appt.barber_name,
+        source_appointment_id: appt.id,
+        advance_payment: idx === 0 ? signal : 0,
+      }));
+      setCartItems((prev) => [...prev, ...newItems]);
+    } else {
+      setCartItems((prev) => [
+        ...prev,
+        {
+          id: appt.id,
+          item_type: "service",
+          item_id: appt.id,
+          name: appt.service_name,
+          quantity: 1,
+          unit_price: Number(appt.total_price ?? appt.price ?? 0),
+          total_price: Number(appt.total_price ?? appt.price ?? 0),
+          barber_id: appt.barber_id,
+          barber_name: appt.barber_name,
+          source_appointment_id: appt.id,
+          advance_payment: signal,
+        },
+      ]);
+    }
 
     if (!customerName) {
       setCustomerName(appt.client_name);
@@ -244,223 +312,276 @@ export default function PDV() {
   };
 
   const handleRemoveItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-    if (cartItems.length === 1) {
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+    if (cartItems.length <= 1) {
       setCustomerName("");
       setCustomerId(null);
     }
   };
 
-  const handleCheckout = (payments: PaymentSplit[]) => {
-    checkoutMutation.mutate(payments);
+  const handleClearComanda = () => {
+    setCartItems([]);
+    setCustomerName("");
+    setCustomerId(null);
+    setCurrentSaleId(null);
+  };
+
+  const handleCheckoutConfirm = (paymentMethod: string, amount: number) => {
+    checkoutMutation.mutate({ paymentMethod, amount });
   };
 
   const handleAddManualItem = (item: any) => {
-    setCartItems(prev => [...prev, {
-      id: crypto.randomUUID(),
-      item_type: item.item_type,
-      item_id: crypto.randomUUID(), // fake id for manual items
-      name: item.name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total_price: item.unit_price * item.quantity,
-      barber_id: item.barber_id,
-      barber_name: item.barber_name
-    }]);
+    setCartItems((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        item_type: item.item_type,
+        item_id: crypto.randomUUID(),
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.unit_price * item.quantity,
+        barber_id: item.barber_id,
+        barber_name: item.barber_name,
+      },
+    ]);
   };
 
-  
   const handleSelectSale = (sale: any) => {
     setCurrentSaleId(sale.id);
-    setCustomerName(sale.customer_id || "Cliente"); // We might need to fetch customer name, but for now just "Cliente"
+    setCustomerName(sale.customer_id || "Cliente");
     setCustomerId(sale.customer_id);
-    setCartItems(sale.sales_items.map((i: any) => ({
-      id: i.id,
-      item_type: i.item_type,
-      item_id: i.item_id,
-      name: i.name,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      total_price: i.total_price,
-    })));
+    setCartItems(
+      (sale.sales_items || []).map((i: any) => ({
+        id: i.id,
+        item_type: i.item_type,
+        item_id: i.item_id,
+        name: i.name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total_price: i.total_price,
+      }))
+    );
   };
 
   const handleSaveOpenSale = async () => {
     if (!clinic?.id || !user?.id) return;
     const total = cartItems.reduce((acc, item) => acc + item.total_price, 0);
-    
-    if (currentSaleId) {
-       await supabase.from("sales").update({ total_amount: total, customer_id: customerId }).eq("id", currentSaleId);
-       await supabase.from("sales_items").delete().eq("sale_id", currentSaleId);
-       if (cartItems.length > 0) {
-           const itemsToInsert = cartItems.map(item => ({
-            sale_id: currentSaleId,
-            item_type: item.item_type,
-            item_id: item.item_id || item.id,
-            name: item.name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-          }));
-          await supabase.from("sales_items").insert(itemsToInsert);
-       }
-    } else {
-        const { data: sale } = await supabase.from("sales").insert({
-            barbershop_id: clinic.id,
-            customer_id: customerId,
-            total_amount: total,
-            status: "open",
-            created_by: user.id,
-        }).select().single();
 
-        if (sale && cartItems.length > 0) {
-            const itemsToInsert = cartItems.map(item => ({
-                sale_id: sale.id,
-                item_type: item.item_type,
-                item_id: item.item_id || item.id,
-                name: item.name,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total_price: item.total_price,
-            }));
-            await supabase.from("sales_items").insert(itemsToInsert);
-        }
+    if (currentSaleId) {
+      await supabase.from("sales").update({ total_amount: total, customer_id: customerId }).eq("id", currentSaleId);
+      await supabase.from("sales_items").delete().eq("sale_id", currentSaleId);
+      if (cartItems.length > 0) {
+        const itemsToInsert = cartItems.map((item) => ({
+          sale_id: currentSaleId,
+          item_type: item.item_type,
+          item_id: item.item_id || item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        }));
+        await supabase.from("sales_items").insert(itemsToInsert);
+      }
+    } else {
+      const { data: sale } = await supabase
+        .from("sales")
+        .insert({
+          barbershop_id: clinic.id,
+          customer_id: customerId,
+          total_amount: total,
+          status: "open",
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (sale && cartItems.length > 0) {
+        const itemsToInsert = cartItems.map((item) => ({
+          sale_id: sale.id,
+          item_type: item.item_type,
+          item_id: item.item_id || item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        }));
+        await supabase.from("sales_items").insert(itemsToInsert);
+      }
     }
-    toast({ title: "Comanda Salva em Aberto" });
-    setCartItems([]);
-    setCustomerName("");
-    setCustomerId(null);
-    setCurrentSaleId(null);
+    toast({ title: "Comanda salva em aberto!" });
+    handleClearComanda();
     queryClient.invalidateQueries({ queryKey: ["sales"] });
   };
 
-  const isLoading = clinicLoading || registerLoading;
-  const isRegisterOpen = !!openRegister;
-
-  if (isLoading) {
+  if (clinicLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Carregando Frente de Caixa...</p>
+        <p className="mt-4 text-muted-foreground text-sm">Carregando Comandeira...</p>
       </div>
     );
   }
 
+  const selectedAppointmentIds = cartItems
+    .filter((i) => i.source_appointment_id)
+    .map((i) => i.source_appointment_id as string);
+
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col">
-      <div className="mb-4 bg-card p-2 rounded-xl border shadow-sm w-max">
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-[340px]">
-           <TabsList className="grid w-full grid-cols-2 h-10">
-             <TabsTrigger value="pdv" className="text-sm font-semibold">Operacional</TabsTrigger>
-             <TabsTrigger value="caixa" className="text-sm font-semibold">GestÃ£o de Caixa</TabsTrigger>
-           </TabsList>
-        </Tabs>
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-3 overflow-hidden">
+      {/* Top Header Bar */}
+      <div className="flex justify-between items-center bg-card border border-border px-5 py-3 rounded-2xl shadow-2xs shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-foreground">Comandeira Ágil</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="default" 
+            size="sm"
+            className="font-bold shadow-xs gap-1.5 h-9" 
+            onClick={() => setShowAddItem(true)}
+          >
+            <Plus className="w-4 h-4" /> Venda Avulsa
+          </Button>
+        </div>
       </div>
 
-      {viewMode === "pdv" ? (
-        !isRegisterOpen ? (
-          <div className="flex-1 flex items-center justify-center min-h-0 bg-card border rounded-xl shadow-sm">
-            <div className="max-w-md w-full p-6 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                <Lock className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Caixa Fechado</h2>
-              <p className="text-muted-foreground mb-6">
-                O operacional estÃ¡ desabilitado. Para iniciar as operaÃ§Ãµes do PDV e realizar vendas, vocÃª precisa abrir o caixa.
-              </p>
-              
-              <form onSubmit={handleOpenRegister} className="w-full space-y-4 text-left">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Troco Inicial / Fundo de Caixa (R$)</label>
-                  <Input type="number" step="0.01" required value={initialBalance} onChange={(e) => setInitialBalance(e.target.value)} className="text-lg" placeholder="Ex: 100,00" />
-                </div>
-                <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={openRegisterMutation.isPending}>
-                  {openRegisterMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Store className="w-5 h-5 mr-2" />}
-                  Abrir Caixa Agora
-                </Button>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex gap-4 min-h-0">
-            <div className="w-2/3 flex flex-col gap-4">
-              <div className="bg-card border rounded-xl shadow-sm p-4 flex justify-between items-center shrink-0">
-                 <h2 className="text-lg font-semibold tracking-tight">Fila do Dia</h2>
-                 <div className="flex gap-2">
-                   <Button variant="outline" className="font-semibold" onClick={() => setShowRegisterMgmt(true)}>
-                      <Settings2 className="w-4 h-4 mr-2" /> Caixa
-                   </Button>
-                   <Button variant="default" className="font-semibold shadow-md" onClick={() => setShowAddItem(true)}>
-                      + Venda Avulsa
-                   </Button>
-                 </div>
-              </div>
-              <div className="flex-1 bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
-                 <Tabs defaultValue="agendadas" className="w-full h-full flex flex-col">
-                    <TabsList className="w-full justify-start rounded-none border-b border-border bg-muted/20 px-4 h-12">
-                       <TabsTrigger value="agendadas" className="data-[state=active]:bg-background">Agendadas</TabsTrigger>
-                       <TabsTrigger value="abertas" className="data-[state=active]:bg-background">Abertas</TabsTrigger>
-                       <TabsTrigger value="fechadas" className="data-[state=active]:bg-background">Fechadas</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="agendadas" className="flex-1 overflow-y-auto p-4 mt-0">
-                        <AppointmentsList onSelect={handleSelectAppointment} professionalId={isProfessional ? professionalId : undefined} />
-                    </TabsContent>
-                    <TabsContent value="abertas" className="flex-1 overflow-y-auto p-0 mt-0">
-                        <div className="p-4 border-b border-border">
-                          <h3 className="text-sm font-bold mb-3">Comandas de atendimento</h3>
-                          <OpenComandasList barbershopId={clinic?.id} professionalId={isProfessional ? professionalId : undefined} onSelect={handleSelectAppointment} />
-                        </div>
-                        <SalesList barbershopId={clinic?.id} status="open" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
-                    </TabsContent>
-                    <TabsContent value="fechadas" className="flex-1 overflow-y-auto p-0 mt-0">
-                        <SalesList barbershopId={clinic?.id} status="paid" onSelectSale={handleSelectSale} createdBy={isProfessional ? user?.id : undefined} />
-                    </TabsContent>
-                 </Tabs>
-              </div>
+      {/* Main 2-Column Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
+        {/* Coluna Esquerda (Fila do Dia - 60%) */}
+        <div className="w-full lg:w-[60%] flex flex-col min-h-0 bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+          <Tabs defaultValue="agendados" className="w-full h-full flex flex-col">
+            {/* Tabs Header */}
+            <div className="p-3 border-b border-border bg-muted/20 flex items-center justify-between shrink-0">
+              <TabsList className="bg-muted/70 p-1 rounded-xl h-10">
+                <TabsTrigger 
+                  value="agendados" 
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-xs px-3"
+                >
+                  Agendados
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="abertas" 
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-xs px-3"
+                >
+                  Em Atendimento (Abertas)
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="finalizados" 
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-xs px-3"
+                >
+                  Finalizados
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            <div className="w-1/3 bg-card border rounded-xl shadow-sm flex flex-col overflow-hidden">
-              <CartPanel 
-                items={cartItems} 
-                customerName={customerName}
-                onRemoveItem={handleRemoveItem}
-                onClear={() => { setCartItems([]); setCustomerName(""); setCustomerId(null); setCurrentSaleId(null); }}
-                onCheckout={() => setShowCheckout(true)}
-                onSaveOpenSale={handleSaveOpenSale}
+            {/* Tab 1: Agendados */}
+            <TabsContent value="agendados" className="flex-1 overflow-y-auto p-4 mt-0">
+              <AppointmentsList 
+                filter="agendados"
+                onSelect={handleSelectAppointment} 
+                professionalId={isProfessional ? professionalId : undefined}
+                selectedAppointmentIds={selectedAppointmentIds}
               />
-            </div>
-          </div>
-        )
-      ) : (
-        <div className="flex-1 overflow-y-auto bg-card border rounded-xl shadow-sm p-4">
-          <CashRegisterPanel />
-        </div>
-      )}
+            </TabsContent>
 
+            {/* Tab 2: Em Atendimento (Abertas) */}
+            <TabsContent value="abertas" className="flex-1 overflow-y-auto p-4 mt-0 space-y-4">
+              <AppointmentsList 
+                filter="abertas"
+                onSelect={handleSelectAppointment} 
+                professionalId={isProfessional ? professionalId : undefined}
+                selectedAppointmentIds={selectedAppointmentIds}
+              />
+
+              <div className="border-t border-border pt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                  Comandas por Profissional
+                </h3>
+                <OpenComandasList 
+                  barbershopId={clinic?.id} 
+                  professionalId={isProfessional ? professionalId : undefined} 
+                  onSelect={handleSelectAppointment} 
+                />
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                  Comandas Avulsas Salvas em Aberto
+                </h3>
+                <SalesList 
+                  barbershopId={clinic?.id} 
+                  status="open" 
+                  onSelectSale={handleSelectSale} 
+                  createdBy={isProfessional ? user?.id : undefined} 
+                />
+              </div>
+            </TabsContent>
+
+            {/* Tab 3: Finalizados */}
+            <TabsContent value="finalizados" className="flex-1 overflow-y-auto p-4 mt-0 space-y-4">
+              <AppointmentsList 
+                filter="finalizados"
+                onSelect={handleSelectAppointment} 
+                professionalId={isProfessional ? professionalId : undefined}
+                selectedAppointmentIds={selectedAppointmentIds}
+              />
+
+              <div className="border-t border-border pt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                  Vendas Concluídas do Dia
+                </h3>
+                <SalesList 
+                  barbershopId={clinic?.id} 
+                  status="paid" 
+                  onSelectSale={handleSelectSale} 
+                  createdBy={isProfessional ? user?.id : undefined} 
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Coluna Direita (A Comanda/Resumo - 40%) */}
+        <div className="w-full lg:w-[40%] flex flex-col min-h-0 bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
+          <CartPanel 
+            items={cartItems} 
+            customerName={customerName}
+            onRemoveItem={handleRemoveItem}
+            onClear={handleClearComanda}
+            onCheckout={() => setShowCheckout(true)}
+            onSaveOpenSale={handleSaveOpenSale}
+            onAddManualItem={() => setShowAddItem(true)}
+          />
+        </div>
+      </div>
+
+      {/* Streamlined Checkout Modal */}
       <CheckoutModal 
         open={showCheckout} 
         onOpenChange={setShowCheckout}
         items={cartItems}
         customerName={customerName}
-        onConfirm={handleCheckout}
+        onConfirm={handleCheckoutConfirm}
         isSubmitting={checkoutMutation.isPending}
       />
 
+      {/* Manual Item Modal */}
       <AddItemModal
         open={showAddItem}
         onOpenChange={setShowAddItem}
         onAdd={handleAddManualItem}
       />
-
-      {openRegister && clinic?.id && (
-        <RegisterManagementModal
-          open={showRegisterMgmt}
-          onOpenChange={setShowRegisterMgmt}
-          activeRegister={openRegister}
-          clinicId={clinic.id}
-        />
-      )}
     </div>
   );
 }
-
