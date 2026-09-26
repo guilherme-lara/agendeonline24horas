@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,13 +32,13 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabel: Record<string, { text: string; color: string }> = {
-  completed: { text: "ConcluÃ­do", color: "text-emerald-500" },
+  completed: { text: "Concluído", color: "text-emerald-500" },
   paid: { text: "Pago", color: "text-emerald-500" },
   confirmed: { text: "Agendado", color: "text-blue-500" },
   in_progress: { text: "Em Atendimento", color: "text-cyan-500" },
   pending: { text: "Pendente", color: "text-yellow-500" },
-  pending_payment: { text: "â³ Aguard. Pagamento", color: "text-amber-500" },
-  pendente_pagamento: { text: "â³ Aguard. Pagamento", color: "text-amber-500" },
+  pending_payment: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
+  pendente_pagamento: { text: "⏳ Aguard. Pagamento", color: "text-amber-500" },
 };
 
 const DAILY_GOAL_KEY = "barber_daily_goal";
@@ -61,7 +61,6 @@ const ProfessionalDashboard = () => {
   const [splitPaymentAppt, setSplitPaymentAppt] = useState<any | null>(null);
   const today = nowBRT();
   const { playCaching } = useSoundFeedback();
-  const prevCountRef = useRef<number | null>(null);
   const goalCelebratedRef = useRef(false);
   const [dailyGoal, setDailyGoal] = useState(() => {
     const stored = localStorage.getItem(DAILY_GOAL_KEY);
@@ -83,7 +82,7 @@ const ProfessionalDashboard = () => {
 
   const barberBarbershopId = barber?.barbershop_id;
 
-  // Realtime: escuta mudanÃ§as em appointments da clÃ­nica do profissional + som
+  // Realtime: escuta mudanças em appointments da clínica do profissional + som
   useEffect(() => {
     if (!barberBarbershopId) return;
     const channel = supabase
@@ -95,21 +94,9 @@ const ProfessionalDashboard = () => {
         filter: `barbershop_id=eq.${barberBarbershopId}`,
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
-        queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
         if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
-          playCaching();
-        }
-      })
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "orders",
-        filter: `barbershop_id=eq.${barberBarbershopId}`,
-      }, (payload) => {
-        queryClient.invalidateQueries({ queryKey: ["barber-orders"] });
-        if (payload.eventType === "INSERT") {
           playCaching();
         }
       })
@@ -117,42 +104,52 @@ const ProfessionalDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, [barberBarbershopId, queryClient, playCaching]);
 
+  // Consulta appointments filtrando estritamente por barber_id com fallback graceful para legado
   const { data: appointments = [], isLoading: apptLoading } = useQuery({
-    queryKey: ["barber-appointments", barber?.name, barber?.barbershop_id],
+    queryKey: ["barber-appointments", barber?.id, barber?.barbershop_id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!barber?.id || !barber?.barbershop_id) return [];
+
+      // 1. Busca principal pelo barber_id do profissional logado
+      const { data: byIdData, error: err1 } = await supabase
         .from("appointments")
         .select("*")
         .eq("barbershop_id", barber.barbershop_id)
-        .eq("barber_name", barber.name)
+        .eq("barber_id", barber.id)
         .gte("scheduled_at", startOfMonth(today).toISOString())
         .order("scheduled_at", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!barber?.name && !!barber?.barbershop_id,
-  });
 
-  const { data: orders = [] } = useQuery({
-    queryKey: ["barber-orders", barber?.name, barber?.barbershop_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("barbershop_id", barber.barbershop_id)
-        .eq("barber_name", barber.name)
-        .eq("status", "paid")
-        .gte("created_at", startOfMonth(today).toISOString());
-      if (error) throw error;
-      return data || [];
+      if (err1) throw err1;
+
+      // 2. Busca de compatibilidade para agendamentos antigos sem barber_id cadastrado
+      if (barber.name) {
+        const { data: byNameData } = await supabase
+          .from("appointments")
+          .select("*")
+          .eq("barbershop_id", barber.barbershop_id)
+          .is("barber_id", null)
+          .eq("barber_name", barber.name)
+          .gte("scheduled_at", startOfMonth(today).toISOString());
+
+        if (byNameData && byNameData.length > 0) {
+          const map = new Map<string, any>();
+          (byIdData || []).forEach((item: any) => map.set(item.id, item));
+          byNameData.forEach((item: any) => map.set(item.id, item));
+          return Array.from(map.values()).sort(
+            (a: any, b: any) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+          );
+        }
+      }
+
+      return byIdData || [];
     },
-    enabled: !!barber?.name && !!barber?.barbershop_id,
+    enabled: !!barber?.id && !!barber?.barbershop_id,
   });
 
   // No Pay No Slot: filtra agendamentos pix_online com pagamento pendente
   const confirmedAppointments = useMemo(() => 
     appointments.filter((a: any) => {
-      if (a.payment_method === 'pix_online' && ['pending', 'awaiting'].includes(a.payment_status)) return false;
+      if (a.payment_method === "pix_online" && ["pending", "awaiting"].includes(a.payment_status)) return false;
       return true;
     }), [appointments]);
 
@@ -162,15 +159,22 @@ const ProfessionalDashboard = () => {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
 
+    // Considera rigorosamente status = 'completed' como gatilho de comissão
     const completedToday = confirmedAppointments.filter((a: any) => {
       const d = toBRT(a.scheduled_at);
       return d >= todayStart && d <= todayEnd && a.status === "completed";
     });
 
-    const todayGross = completedToday.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
+    const todayGross = completedToday.reduce(
+      (sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0), 
+      0
+    );
     
     const monthCompleted = confirmedAppointments.filter((a: any) => a.status === "completed");
-    const monthGross = monthCompleted.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
+    const monthGross = monthCompleted.reduce(
+      (sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0), 
+      0
+    );
 
     const pendingAppts = confirmedAppointments.filter((a: any) =>
       a.status === "confirmed" || a.status === "pending"
@@ -179,14 +183,14 @@ const ProfessionalDashboard = () => {
     const todayEarnings = todayGross * (commissionRate / 100);
     const completedTodayCount = completedToday.length;
 
-    // A RECEBER: procedimentos concluÃ­dos aguardando aprovaÃ§Ã£o de comissÃ£o pelo gerente
+    // A RECEBER: procedimentos concluídos aguardando aprovação de comissão pelo gerente
     const aReceber = confirmedAppointments
       .filter((a: any) =>
         a.status === "completed" && a.payment_status === "paid" && !a.commission_approved
       )
       .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
 
-    // SALDO LIBERADO: procedimentos com comissÃ£o jÃ¡ aprovada pelo gerente via RPC
+    // SALDO LIBERADO: procedimentos com comissão já aprovada pelo gerente via RPC
     const saldoLiberado = confirmedAppointments
       .filter((a: any) => a.status === "completed" && a.payment_status === "paid" && a.commission_approved === true)
       .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
@@ -222,7 +226,7 @@ const ProfessionalDashboard = () => {
 
   const handleCloseDay = useCallback(() => {
     const todayStr = format(today, "dd/MM/yyyy");
-    const msg = `ðŸ“Š *RelatÃ³rio Final de Hoje (${todayStr})*%0Aâœ… Atendimentos: ${stats.completedTodayCount}%0AðŸ’° Minha ComissÃ£o: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! 🎁¯`;
+    const msg = `📊 *Relatório Final de Hoje (${todayStr})*%0A✅ Atendimentos: ${stats.completedTodayCount}%0A💰 Minha Comissão: R$ ${stats.todayEarnings.toFixed(2)}%0A%0ADia finalizado com sucesso! 🎉`;
     const phone = "";
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
   }, [today, stats]);
@@ -241,14 +245,13 @@ const ProfessionalDashboard = () => {
       .update({ status: "in_progress" })
       .eq("id", appointmentId);
     queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
+    queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
   };
 
   const handleFinalizeAndCharge = async (appt: any) => {
     try {
       setFinalizingId(appt.id);
-      // Recarrega valor atualizado (apÃ³s triggers de recalc de items)
       const { data: fresh } = await supabase
         .from("appointments")
         .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone")
@@ -256,48 +259,11 @@ const ProfessionalDashboard = () => {
         .maybeSingle();
       setSplitPaymentAppt(fresh ?? appt);
     } catch (err: any) {
-      toast.error(err?.message || "NÃ£o foi possÃ­vel abrir o checkout");
+      toast.error(err?.message || "Não foi possível abrir o checkout");
     } finally {
       setFinalizingId(null);
     }
   };
-
-  const handleGeneratePix = async (appt: any) => {
-    try {
-      setFinalizingId(appt.id);
-      const totalReais = Number(appt?.total_price ?? appt?.price ?? 0);
-      const amountCents = Math.round(totalReais * 100);
-      if (amountCents <= 0) {
-        toast.error("Total invÃ¡lido");
-        return;
-      }
-      const [first, ...rest] = String(appt.client_name || "Cliente").trim().split(" ");
-      const res = await createInfinitePayCharge({
-        amount: amountCents,
-        document_number: "",
-        first_name: first || "Cliente",
-        last_name: rest.join(" ") || "N",
-        appointment_id: appt.id,
-        barbershop_id: appt.barbershop_id,
-      });
-      if (!res.success) {
-        toast.error(res.error || "Falha ao gerar cobranÃ§a Pix");
-        return;
-      }
-      setPixModal({
-        open: true,
-        appointmentId: appt.id,
-        pixCode: res.brcode || res.pix_key || "",
-        price: totalReais,
-        serviceName: String(appt.service_name || "Atendimento"),
-      });
-    } catch (err: any) {
-      toast.error(err?.message || "Falha ao gerar Pix");
-    } finally {
-      setFinalizingId(null);
-    }
-  };
-
 
   if (barberLoading || apptLoading) {
     return (
@@ -312,8 +278,8 @@ const ProfessionalDashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <User className="h-12 w-12 text-muted-foreground mx-auto" />
-          <h1 className="text-xl font-bold">Conta nÃ£o vinculada</h1>
-          <p className="text-sm text-muted-foreground">Sua conta nÃ£o estÃ¡ vinculada a nenhuma clÃ­nica. Contate o administrador.</p>
+          <h1 className="text-xl font-bold">Conta não vinculada</h1>
+          <p className="text-sm text-muted-foreground">Sua conta não está vinculada a nenhuma clínica. Contate o administrador.</p>
           <Button variant="outline" onClick={signOut}>Sair</Button>
         </div>
       </div>
@@ -344,14 +310,14 @@ const ProfessionalDashboard = () => {
           <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
             <CardContent className="p-6 text-center">
               <Clock className="h-5 w-5 mx-auto text-amber-500 mb-1" />
-              <p className="text-lg font-black text-foreground">R$ {stats.aReceber.toFixed(2)}</p>
+              <p className="text-lg font-black text-foreground">R$ {stats.aReceber.toFixed(2).replace(".", ",")}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">A Receber</p>
             </CardContent>
           </Card>
           <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
             <CardContent className="p-6 text-center">
               <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
-              <p className="text-lg font-black text-foreground">R$ {stats.saldoLiberado.toFixed(2)}</p>
+              <p className="text-lg font-black text-foreground">R$ {stats.saldoLiberado.toFixed(2).replace(".", ",")}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo Liberado</p>
             </CardContent>
           </Card>
@@ -374,7 +340,7 @@ const ProfessionalDashboard = () => {
               <p className="text-lg font-black text-foreground">
                 R$ {stats.monthCommission.toFixed(0)}
               </p>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase">ComissÃ£o MÃªs</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Comissão Mês</p>
             </CardContent>
           </Card>
           <Card className="border-0 bg-card shadow-[var(--shadow-elev-1)] hover:shadow-[var(--shadow-elev-2)] transition-all duration-300">
@@ -387,7 +353,7 @@ const ProfessionalDashboard = () => {
         </div>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          ComissÃ£o: {commissionRate}% sobre serviÃ§os concluÃ­dos
+          Comissão: {commissionRate}% sobre serviços concluídos
         </p>
 
         {/* Daily Goal Progress */}
@@ -395,7 +361,7 @@ const ProfessionalDashboard = () => {
           <CardContent className="p-6 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <Target className="h-3 w-3" /> Meta DiÃ¡ria
+                <Target className="h-3 w-3" /> Meta Diária
               </label>
               <div className="flex items-center gap-1">
                 <span className="text-[10px] text-muted-foreground">R$</span>
@@ -434,7 +400,7 @@ const ProfessionalDashboard = () => {
             <div>
               <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" />
-                Agenda de Hoje â€” {format(today, "dd/MM", { locale: ptBR })}
+                Agenda de Hoje — {format(today, "dd/MM", { locale: ptBR })}
               </h2>
 
               {todayAppointments.length === 0 ? (
@@ -446,6 +412,7 @@ const ProfessionalDashboard = () => {
                     const isDone = appt.status === "completed";
                     const status = statusLabel[appt.status] || statusLabel.pending;
                     const colorClass = statusColors[appt.status] || statusColors.pending;
+                    const itemPrice = Number(appt.total_price ?? appt.price ?? 0);
                     return (
                       <div key={appt.id} className={`flex items-center gap-4 rounded-2xl border px-5 py-4 shadow-[var(--shadow-elev-1)] hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)] transition-all ${colorClass} ${isDone ? "opacity-70" : ""}`}>
                         <div className="text-center min-w-[50px]">
@@ -453,7 +420,7 @@ const ProfessionalDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{appt.client_name}</p>
-                          <p className="text-xs text-muted-foreground">{appt.service_name} â€¢ R$ {appt.price}</p>
+                          <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {itemPrice.toFixed(2).replace(".", ",")}</p>
                         </div>
                         {!isDone ? (
                           <div className="flex items-center gap-1">
@@ -462,8 +429,8 @@ const ProfessionalDashboard = () => {
                                 const cleanPhone = appt.client_phone.replace(/\D/g, "");
                                 const dateStr = format(toBRT(appt.scheduled_at), "dd/MM");
                                 const timeStr = format(toBRT(appt.scheduled_at), "HH:mm");
-                                const msg = encodeURIComponent(`OlÃ¡, ${appt.client_name}! Passando para confirmar seu agendamento na nossa clÃ­nica para o dia ${dateStr} Ã s ${timeStr}. Qualquer dÃºvida, estamos Ã  disposiÃ§Ã£o!`);
-                                window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
+                                const msg = encodeURIComponent(`Olá, ${appt.client_name}! Passando para confirmar seu agendamento na nossa clínica para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
+                                window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, "_blank");
                               }} className="h-8 text-xs text-emerald-500">
                                 <MessageSquare className="h-3.5 w-3.5" />
                               </Button>
@@ -475,7 +442,7 @@ const ProfessionalDashboard = () => {
                                   variant="outline"
                                   onClick={() => setComandaAppt(appt)}
                                   className="h-8 text-xs"
-                                  title="Adicionar item Ã  comanda"
+                                  title="Adicionar item à comanda"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </Button>
@@ -515,14 +482,14 @@ const ProfessionalDashboard = () => {
               return d > endOfDay(today) && a.status !== "cancelled";
             }).length > 0 && (
               <div>
-                <h2 className="text-sm font-bold mb-3">PrÃ³ximos Dias</h2>
+                <h2 className="text-sm font-bold mb-3">Próximos Dias</h2>
                 <div className="space-y-4">
                   {appointments
                     .filter((a: any) => toBRT(a.scheduled_at) > endOfDay(today) && a.status !== "cancelled")
                     .slice(0, 10)
                     .map((appt: any) => {
-                      const status = statusLabel[appt.status] || statusLabel.pending;
                       const colorClass = statusColors[appt.status] || statusColors.pending;
+                      const itemPrice = Number(appt.total_price ?? appt.price ?? 0);
                       return (
                         <div key={appt.id} className={`flex items-center gap-4 rounded-2xl border px-5 py-4 shadow-[var(--shadow-elev-1)] hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)] ${colorClass}`}>
                           <div className="text-center min-w-[70px]">
@@ -534,7 +501,7 @@ const ProfessionalDashboard = () => {
                             <p className="text-xs text-muted-foreground">{appt.service_name}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-bold">R$ {appt.price}</p>
+                            <p className="text-xs font-bold">R$ {itemPrice.toFixed(2).replace(".", ",")}</p>
                             <StatusBadge status={appt.status} />
                           </div>
                         </div>
@@ -546,15 +513,17 @@ const ProfessionalDashboard = () => {
           </>
         )}
 
+        {/* Tab Ganhos (Relatório de Comissões por Serviços Concluídos) */}
         {activeTab === "ganhos" && (
           <div className="space-y-4">
-            <h2 className="text-sm font-bold">ServiÃ§os ConcluÃ­dos no MÃªs</h2>
+            <h2 className="text-sm font-bold">Serviços Concluídos no Mês</h2>
             {confirmedAppointments.filter((a: any) => a.status === "completed").length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviÃ§o concluÃ­do este mÃªs.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço concluído este mês.</p>
             ) : (
               <div className="space-y-4">
                 {confirmedAppointments.filter((a: any) => a.status === "completed").map((appt: any) => {
-                  const commission = (appt.price || 0) * (commissionRate / 100);
+                  const itemPrice = Number(appt.total_price ?? appt.price ?? 0);
+                  const commission = itemPrice * (commissionRate / 100);
                   return (
                     <div key={appt.id} className="flex items-center gap-4 rounded-2xl border-0 shadow-[var(--shadow-elev-1)] bg-emerald-500/5 px-5 py-4 hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)]">
                       <div className="text-center min-w-[70px]">
@@ -563,11 +532,11 @@ const ProfessionalDashboard = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{appt.client_name}</p>
-                        <p className="text-xs text-muted-foreground">{appt.service_name} â€¢ R$ {appt.price}</p>
+                        <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {itemPrice.toFixed(2).replace(".", ",")}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Meu Ganho</p>
-                        <p className="text-sm font-black text-emerald-500">R$ {commission.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Meu Ganho ({commissionRate}%)</p>
+                        <p className="text-sm font-black text-emerald-500">R$ {commission.toFixed(2).replace(".", ",")}</p>
                       </div>
                     </div>
                   );
@@ -616,14 +585,14 @@ const ProfessionalDashboard = () => {
       {showStatement && (
         <BarberStatementPDF
           barber={barber}
-          orders={orders}
+          orders={[]}
           appointments={appointments}
           commissionRate={commissionRate}
           onClose={() => setShowStatement(false)}
         />
       )}
 
-      {/* Adicionar Ã  Comanda */}
+      {/* Adicionar à Comanda */}
       {comandaAppt && (
         <AddToComandaModal
           open={!!comandaAppt}
@@ -633,7 +602,7 @@ const ProfessionalDashboard = () => {
         />
       )}
 
-      {/* QR Code Pix DinÃ¢mico */}
+      {/* QR Code Pix Dinâmico */}
       <PixPaymentModal
         open={pixModal.open}
         onClose={() => setPixModal((s) => ({ ...s, open: false }))}
@@ -644,8 +613,8 @@ const ProfessionalDashboard = () => {
         appointmentId={pixModal.appointmentId}
         onPaymentConfirmed={() => {
           queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
           setPixModal((s) => ({ ...s, open: false }));
         }}
       />
@@ -656,8 +625,8 @@ const ProfessionalDashboard = () => {
         onClose={() => setSplitPaymentAppt(null)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["team-monitor-appointments"] });
           playCaching();
           confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
         }}
@@ -667,6 +636,3 @@ const ProfessionalDashboard = () => {
 };
 
 export default ProfessionalDashboard;
-
-
-

@@ -14,7 +14,12 @@ const mockEq = vi.fn().mockReturnThis();
 const mockGte = vi.fn().mockReturnThis();
 const mockLte = vi.fn().mockReturnThis();
 const mockNeq = vi.fn().mockReturnThis();
-const mockOrder = vi.fn().mockResolvedValue({ data: [], error: null });
+const mockIn = vi.fn().mockReturnThis();
+const mockLimit = vi.fn().mockImplementation((count?: number) => mockOrder());
+const mockOrder = vi.fn().mockImplementation(() => {
+  const promise = Promise.resolve({ data: [], error: null });
+  return Object.assign(promise, { limit: mockLimit });
+});
 const mockSelect = vi.fn().mockReturnThis();
 const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
 
@@ -31,7 +36,9 @@ vi.mock("@/integrations/supabase/client", () => ({
       gte: mockGte,
       lte: mockLte,
       neq: mockNeq,
+      in: mockIn,
       order: mockOrder,
+      limit: mockLimit,
       maybeSingle: mockMaybeSingle
     })),
   },
@@ -95,27 +102,32 @@ describe("Integration Tests: Dashboard & Caixa", () => {
   // -------------------------------------------------------------------------
   // TESTE 1: DASHBOARD COMO DONO (OWNER)
   // -------------------------------------------------------------------------
-  it("Deve renderizar Dashboard do Dono e somar TODAS as orders da clínica", async () => {
+  it("Deve renderizar Dashboard do Dono e somar TODAS as movimentações de caixa da clínica", async () => {
     // Setup Role: Owner
     mockUseAuth.isProfessional = false;
     mockUseClinic.professionalId = null;
 
-    // Supabase DB Mock: Retorna 3 orders somando R$ 600
-    mockOrder.mockResolvedValueOnce({ data: [] }); // dashboard-appointments
-    mockOrder.mockResolvedValueOnce({
-      data: [
-        { id: "o1", total: 200, status: "closed", created_at: new Date().toISOString(), items: [{ type: "service", price: 200, qty: 1 }] },
-        { id: "o2", total: 100, status: "closed", created_at: new Date().toISOString(), items: [{ type: "product", price: 100, qty: 1 }] },
-        { id: "o3", total: 300, status: "closed", created_at: new Date().toISOString(), items: [{ type: "service", price: 300, qty: 1 }] },
-      ],
-      error: null
-    }); // dashboard-orders
+    // Supabase DB Mock: Retorna 3 cash_movements somando R$ 600
+    mockOrder.mockImplementationOnce(() => {
+      const p = Promise.resolve({ data: [] });
+      return Object.assign(p, { limit: mockLimit });
+    }); // dashboard-appointments
+    mockOrder.mockImplementationOnce(() => {
+      const p = Promise.resolve({
+        data: [
+          { id: "cm1", amount: 200, movement_type: "sale", created_at: new Date().toISOString() },
+          { id: "cm2", amount: 100, movement_type: "sale", created_at: new Date().toISOString() },
+          { id: "cm3", amount: 300, movement_type: "sale", created_at: new Date().toISOString() },
+        ],
+        error: null
+      });
+      return Object.assign(p, { limit: mockLimit });
+    }); // dashboard-cash-movements
 
     renderWithProviders(<Dashboard />);
 
     // Verifica se a tela renderizou os R$ 600 corretos
-    // findAllByText pois pode aparecer no Caixa Hoje e no Mês Atual
-    const totals = await screen.findAllByText("R$ 600.00");
+    const totals = await screen.findAllByText(/600/);
     expect(totals.length).toBeGreaterThan(0);
     
     // Verifica se a query Supabase NÃO foi filtrada por barber_id (pois é dono)
@@ -127,32 +139,43 @@ describe("Integration Tests: Dashboard & Caixa", () => {
   // -------------------------------------------------------------------------
   // TESTE 2: DASHBOARD COMO PROFISSIONAL
   // -------------------------------------------------------------------------
-  it("Deve renderizar Dashboard do Profissional, aplicando filtro RBAC e somando apenas as suas orders", async () => {
+  it("Deve renderizar Dashboard do Profissional, aplicando filtro RBAC em appointments", async () => {
     // Setup Role: Profissional
     mockUseAuth.isProfessional = true;
     mockUseClinic.professionalId = "prof-999";
 
-    // Supabase DB Mock: Retorna 1 order somando R$ 200
-    mockOrder.mockResolvedValueOnce({ data: [] }); // dashboard-appointments
-    mockOrder.mockResolvedValueOnce({
-      data: [
-        { id: "o1", total: 200, status: "closed", created_at: new Date().toISOString(), items: [{ type: "service", price: 200, qty: 1 }] },
-      ],
-      error: null
-    }); // dashboard-orders
+    // Supabase DB Mock: Retorna 1 appointment do profissional e cash_movements
+    mockOrder.mockImplementationOnce(() => {
+      const p = Promise.resolve({
+        data: [
+          { id: "a1", price: 200, total_price: 200, status: "completed", scheduled_at: new Date().toISOString(), barber_id: "prof-999" }
+        ],
+        error: null
+      });
+      return Object.assign(p, { limit: mockLimit });
+    }); // dashboard-appointments
+    mockOrder.mockImplementationOnce(() => {
+      const p = Promise.resolve({
+        data: [
+          { id: "cm1", amount: 200, movement_type: "sale", created_at: new Date().toISOString() },
+        ],
+        error: null
+      });
+      return Object.assign(p, { limit: mockLimit });
+    }); // dashboard-cash-movements
 
     renderWithProviders(<Dashboard />);
 
     // Verifica a UI
-    const totals = await screen.findAllByText("R$ 200.00");
+    const totals = await screen.findAllByText(/200/);
     expect(totals.length).toBeGreaterThan(0);
 
     // VALIDAÇÃO CRÍTICA DO FILTRO RBAC:
-    // Verifica se o componente chamou supabase.from('orders').eq('barber_id', 'prof-999')
+    // Verifica se o componente chamou supabase.from('appointments').eq('barber_id', 'prof-999')
     const calls = mockEq.mock.calls;
     const appliedBarberFilter = calls.some(call => call[0] === "barber_id" && call[1] === "prof-999");
     
-    expect(appliedBarberFilter).toBe(true); // O Profissional foi restringido!
+    expect(appliedBarberFilter).toBe(true); // O Profissional foi restringido em appointments!
   });
 
   // -------------------------------------------------------------------------

@@ -22,6 +22,7 @@ interface Appointment {
   id: string;
   barber_name: string;
   price: number;
+  total_price?: number;
   status: string;
   scheduled_at: string;
 }
@@ -34,10 +35,10 @@ interface Expense {
   category: string;
 }
 
-interface Order {
+interface CashMovement {
   id: string;
-  total: number;
-  status: string;
+  amount: number;
+  movement_type: string;
   created_at: string;
 }
 
@@ -74,28 +75,28 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [movements, setMovements] = useState<CashMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>("week");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
   const fetchData = async () => {
-    const [barbersRes, apptsRes, expRes, ordRes] = await Promise.all([
+    const [barbersRes, apptsRes, expRes, movRes] = await Promise.all([
       (supabase.from("barbers") as any).select("id, name, commission_pct, avatar_url").eq("barbershop_id", barbershopId),
-      (supabase.from("appointments") as any).select("id, barber_name, price, status, scheduled_at")
+      (supabase.from("appointments") as any).select("id, barber_name, price, total_price, status, scheduled_at")
         .eq("barbershop_id", barbershopId)
         .eq("status", "completed"),
       (supabase.from("expenses") as any).select("id, amount, description, date, category")
         .eq("barbershop_id", barbershopId),
-      (supabase.from("orders") as any).select("id, total, status, created_at")
+      (supabase.from("cash_movements") as any).select("id, amount, created_at, movement_type")
         .eq("barbershop_id", barbershopId)
-        .eq("status", "closed"),
+        .in("movement_type", ["sale", "appointment"]),
     ]);
     setBarbers((barbersRes.data as Barber[]) || []);
     setAppointments((apptsRes.data as Appointment[]) || []);
     setExpenses((expRes.data as Expense[]) || []);
-    setOrders((ordRes.data as Order[]) || []);
+    setMovements((movRes.data as CashMovement[]) || []);
     setLoading(false);
   };
 
@@ -109,6 +110,10 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `barbershop_id=eq.${barbershopId}` }, () => {
         fetchData();
         toast({ title: "Atualização", description: "Dados financeiros atualizados em tempo real." });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cash_movements", filter: `barbershop_id=eq.${barbershopId}` }, () => {
+        fetchData();
+        toast({ title: "Atualização", description: "Movimentações de caixa atualizadas." });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -140,21 +145,20 @@ const FinancialTab = ({ barbershopId }: FinancialTabProps) => {
       return d >= dateRange.start && d <= dateRange.end;
     }), [expenses, dateRange]);
 
-  const filteredOrders = useMemo(() =>
-    orders.filter((o) => {
-      const d = toBRT(o.created_at);
+  const filteredMovements = useMemo(() =>
+    movements.filter((m) => {
+      const d = toBRT(m.created_at);
       return d >= dateRange.start && d <= dateRange.end;
-    }), [orders, dateRange]);
+    }), [movements, dateRange]);
 
-  const apptRevenue = filteredAppts.reduce((s, a) => s + (Number(a.price) || 0), 0);
-  const orderRevenue = filteredOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-  const totalBruto = apptRevenue + orderRevenue;
+  // Faturamento bruto total vem das movimentações de caixa (vendas + agendamentos pagos)
+  const totalBruto = filteredMovements.reduce((s, m) => s + (Number(m.amount) || 0), 0);
   const totalDespesas = filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
   const commissionData = useMemo(() =>
     barbers.map((b) => {
       const barberAppts = filteredAppts.filter((a) => a.barber_name === b.name);
-      const barberRevenue = barberAppts.reduce((s, a) => s + (Number(a.price) || 0), 0);
+      const barberRevenue = barberAppts.reduce((s, a) => s + Number(a.total_price ?? a.price ?? 0), 0);
       const commission = barberRevenue * ((b.commission_pct || 0) / 100);
       return { ...b, revenue: barberRevenue, commission, count: barberAppts.length };
     }).filter((b) => b.count > 0), [barbers, filteredAppts]);

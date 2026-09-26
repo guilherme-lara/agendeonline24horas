@@ -125,10 +125,6 @@ export default function PDV() {
       .on("postgres_changes", { event: "*", schema: "public", table: "appointment_items" }, () => {
         queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter }, () => {
-        queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
-        queryClient.invalidateQueries({ queryKey: ["sales"] });
-      })
       .on("postgres_changes", { event: "*", schema: "public", table: "cash_movements", filter }, () => {
         queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
         queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
@@ -219,45 +215,54 @@ export default function PDV() {
         console.warn("[PDV] Tabela sales protegida por RLS. Prosseguindo com lançamento de caixa e finalização:", saleErr);
       }
 
-      // 4. Create Cash Movements (Payment recorded at checkout)
-      if (amount > 0) {
-        const saleRef = sale?.id ? `#${sale.id.substring(0, 6)}` : `PDV-${Date.now().toString().slice(-4)}`;
-        const movement = {
-          barbershop_id: clinic.id,
-          register_id: registerId,
-          amount: amount,
-          type: "sale",
-          movement_type: "sale",
-          origin_type: "sale",
-          origin_id: sale?.id || null,
-          payment_method: paymentMethod,
-          created_by: user.id,
-          description: `Venda ${saleRef} - ${paymentMethod}`,
-        };
+      // 4. Insert silent appointments for manual services (venda avulsa de serviços no balcão)
+      const manualServices = cartItems.filter(
+        (i) => i.item_type === "service" && !i.source_appointment_id
+      );
 
-        const { error: movementError } = await supabase.from("cash_movements").insert(movement as any);
-        if (movementError) {
-          console.warn("[PDV] Aviso ao registrar cash_movements com movement_type, tentando com type:", movementError);
-          // Fallback in case table has specific column definition
-          const fallbackMovement: any = {
-            barbershop_id: clinic.id,
-            register_id: registerId,
-            amount: amount,
-            type: "sale",
-            payment_method: paymentMethod,
-            created_by: user.id,
-            description: `Venda ${saleRef} - ${paymentMethod}`,
-          };
-          await supabase.from("cash_movements").insert(fallbackMovement);
+      const createdAppointmentIds: string[] = [];
+
+      if (manualServices.length > 0) {
+        for (const item of manualServices) {
+          const count = Math.max(1, item.quantity || 1);
+          for (let q = 0; q < count; q++) {
+            const appointmentPayload: any = {
+              barbershop_id: clinic.id,
+              service_name: item.name,
+              price: item.unit_price,
+              total_price: item.unit_price,
+              barber_id: item.barber_id || null,
+              barber_name: item.barber_name || null,
+              customer_id: customerId || null,
+              client_name: customerName || "Cliente Balcão",
+              status: "completed",
+              payment_status: "paid",
+              payment_method: paymentMethod,
+              payment_confirmed_at: new Date().toISOString(),
+              scheduled_at: new Date().toISOString(),
+            };
+
+            const { data: createdAppt, error: apptInsertErr } = await supabase
+              .from("appointments")
+              .insert(appointmentPayload)
+              .select("id")
+              .maybeSingle();
+
+            if (apptInsertErr) {
+              console.warn("[PDV] Erro ao registrar agendamento avulso:", apptInsertErr);
+            } else if (createdAppt?.id) {
+              createdAppointmentIds.push(createdAppt.id);
+            }
+          }
         }
       }
 
-      // 5. Update Appointments to completed and paid
-      const appointmentIds = cartItems
+      // 5. Update existing scheduled appointments to completed and paid
+      const existingAppointmentIds = cartItems
         .filter((i) => i.source_appointment_id)
         .map((i) => i.source_appointment_id as string);
 
-      if (appointmentIds.length > 0) {
+      if (existingAppointmentIds.length > 0) {
         const { error: apptError } = await supabase
           .from("appointments")
           .update({
@@ -266,9 +271,33 @@ export default function PDV() {
             payment_method: paymentMethod,
             payment_confirmed_at: new Date().toISOString(),
           })
-          .in("id", appointmentIds);
+          .in("id", existingAppointmentIds);
 
         if (apptError) throw apptError;
+      }
+
+      // 6. Create Cash Movements (Payment recorded at checkout)
+      if (amount > 0) {
+        const saleRef = sale?.id ? `#${sale.id.substring(0, 6)}` : `PDV-${Date.now().toString().slice(-4)}`;
+        const primaryAppointmentId = existingAppointmentIds[0] || createdAppointmentIds[0] || null;
+
+        const movement: any = {
+          barbershop_id: clinic.id,
+          register_id: registerId,
+          amount: amount,
+          movement_type: "sale",
+          origin_type: "sale",
+          origin_id: sale?.id || null,
+          appointment_id: primaryAppointmentId,
+          payment_method: paymentMethod,
+          created_by: user.id,
+          description: `Venda ${saleRef} - ${paymentMethod}`,
+        };
+
+        const { error: movementError } = await supabase.from("cash_movements").insert(movement);
+        if (movementError) {
+          console.warn("[PDV] Aviso ao registrar cash_movements:", movementError);
+        }
       }
 
       return sale;
@@ -276,7 +305,7 @@ export default function PDV() {
     onSuccess: () => {
       toast({
         title: "Venda finalizada com sucesso!",
-        description: "Comanda concluída e pagamento registrado.",
+        description: "Comanda concluída e pagamento registrado no caixa.",
       });
       setCartItems([]);
       setCustomerName("");
@@ -286,8 +315,12 @@ export default function PDV() {
       setMobileTab("fila");
       queryClient.invalidateQueries({ queryKey: ["pdv-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-cash-movements"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["barber-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["comissao-pendente"] });
     },
     onError: (error: any) => {
       toast({

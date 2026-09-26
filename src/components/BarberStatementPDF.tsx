@@ -23,7 +23,7 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
   }, [appointments]);
 
   const totals = useMemo(() => {
-    const gross = completedAppointments.reduce((sum: number, a: any) => sum + (a.price || 0), 0);
+    const gross = completedAppointments.reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0), 0);
     return {
       gross,
       commission: gross * (commissionRate / 100),
@@ -113,13 +113,14 @@ const BarberStatementPDF = ({ barber, orders, appointments, commissionRate, onCl
             <tbody>
               {completedAppointments.map((appt: any) => {
                 const date = toBRT(appt.scheduled_at);
-                const commission = (appt.price || 0) * (commissionRate / 100);
+                const itemPrice = Number(appt.total_price ?? appt.price ?? 0);
+                const commission = itemPrice * (commissionRate / 100);
                 return (
                   <tr key={appt.id} className="border-b border-gray-100">
                     <td className="py-2 px-3">{format(date, "dd/MM HH:mm")}</td>
                     <td className="py-2 px-3">{appt.client_name}</td>
                     <td className="py-2 px-3">{appt.service_name}</td>
-                    <td className="py-2 px-3 text-right">R$ {(appt.price || 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right">R$ {itemPrice.toFixed(2)}</td>
                     <td className="py-2 px-3 text-right font-bold text-green-700">R$ {commission.toFixed(2)}</td>
                   </tr>
                 );
