@@ -1,9 +1,9 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -130,7 +130,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="service">ServiÃ§o</SelectItem>
+                  <SelectItem value="service">Serviço</SelectItem>
                   <SelectItem value="product">Produto</SelectItem>
                 </SelectContent>
               </Select>
@@ -143,7 +143,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhum / NÃ£o aplicÃ¡vel</SelectItem>
+                  <SelectItem value="none">Nenhum / Não aplicável</SelectItem>
                   {professionals?.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -153,20 +153,20 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Selecionar {type === "service" ? "ServiÃ§o" : "Produto"}</label>
+            <label className="text-sm font-medium">Selecionar {type === "service" ? "Serviço" : "Produto"}</label>
             <Select value={selectedItemId} onValueChange={setSelectedItemId} required>
               <SelectTrigger>
-                <SelectValue placeholder={loadingCatalog ? "Carregando..." : `Escolha um ${type === "service" ? "serviÃ§o" : "produto"}`} />
+                <SelectValue placeholder={loadingCatalog ? "Carregando..." : `Escolha um ${type === "service" ? "serviço" : "produto"}`} />
               </SelectTrigger>
               <SelectContent>
                 {currentList.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>
+                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>
                 ) : (
-                    currentList.map((item: any) => (
-                        <SelectItem key={item.id} value={item.id}>
-                            {item.name} - R$ {Number(type === "service" ? item.price : item.sell_price).toFixed(2).replace(".", ",")}
-                        </SelectItem>
-                    ))
+                  currentList.map((item: any) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name} - R$ {Number(type === "service" ? item.price : item.sell_price).toFixed(2).replace(".", ",")}
+                    </SelectItem>
+                  ))
                 )}
               </SelectContent>
             </Select>
@@ -174,7 +174,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2 opacity-60">
-              <label className="text-sm font-medium">PreÃ§o UnitÃ¡rio (R$)</label>
+              <label className="text-sm font-medium">Preço Unitário (R$)</label>
               <Input 
                 disabled 
                 value={selectedItemData ? Number(type === "service" ? selectedItemData.price : selectedItemData.sell_price).toFixed(2).replace(".", ",") : "0,00"} 
@@ -195,11 +195,10 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
 
           <Button type="submit" className="w-full mt-2" disabled={!selectedItemId}>
             <Plus className="w-4 h-4 mr-2" />
-            Adicionar Ã  Comanda
+            Adicionar à Comanda
           </Button>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
-

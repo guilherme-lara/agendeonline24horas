@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { Loader2, ClipboardList, User } from "lucide-react";
@@ -11,7 +11,7 @@ interface Props {
 
 const OPEN_STATUSES = ["confirmed", "in_progress", "pending", "pending_payment"];
 
-/** Comandas em aberto (atendimentos ainda nÃ£o pagos) de todos os profissionais. */
+/** Comandas em aberto (atendimentos ainda não pagos) de todos os profissionais. */
 export function OpenComandasList({ barbershopId, professionalId, onSelect }: Props) {
   const { data = [], isLoading } = useQuery({
     queryKey: ["pdv-appointments", "open-comandas", barbershopId, professionalId],
@@ -54,7 +54,7 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
       {Object.entries(groups).map(([barber, list]) => (
         <div key={barber}>
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-            <User className="h-3 w-3" /> {barber} Â· {(list as any[]).length}
+            <User className="h-3 w-3" /> {barber} · {(list as any[]).length}
           </p>
           <div className="space-y-2">
             {(list as any[]).map((a) => {
@@ -72,7 +72,7 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
                     <span className="font-bold text-primary text-sm">R$ {total.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(parseISO(a.scheduled_at), "dd/MM HH:mm")} Â· {a.status === "in_progress" ? "Em atendimento" : "Aguardando"} Â· {(a.appointment_items?.length || 1)} item(ns)
+                    {format(parseISO(a.scheduled_at), "dd/MM HH:mm")} · {a.status === "in_progress" ? "Em atendimento" : "Aguardando"} · {(a.appointment_items?.length || 1)} item(ns)
                   </p>
                 </button>
               );
@@ -83,4 +83,3 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
     </div>
   );
 }
-

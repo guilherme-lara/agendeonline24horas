@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -56,12 +56,12 @@ function RegisterDetailsModal({ register, open, onOpenChange }: { register: any,
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Abertura:</span>
-                <span>{format(parseISO(register.opened_at), "dd/MM/yyyy 'Ã s' HH:mm")} {register.users?.name ? `por ${register.users.name}` : ''}</span>
+                <span>{format(parseISO(register.opened_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} {register.users?.name ? `por ${register.users.name}` : ''}</span>
               </div>
               {register.closed_at && (
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Fechamento:</span>
-                  <span>{format(parseISO(register.closed_at), "dd/MM/yyyy 'Ã s' HH:mm")}</span>
+                  <span>{format(parseISO(register.closed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                 </div>
               )}
             </div>
@@ -86,11 +86,11 @@ function RegisterDetailsModal({ register, open, onOpenChange }: { register: any,
             </div>
 
             <div>
-              <h3 className="font-semibold text-lg mb-3">MovimentaÃ§Ãµes</h3>
+              <h3 className="font-semibold text-lg mb-3">Movimentações</h3>
               {isLoading ? (
                 <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
               ) : movements?.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic text-center p-4 border rounded-lg">Nenhuma movimentaÃ§Ã£o registrada.</p>
+                <p className="text-sm text-muted-foreground italic text-center p-4 border rounded-lg">Nenhuma movimentação registrada.</p>
               ) : (
                 <div className="space-y-2">
                   {movements?.map((m: any) => (
@@ -105,7 +105,7 @@ function RegisterDetailsModal({ register, open, onOpenChange }: { register: any,
                         )}
                         <div>
                           <div className="font-medium capitalize">{m.movement_type} {m.payment_method ? `(${m.payment_method})` : ''}</div>
-                          <div className="text-xs text-muted-foreground">{format(parseISO(m.created_at), "HH:mm")} â€¢ {m.description || 'Sem descriÃ§Ã£o'}</div>
+                          <div className="text-xs text-muted-foreground">{format(parseISO(m.created_at), "HH:mm")} • {m.description || 'Sem descrição'}</div>
                         </div>
                       </div>
                       <div className={`font-bold ${m.movement_type === 'sangria' ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -120,7 +120,7 @@ function RegisterDetailsModal({ register, open, onOpenChange }: { register: any,
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 export default function PDVHistorico() {
@@ -160,8 +160,8 @@ export default function PDVHistorico() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">HistÃ³rico de Caixa</h1>
-          <p className="text-muted-foreground">Veja as Ãºltimas sessÃµes de PDV</p>
+          <h1 className="text-2xl font-bold tracking-tight">Histórico de Caixa</h1>
+          <p className="text-muted-foreground">Veja as últimas sessões de PDV</p>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ export default function PDVHistorico() {
                 <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                   <Calendar className="w-4 h-4" /> 
                   Abertura: {format(parseISO(reg.opened_at), "HH:mm")}
-                  {reg.closed_at && ` â€¢ Fechamento: ${format(parseISO(reg.closed_at), "HH:mm")}`}
+                  {reg.closed_at && ` • Fechamento: ${format(parseISO(reg.closed_at), "HH:mm")}`}
                 </div>
               </div>
             </div>
@@ -218,4 +218,3 @@ export default function PDVHistorico() {
     </div>
   );
 }
-
