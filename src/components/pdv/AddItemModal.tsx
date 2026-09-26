@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
@@ -25,7 +25,10 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
   const { clinic } = useClinic() as any;
   const [type, setType] = useState<"product" | "service">("service");
   
-  // selectedItemId holds the ID of the selected service or product
+  // Category filter state
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
+
+  // Selected item ID
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [quantity, setQuantity] = useState("1");
   const [barberId, setBarberId] = useState<string>("none");
@@ -51,12 +54,12 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
       const [servicesRes, inventoryRes] = await Promise.all([
         supabase
           .from("services")
-          .select("id, name, price")
+          .select("id, name, price, category")
           .eq("barbershop_id", clinic.id)
           .eq("active", true)
           .order("name"),
         (supabase.from("inventory") as any)
-          .select("id, name, sell_price, quantity")
+          .select("id, name, sell_price, quantity, category")
           .eq("barbershop_id", clinic.id)
           .eq("active", true)
           .order("name")
@@ -70,14 +73,34 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
     enabled: !!clinic?.id
   });
 
-  const currentList = useMemo(() => {
+  // Base list of items based on selected type
+  const availableItems = useMemo(() => {
     if (!catalog) return [];
     return type === "service" ? catalog.services : catalog.products;
   }, [catalog, type]);
 
+  // Unique categories extracted dynamically
+  const categories = useMemo(() => {
+    const rawCategories = availableItems.map((i: any) => (i.category ? String(i.category).trim() : "Geral"));
+    const uniqueSorted = Array.from(new Set(rawCategories)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return ["Todas", ...uniqueSorted];
+  }, [availableItems]);
+
+  // Items filtered by category
+  const filteredItems = useMemo(() => {
+    if (selectedCategory === "Todas") {
+      return availableItems;
+    }
+    return availableItems.filter((i: any) => {
+      const itemCat = i.category ? String(i.category).trim() : "Geral";
+      return itemCat === selectedCategory;
+    });
+    
+  }, [availableItems, selectedCategory]);
+
   const selectedItemData = useMemo(() => {
-    return currentList.find((i: any) => i.id === selectedItemId);
-  }, [currentList, selectedItemId]);
+    return availableItems.find((i: any) => i.id === selectedItemId);
+  }, [availableItems, selectedItemId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +108,6 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
     
     if (!selectedItemData || isNaN(q) || q <= 0) return;
 
-    // Price depends on the table structure (price for services, sell_price for products)
     const unitPrice = type === "service" ? selectedItemData.price : selectedItemData.sell_price;
 
     let barber_name;
@@ -102,31 +124,57 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
       barber_name
     });
 
-    // reset
+    // Reset form
     setSelectedItemId("");
+    setSelectedCategory("Todas");
     setQuantity("1");
     setBarberId("none");
     onOpenChange(false);
   };
 
+  // Rule 6: Changing Type resets category to "Todas" and clears selected item
   const handleTypeChange = (newType: "product" | "service") => {
     setType(newType);
+    setSelectedCategory("Todas");
     setSelectedItemId("");
   };
 
+  // Changing Category updates filter and clears item if it does not belong
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    if (cat !== "Todas") {
+      const itemBelongs = availableItems.some((i: any) => {
+        const itemCat = i.category ? String(i.category).trim() : "Geral";
+        return i.id === selectedItemId && itemCat === cat;
+      });
+      if (!itemBelongs) {
+        setSelectedItemId("");
+      }
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        setSelectedItemId("");
+        setSelectedCategory("Todas");
+        setQuantity("1");
+        setBarberId("none");
+      }
+      onOpenChange(v);
+    }}>
+      <DialogContent className="sm:max-w-lg border-border bg-card">
         <DialogHeader>
-          <DialogTitle>Adicionar Item Avulso</DialogTitle>
+          <DialogTitle className="text-lg font-bold">Adicionar Item Avulso</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo</label>
+          {/* Row 1: Tipo & Profissional */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</label>
               <Select value={type} onValueChange={handleTypeChange}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -136,10 +184,10 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Profissional (Opcional)</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Profissional</label>
               <Select value={barberId} onValueChange={setBarberId} disabled={type === "product"}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background h-10">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,17 +200,52 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Selecionar {type === "service" ? "Serviço" : "Produto"}</label>
-            <Select value={selectedItemId} onValueChange={setSelectedItemId} required>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingCatalog ? "Carregando..." : `Escolha um ${type === "service" ? "serviço" : "produto"}`} />
+          {/* Row 2: Filtrar por Categoria (Cascade Filter) */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-primary" />
+                Filtrar por Categoria
+              </label>
+              <span className="text-[11px] text-muted-foreground">
+                {categories.length > 1 ? `${categories.length - 1} categoria(s)` : "Geral"}
+              </span>
+            </div>
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="bg-background h-10">
+                <SelectValue placeholder="Todas as Categorias" />
               </SelectTrigger>
-              <SelectContent>
-                {currentList.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>
+              <SelectContent className="max-h-60">
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat === "Todas" ? `Todas as Categorias (${availableItems.length})` : cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Row 3: Selecionar Item (Filtered by category) */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Selecionar {type === "service" ? "Serviço" : "Produto"}
+              </label>
+              <span className="text-[11px] text-muted-foreground">
+                {filteredItems.length} {filteredItems.length === 1 ? "disponível" : "disponíveis"}
+              </span>
+            </div>
+            <Select value={selectedItemId} onValueChange={setSelectedItemId} required>
+              <SelectTrigger className="bg-background h-10">
+                <SelectValue placeholder={loadingCatalog ? "Carregando catálogo..." : `Escolha um ${type === "service" ? "serviço" : "produto"}...`} />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                {filteredItems.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhum {type === "service" ? "serviço" : "produto"} encontrado nesta categoria.
+                  </div>
                 ) : (
-                  currentList.map((item: any) => (
+                  filteredItems.map((item: any) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.name} - R$ {Number(type === "service" ? item.price : item.sell_price).toFixed(2).replace(".", ",")}
                     </SelectItem>
@@ -172,29 +255,36 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 opacity-60">
-              <label className="text-sm font-medium">Preço Unitário (R$)</label>
+          {/* Row 4: Preço Unitário & Quantidade */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5 opacity-80">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preço Unitário (R$)</label>
               <Input 
                 disabled 
                 value={selectedItemData ? Number(type === "service" ? selectedItemData.price : selectedItemData.sell_price).toFixed(2).replace(".", ",") : "0,00"} 
-                className="bg-secondary/50 font-mono font-bold"
+                className="bg-muted/50 font-mono font-bold h-10"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Quantidade</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quantidade</label>
               <Input 
                 required 
                 type="number" 
                 min="1" 
                 value={quantity} 
                 onChange={e => setQuantity(e.target.value)} 
+                className="h-10 font-bold bg-background"
               />
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-2" disabled={!selectedItemId}>
-            <Plus className="w-4 h-4 mr-2" />
+          {/* Submit Button */}
+          <Button 
+            type="submit" 
+            className="w-full h-11 text-sm font-bold shadow-xs gap-2 mt-2" 
+            disabled={!selectedItemId}
+          >
+            <Plus className="w-4 h-4" />
             Adicionar à Comanda
           </Button>
         </form>
