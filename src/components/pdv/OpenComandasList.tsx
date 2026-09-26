@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
-import { Loader2, ClipboardList, User } from "lucide-react";
+import { Loader2, ClipboardList, User, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   barbershopId?: string;
@@ -21,7 +22,7 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
       since.setDate(since.getDate() - 7);
       let q = (supabase as any)
         .from("appointments")
-        .select("id, client_name, client_id, service_name, price, total_price, barber_id, barber_name, scheduled_at, status, payment_status, appointment_items(id, service_name, price)")
+        .select("id, client_name, client_id, customer_id, service_name, price, total_price, barber_id, barber_name, scheduled_at, status, payment_status, appointment_items(id, service_name, price)")
         .eq("barbershop_id", barbershopId)
         .in("status", OPEN_STATUSES)
         .neq("payment_status", "paid")
@@ -60,21 +61,34 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
             {(list as any[]).map((a) => {
               const total = Number(a.total_price ?? a.price ?? 0);
               return (
-                <button
+                <div
                   key={a.id}
                   onClick={() => onSelect(a)}
-                  className="w-full text-left rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition-colors"
+                  className="w-full rounded-xl border border-border bg-card p-3.5 hover:border-primary/50 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 active:scale-[0.99]"
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-primary" /> {a.client_name}
-                    </span>
-                    <span className="font-bold text-primary text-sm">R$ {total.toFixed(2)}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-bold text-sm text-foreground truncate">{a.client_name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(parseISO(a.scheduled_at), "dd/MM HH:mm")} · {a.status === "in_progress" ? "Em atendimento" : "Aguardando"} · {(a.appointment_items?.length || 1)} item(ns)
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(parseISO(a.scheduled_at), "dd/MM HH:mm")} · {a.status === "in_progress" ? "Em atendimento" : "Aguardando"} · {(a.appointment_items?.length || 1)} item(ns)
-                  </p>
-                </button>
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 shrink-0">
+                    <span className="font-bold text-primary text-sm">R$ {total.toFixed(2).replace(".", ",")}</span>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(a);
+                      }}
+                      className="h-8 text-xs font-bold gap-1 shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Adicionar à Comanda
+                    </Button>
+                  </div>
+                </div>
               );
             })}
           </div>

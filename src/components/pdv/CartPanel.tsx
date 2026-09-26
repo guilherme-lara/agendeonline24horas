@@ -1,4 +1,4 @@
-import { Trash2, ShoppingBag, Plus, CreditCard, User, Sparkles, CheckCircle2 } from "lucide-react";
+import { Trash2, ShoppingBag, Plus, CreditCard, User, Sparkles, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ interface CartPanelProps {
   onClear: () => void;
   onSaveOpenSale?: () => void;
   onAddManualItem?: () => void;
+  onBackToFila?: () => void;
 }
 
 export function CartPanel({
@@ -35,6 +36,7 @@ export function CartPanel({
   onClear,
   onSaveOpenSale,
   onAddManualItem,
+  onBackToFila,
 }: CartPanelProps) {
   const subtotal = items.reduce((acc, item) => acc + item.total_price, 0);
   const totalDeposit = items.reduce((acc, item) => acc + (item.advance_payment || 0), 0);
@@ -43,9 +45,19 @@ export function CartPanel({
   return (
     <div className="flex flex-col h-full bg-card">
       {/* Top Header */}
-      <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center shrink-0">
+      <div className="p-3.5 sm:p-4 border-b border-border bg-muted/20 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+          {onBackToFila && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBackToFila}
+              className="lg:hidden h-8 px-2 text-xs font-semibold mr-1"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" /> Fila
+            </Button>
+          )}
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
@@ -113,7 +125,7 @@ export function CartPanel({
             </div>
             <p className="font-semibold text-sm text-foreground">Comanda vazia</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
-              Clique em &quot;Adicionar à Comanda&quot; na fila ao lado para iniciar o fechamento.
+              Selecione um cliente na Fila do Dia ou adicione um item avulso para iniciar.
             </p>
           </div>
         ) : (
@@ -146,7 +158,7 @@ export function CartPanel({
                   </span>
                   <button 
                     onClick={() => onRemoveItem(item.id)}
-                    className="text-muted-foreground/60 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    className="text-muted-foreground/60 hover:text-rose-500 transition-colors p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30"
                     title="Remover item"
                   >
                     <Trash2 className="w-4 h-4" />

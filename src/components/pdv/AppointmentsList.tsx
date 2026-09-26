@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { format, parseISO } from "date-fns";
-import { Loader2, Calendar, User, CheckCircle2, Clock, Plus, Check, Sparkles } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, Clock, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ export function AppointmentsList({
           id,
           client_name,
           client_id,
+          customer_id,
           client_phone,
           service_name,
           price,
@@ -124,7 +125,7 @@ export function AppointmentsList({
 
   return (
     <ScrollArea className="h-full pr-1">
-      <div className="space-y-2.5 pb-4">
+      <div className="space-y-3 pb-6">
         {filteredAppointments.map((appt: any) => {
           const date = parseISO(appt.scheduled_at);
           const isFinished = appt.status === "completed" || appt.payment_status === "paid";
@@ -135,27 +136,32 @@ export function AppointmentsList({
           return (
             <div 
               key={appt.id} 
-              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+              onClick={() => {
+                if (!isFinished && !isInCart) {
+                  onSelect(appt);
+                }
+              }}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all ${
                 isFinished 
                   ? "bg-muted/30 border-border/60 opacity-70" 
                   : isInCart
-                    ? "bg-emerald-500/5 border-emerald-500/30 shadow-xs"
-                    : "bg-card border-border hover:border-primary/40 hover:shadow-xs shadow-2xs"
+                    ? "bg-emerald-500/5 border-emerald-500/30 shadow-xs cursor-default"
+                    : "bg-card border-border hover:border-primary/40 hover:shadow-xs shadow-2xs cursor-pointer active:scale-[0.99]"
               }`}
             >
-              {/* Left Info: Time + Client + Service */}
-              <div className="flex items-center gap-3.5 min-w-0 pr-4">
+              {/* Top / Left: Time + Client + Service */}
+              <div className="flex items-start sm:items-center gap-3 min-w-0 w-full sm:w-auto">
                 <div className="flex flex-col items-center justify-center bg-muted/60 text-foreground px-2.5 py-1.5 rounded-lg border border-border/60 shrink-0">
                   <span className="text-xs font-black tracking-tight">{format(date, "HH:mm")}</span>
                 </div>
 
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-sm text-foreground truncate">
                       {appt.client_name}
                     </span>
                     {appt.confirmation_status === "pending" && !isFinished && (
-                      <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded-sm border border-amber-500/20">
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-sm border border-amber-500/20">
                         <Clock className="w-2.5 h-2.5" /> A Confirmar
                       </span>
                     )}
@@ -173,7 +179,7 @@ export function AppointmentsList({
 
                   {signalAmount > 0 && (
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded-sm border border-emerald-500/20">
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-sm border border-emerald-500/20">
                         Sinal Pago: R$ {signalAmount.toFixed(2).replace(".", ",")}
                       </span>
                     </div>
@@ -181,16 +187,16 @@ export function AppointmentsList({
                 </div>
               </div>
 
-              {/* Right Action: Price + Clear Button */}
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
+              {/* Bottom (mobile) / Right (desktop): Price + Action Button */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2.5 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40 shrink-0">
+                <div className="text-left sm:text-right">
                   <span className="text-sm font-bold text-foreground block">
                     R$ {finalPrice.toFixed(2).replace(".", ",")}
                   </span>
                 </div>
 
                 {isFinished ? (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs py-1 h-8">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs py-1 h-9 sm:h-8">
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizado
                   </Badge>
                 ) : isInCart ? (
@@ -198,17 +204,20 @@ export function AppointmentsList({
                     disabled
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                    className="h-9 sm:h-8 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
                   >
                     <Check className="w-3.5 h-3.5" /> Na Comanda
                   </Button>
                 ) : (
                   <Button 
                     size="sm"
-                    onClick={() => onSelect(appt)}
-                    className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(appt);
+                    }}
+                    className="h-9 sm:h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-1.5"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Adicionar à Comanda
+                    <Plus className="w-4 h-4" /> Adicionar à Comanda
                   </Button>
                 )}
               </div>
