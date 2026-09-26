@@ -231,68 +231,81 @@ const Clientes = () => {
                   <th className="px-6 py-4 text-right text-xs font-bold text-sys-text-subtle uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-sys-border">
-                {paginated.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-sys-bg-base transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-bold text-sys-text-primary">{customer.name}</div>
-                      <div className="text-xs text-sys-text-subtle font-mono">{formatPhoneNumber(customer.phone)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant="outline" className="font-mono text-xs border-sys-border text-sys-text-muted">
-                        {customer.appointment_count} {customer.appointment_count === 1 ? 'agendamento' : 'agendamentos'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {customer.last_seen ? (
-                        <>
-                          <div className="text-sys-text-primary text-xs font-medium capitalize">
-                            {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
-                          </div>
-                          <div className="text-sys-text-subtle text-[10px] uppercase tracking-tighter">
-                            {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sys-text-muted text-xs">Sem agendamentos</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10 rounded-full shadow-sm border-sys-border bg-sys-brand-primary-soft text-sys-brand-primary hover:bg-sys-brand-primary hover:text-sys-brand-on-primary hover:scale-105 transition-transform"
-                          onClick={() => handleEditOpen(customer)}
-                          title="Editar Cliente"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10 rounded-full shadow-sm border-sys-border bg-sys-surface text-sys-status-danger hover:bg-sys-status-danger hover:text-white hover:scale-105 transition-transform"
-                          onClick={() => setDeleteCustomerId(customer.id)}
-                          disabled={deleteMutation.isPending}
-                          title="Excluir Cliente"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-9 rounded-lg px-4 shadow-sm font-bold border-sys-border bg-sys-surface text-sys-text-muted hover:bg-sys-brand-primary hover:text-sys-brand-on-primary hover:border-sys-brand-primary transition-all"
-                        >
-                          <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-                            <MessageSquare className="h-4 w-4 mr-2" /> Conversar
-                          </a>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+             <tbody className="divide-y divide-sys-border">
+  {paginated.map((customer) => (
+    <tr key={customer.id} className="hover:bg-sys-bg-base transition-colors group">
+      
+      {/* Coluna 1: Identificação (Limpa e com hierarquia clara) */}
+      <td className="px-6 py-3 whitespace-nowrap">
+        <div className="text-sm font-semibold text-sys-text-primary">{customer.name}</div>
+        <div className="text-xs text-sys-text-muted mt-0.5">{formatPhoneNumber(customer.phone)}</div>
+      </td>
+
+      {/* Coluna 2: Frequência (Badge contido) */}
+      <td className="px-6 py-3 whitespace-nowrap">
+        <Badge variant="secondary" className="font-medium text-xs bg-sys-surface border-sys-border text-sys-text-primary">
+          {customer.appointment_count} {customer.appointment_count === 1 ? 'visita' : 'visitas'}
+        </Badge>
+      </td>
+
+      {/* Coluna 3: Última Visita (Data legível como principal, tempo relativo como secundário) */}
+      <td className="px-6 py-3 whitespace-nowrap">
+        {customer.last_seen ? (
+          <div className="flex flex-col">
+            <span className="text-sm text-sys-text-primary font-medium">
+              {format(new Date(customer.last_seen), 'dd/MM/yyyy')}
+            </span>
+            <span className="text-xs text-sys-text-muted capitalize">
+              {formatDistanceToNow(new Date(customer.last_seen), { addSuffix: true, locale: ptBR })}
+            </span>
+          </div>
+        ) : (
+          <span className="text-sys-text-muted text-sm italic">Sem histórico</span>
+        )}
+      </td>
+
+      {/* Coluna 4: Ações (Botões Ghost padronizados, sem animação de pulo) */}
+      <td className="px-6 py-3 whitespace-nowrap text-right">
+        <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-brand-primary-soft hover:text-sys-brand-primary"
+            onClick={() => handleEditOpen(customer)}
+            title="Editar"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-md text-sys-text-muted hover:bg-sys-status-danger/10 hover:text-sys-status-danger"
+            onClick={() => setDeleteCustomerId(customer.id)}
+            disabled={deleteMutation.isPending}
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-8 px-3 rounded-md border-sys-border bg-transparent hover:bg-[#25D366] hover:text-white hover:border-[#25D366] transition-colors ml-2"
+          >
+            <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+              <MessageSquare className="h-3.5 w-3.5 mr-2" /> 
+              WhatsApp
+            </a>
+          </Button>
+
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
             </table>
           </div>
 
