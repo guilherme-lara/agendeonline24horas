@@ -815,10 +815,10 @@ const PublicBooking = () => {
 
       {/* Cart drawer/modal */}
       {showCart && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={() => setShowCart(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowCart(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-lg bg-card rounded-t-[2.5rem] p-8 pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-50 duration-300"
+            className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-card rounded-2xl p-5 sm:p-8 shadow-elev-3 animate-in fade-in duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
