@@ -184,7 +184,7 @@ const SplitPaymentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border text-foreground shadow-elev-3 sm:max-w-md rounded-2xl">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-black font-display text-center uppercase tracking-widest">Fechamento / PDV</DialogTitle>
         </DialogHeader>

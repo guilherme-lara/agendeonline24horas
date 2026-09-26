@@ -243,7 +243,7 @@ const TeamTab = ({ barbershopId, planName }: TeamTabProps) => {
 
       {/* Dialog for Add/Edit form */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 p-6 w-full max-w-full sm:max-w-md fixed sm:relative top-auto bottom-0 sm:top-[50%] translate-y-0 sm:-translate-y-1/2 rounded-t-3xl rounded-b-none sm:rounded-2xl m-0">
+        <DialogContent className="bg-card border-border text-foreground shadow-elev-3 sm:max-w-md rounded-2xl">
           <DialogHeader className="mb-2">
             <DialogTitle className="text-xl font-bold font-display">{editingBarber ? "Editar Profissional" : "Adicionar Profissional"}</DialogTitle>
           </DialogHeader>

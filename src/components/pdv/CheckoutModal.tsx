@@ -128,7 +128,7 @@ export function CheckoutModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-border bg-card">
+      <DialogContent className="sm:max-w-lg p-0 border-border bg-card">
         {/* Header */}
         <div className="p-6 pb-4 border-b border-border bg-muted/20">
           <div className="flex items-center gap-3">
