@@ -35,7 +35,7 @@ export default function PDV() {
 
   // Totals for header / floating bar
   const subtotal = useMemo(() => cartItems.reduce((acc, item) => acc + item.total_price, 0), [cartItems]);
-  const totalDeposit = useMemo(() => cartItems.reduce((acc, item) => acc + (item.advance_payment || 0), [cartItems]);
+  const totalDeposit = useMemo(() => cartItems.reduce((acc, item) => acc + (item.advance_payment || 0), 0), [cartItems]);
   const totalDue = useMemo(() => Math.max(0, subtotal - totalDeposit), [subtotal, totalDeposit]);
 
   // Active Cash Register Query
