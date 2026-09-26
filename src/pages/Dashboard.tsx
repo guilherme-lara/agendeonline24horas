@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useSoundFeedback } from "@/hooks/useSoundFeedback";
 import {
-  DollarSign, Loader2, TrendingUp, Clock, Users,
-  AlertTriangle, Building2, Bell, RefreshCw, Scissors, Package, Crown
+  DollarSign, AlertTriangle, Building2, RefreshCw, 
+  Crown, CalendarDays, Wallet, ArrowUpRight, Clock, User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,17 +12,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { 
   format, subDays, startOfMonth, endOfMonth, 
-  isSameDay, startOfDay 
+  isSameDay, startOfDay, isAfter
 } from "date-fns";
 import { toBRT } from "@/lib/timezone";
 import { ptBR } from "date-fns/locale";
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, 
-  ResponsiveContainer, CartesianGrid, Legend 
+  ResponsiveContainer, CartesianGrid 
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import UpgradeModal from "@/components/UpgradeModal";
 import ExpirationBanner from "@/components/ExpirationBanner";
@@ -30,49 +29,39 @@ import ExpirationBanner from "@/components/ExpirationBanner";
 const Dashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { clinic, loading: shopLoading, clearImpersonation, professionalId } = useClinic() as any;
+  const { clinic, loading: shopLoading, professionalId } = useClinic() as any;
   const { isProfessional } = useAuth();
   const { toast } = useToast();
   
   const [upgradeModal, setUpgradeModal] = useState({ open: false, plan: "", feature: "" });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const isImpersonating = !!localStorage.getItem("impersonate_barbershop_id");
   const { playCaching } = useSoundFeedback();
 
-  // Auto-hide "Atualizado Agora" badge after 5 seconds
   useEffect(() => {
     if (!lastUpdated) return;
     const timer = setTimeout(() => setLastUpdated(null), 5000);
     return () => clearTimeout(timer);
   }, [lastUpdated]);
 
-  // Fuso horário centralizado em src/lib/timezone.ts
-
-  // --- 2. SISTEMA REALTIME (WEB SOCKETS) ---
+  // --- REALTIME (WEB SOCKETS) ---
   useEffect(() => {
     if (!clinic?.id) return;
 
     const channel = supabase
       .channel('dashboard-realtime')
       .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'appointments', 
-        filter: `barbershop_id=eq.${clinic.id}` 
+        event: '*', schema: 'public', table: 'appointments', filter: `barbershop_id=eq.${clinic.id}` 
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
         if (payload.eventType === "INSERT" || (payload.eventType === "UPDATE" && payload.new?.status === "confirmed")) {
           playCaching();
+          setLastUpdated(new Date());
         }
       })
       .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'orders', 
-        filter: `barbershop_id=eq.${clinic.id}` 
+        event: '*', schema: 'public', table: 'orders', filter: `barbershop_id=eq.${clinic.id}` 
       }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         if (payload.eventType === "INSERT") {
           playCaching();
           setLastUpdated(new Date());
@@ -83,9 +72,7 @@ const Dashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, [clinic?.id, queryClient]);
 
-  // --- 3. QUERIES (BUSCA DE DADOS) ---
-  // Janela temporal: KPIs só precisam do mês corrente (faturamento mensal, gráfico 7 dias e hoje).
-  // Buscar a tabela inteira estrangulava o banco a cada evento realtime.
+  // --- QUERIES ---
   const monthStartIso = useMemo(() => {
     const now = toBRT(new Date().toISOString());
     return `${format(startOfMonth(now), "yyyy-MM-dd")}T00:00:00-03:00`;
@@ -104,9 +91,7 @@ const Dashboard = () => {
         query = query.eq("barber_id", professionalId);
       }
 
-      const { data, error } = await query
-        .order("scheduled_at", { ascending: false })
-        .limit(500);
+      const { data, error } = await query.order("scheduled_at", { ascending: false }).limit(500);
       if (error) throw error;
       return data;
     },
@@ -128,9 +113,7 @@ const Dashboard = () => {
         query = query.eq("barber_id", professionalId);
       }
 
-      const { data, error } = await query
-        .order("created_at", { ascending: false })
-        .limit(1000);
+      const { data, error } = await query.order("created_at", { ascending: false }).limit(1000);
       if (error) throw error;
       return data;
     },
@@ -138,78 +121,48 @@ const Dashboard = () => {
     staleTime: 30 * 1000,
   });
 
-  // --- 4. LÓGICA DE NEGÓCIO (CÁLCULO DE KPIs) ---
+  // --- LÓGICA DE NEGÓCIO (KPIs) ---
   const kpis = useMemo(() => {
-    // Usa horário de Brasília como referência para "hoje" e "mês"
     const nowBrt = toBRT(new Date().toISOString());
     const today = startOfDay(nowBrt);
     const startMonth = startOfMonth(nowBrt);
     const endMonth = endOfMonth(nowBrt);
 
-    let todayRevServices = 0;
-    let todayRevProducts = 0;
+    let todayRevTotal = 0;
     let monthRevTotal = 0;
 
-    // Processamento de Ordens/Financeiro
     orders.forEach((order: any) => {
       const orderDate = toBRT(order.created_at);
-      const orderDay = startOfDay(orderDate);
-
-      // Faturamento Mensal
-      if (orderDate >= startMonth && orderDate <= endMonth) {
-        monthRevTotal += Number(order.total);
-      }
-
-      // Faturamento Diário (Comparando apenas a data, ignorando a hora)
-      if (isSameDay(orderDay, today)) {
-        (order.items || []).forEach((item: any) => {
-          const itemTotal = Number(item.price) * Number(item.qty);
-          if (item.type === "product") todayRevProducts += itemTotal;
-          else todayRevServices += itemTotal;
-        });
-      }
+      if (orderDate >= startMonth && orderDate <= endMonth) monthRevTotal += Number(order.total);
+      if (isSameDay(startOfDay(orderDate), today)) todayRevTotal += Number(order.total);
     });
 
-    const todayRevTotal = todayRevServices + todayRevProducts;
-
-    // Dados do Gráfico (Últimos 7 dias)
+    // Gráfico de 7 dias
     const chartData = Array.from({ length: 7 }).map((_, i) => {
       const dayTarget = subDays(today, 6 - i);
-      let dayServs = 0;
-      let dayProds = 0;
-
-      orders.forEach((order: any) => {
-        if (isSameDay(toBRT(order.created_at), dayTarget)) {
-          (order.items || []).forEach((item: any) => {
-            const val = Number(item.price) * Number(item.qty);
-            item.type === "product" ? dayProds += val : dayServs += val;
-          });
-        }
+      let dayRev = 0;
+      orders.forEach((o: any) => {
+        if (isSameDay(toBRT(o.created_at), dayTarget)) dayRev += Number(o.total);
       });
-
-      return { 
-        day: format(dayTarget, "EEE", { locale: ptBR }).toUpperCase(), 
-        "Serviços": dayServs, 
-        "Produtos": dayProds 
-      };
+      return { day: format(dayTarget, "EEE", { locale: ptBR }).toUpperCase(), "Faturamento": dayRev };
     });
 
-    // Top Produtos e Outros
     const closedTodayCount = orders.filter(o => isSameDay(toBRT(o.created_at), today)).length;
     const ticketMedio = closedTodayCount > 0 ? todayRevTotal / closedTodayCount : 0;
 
-    const lastTransactions = orders.slice(0, 8).map(o => ({
-      id: o.id,
-      name: (o.items as any[])?.[0]?.name || "Venda",
-      total: Number(o.total),
-      time: format(toBRT(o.created_at), "HH:mm"),
-      method: o.payment_method
-    }));
+    // Métricas Operacionais (Agendamentos)
+    const todayAppointments = appointments.filter(a => isSameDay(toBRT(a.scheduled_at), today) && a.status !== 'cancelled');
+    
+    // Próximos Atendimentos (A partir de agora)
+    const upcomingAppts = todayAppointments
+      .filter(a => isAfter(new Date(a.scheduled_at), new Date()) && (a.status === 'scheduled' || a.status === 'confirmed'))
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+      .slice(0, 5);
 
     return { 
-      todayRevTotal, todayRevServices, todayRevProducts, 
-      monthRevTotal, chartData, ticketMedio, lastTransactions,
-      todayApptsCount: appointments.filter(a => isSameDay(toBRT(a.scheduled_at), today) && a.status !== 'cancelled').length
+      todayRevTotal, monthRevTotal, chartData, ticketMedio, 
+      todayApptsCount: todayAppointments.length,
+      upcomingAppts
     };
   }, [appointments, orders]);
 
@@ -217,24 +170,12 @@ const Dashboard = () => {
   if (shopLoading || (loadingAppts && !appointments.length)) return <DashboardSkeleton />;
   if (!clinic) return null;
 
-  // Proteção contra travamento: se as queries falharem (rede/timeout), mostra UI limpa em vez de congelar
   if (errorAppts || errorOrders) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 animate-in fade-in duration-300">
-        <div className="bg-destructive/10 p-5 rounded-2xl mb-5 border border-destructive/20">
-          <AlertTriangle className="h-9 w-9 text-destructive" />
-        </div>
-        <h2 className="text-xl font-bold text-foreground mb-2 font-display">Problema de conexão</h2>
-        <p className="text-sm text-muted-foreground max-w-sm mb-6">
-          Não conseguimos carregar os dados agora. Verifique sua conexão e tente recarregar.
-        </p>
-        <Button
-          onClick={() => {
-            queryClient.invalidateQueries({ queryKey: ["dashboard-appointments"] });
-            queryClient.invalidateQueries({ queryKey: ["dashboard-orders"] });
-          }}
-          className="rounded-xl font-semibold"
-        >
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
+        <AlertTriangle className="h-9 w-9 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Problema de conexão</h2>
+        <Button onClick={() => queryClient.invalidateQueries()} className="mt-4">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
         </Button>
       </div>
@@ -242,163 +183,123 @@ const Dashboard = () => {
   }
 
   const kpiCards = [
-    { icon: DollarSign, label: "Caixa Hoje", value: kpis.todayRevTotal, gradient: "from-indigo-500 to-violet-600", glow: "shadow-indigo-500/30" },
-    { icon: Scissors, label: "Serviços", value: kpis.todayRevServices, gradient: "from-emerald-500 to-teal-600", glow: "shadow-emerald-500/30" },
-    { icon: TrendingUp, label: "Mês Atual", value: kpis.monthRevTotal, gradient: "from-amber-500 to-orange-600", glow: "shadow-amber-500/30" },
-    { icon: Clock, label: "Ticket Médio", value: kpis.ticketMedio, gradient: "from-rose-500 to-pink-600", glow: "shadow-rose-500/30" },
+    { icon: CalendarDays, label: "Agendamentos Hoje", value: kpis.todayApptsCount.toString(), isCurrency: false, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { icon: Wallet, label: "Faturamento Hoje", value: kpis.todayRevTotal, isCurrency: true, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { icon: ArrowUpRight, label: "Ticket Médio", value: kpis.ticketMedio, isCurrency: true, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { icon: DollarSign, label: "Faturamento Mês", value: kpis.monthRevTotal, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-700">
-      <UpgradeModal
-        open={upgradeModal.open}
-        onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })}
-        requiredPlan={upgradeModal.plan}
-        featureName={upgradeModal.feature}
-      />
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <UpgradeModal open={upgradeModal.open} onClose={() => setUpgradeModal({ open: false, plan: "", feature: "" })} requiredPlan={upgradeModal.plan} featureName={upgradeModal.feature} />
       <ExpirationBanner />
 
       {/* HEADER */}
-      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="h-16 w-16 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden elev-2">
-            {clinic.logo_url ? (
-              <img src={clinic.logo_url} className="h-full w-full object-cover" />
-            ) : (
-              <Building2 className="h-7 w-7 text-muted-foreground" />
-            )}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-sm">
+            {clinic.logo_url ? <img src={clinic.logo_url} className="h-full w-full object-cover" /> : <Building2 className="h-6 w-6 text-muted-foreground" />}
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-display">
-              <span className="text-gradient-primary">{clinic.name}</span>
-            </h1>
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mt-1.5">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{clinic.name}</h1>
+            <p className="text-muted-foreground text-sm font-medium mt-0.5 capitalize">
               {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="pill-success animate-in fade-in slide-in-from-right-2 duration-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Atualizado agora
+            <span className="flex items-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full animate-in fade-in">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Sincronizado
             </span>
           )}
-          <span className="pill-info">
-            <Crown className="h-3 w-3" />
-            Plano {clinic.plan_name || "Premium"}
+          <span className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
+            <Crown className="h-3.5 w-3.5" /> {clinic.plan_name || "Premium"}
           </span>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+      {/* KPIs DE ALTO VALOR (Métricas Reais) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {kpiCards.map((kpi, i) => (
-          <div
-            key={i}
-            className="group relative overflow-hidden rounded-2xl bg-card border border-border/60 p-6 elev-1 lift hover:border-primary/40"
-          >
-            {/* gradient orb */}
-            <div className={cn("absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br opacity-20 blur-2xl transition-opacity duration-500 group-hover:opacity-40", kpi.gradient)} />
-            <div className="relative">
-              <div className="flex items-center justify-between mb-5">
-                <div className={cn("h-11 w-11 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shadow-lg", kpi.gradient, kpi.glow)}>
-                  <kpi.icon className="h-5 w-5" strokeWidth={2.2} />
-                </div>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  {kpi.label}
-                </span>
+          <div key={i} className="rounded-xl bg-card border border-border p-5 shadow-sm transition-all hover:border-primary/30">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
+              <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", kpi.bg, kpi.color)}>
+                <kpi.icon className="h-4 w-4" strokeWidth={2.5} />
               </div>
-              <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight font-display">
-                R$ {kpi.value.toFixed(2)}
-              </p>
             </div>
+            <p className="text-2xl font-bold text-foreground">
+              {kpi.isCurrency ? `R$ ${Number(kpi.value).toFixed(2)}` : kpi.value}
+            </p>
           </div>
         ))}
       </div>
 
+      {/* PAINEL OPERACIONAL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* CHART */}
-        <div className="lg:col-span-2 rounded-2xl bg-card border border-border/60 p-7 elev-1">
-          <div className="flex items-center justify-between mb-7">
-            <div>
-              <h2 className="text-lg font-bold font-display text-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" />
-                Desempenho Semanal
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">Últimos 7 dias · Serviços + Produtos</p>
-            </div>
-            <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
-              <span className="flex items-center gap-1.5 text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-primary" /> Serviços</span>
-              <span className="flex items-center gap-1.5 text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-emerald-500" /> Produtos</span>
-            </div>
+        
+        {/* GRÁFICO (2/3 da tela) */}
+        <div className="lg:col-span-2 rounded-xl bg-card border border-border p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-base font-bold text-foreground">Receita Semanal</h2>
+            <p className="text-xs text-muted-foreground">Últimos 7 dias de faturamento</p>
           </div>
-          <div className="h-[340px] w-full">
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={kpis.chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
-                <XAxis dataKey="day" axisLine={false} tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 700 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 700 }}
-                  tickFormatter={(v) => `R$${v}`} />
-                <Tooltip
-                  cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    borderRadius: "16px",
-                    border: "1px solid hsl(var(--border))",
-                    boxShadow: "var(--shadow-elev-3)",
-                    color: "hsl(var(--foreground))",
-                  }}
+              <BarChart data={kpis.chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11, fontWeight: 600 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
+                <Tooltip 
+                  cursor={{ fill: "hsl(var(--primary) / 0.05)" }}
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", borderRadius: "12px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", color: "hsl(var(--foreground))" }}
                 />
-                <Bar dataKey="Serviços" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 8, 8]} />
-                <Bar dataKey="Produtos" stackId="a" fill="hsl(160 84% 39%)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="Faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={50} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* LIVE FEED */}
-        <div className="rounded-2xl bg-card border border-border/60 p-7 elev-1">
-          <h2 className="text-lg font-bold mb-6 font-display flex items-center gap-2 text-foreground">
-            <RefreshCw className="h-4 w-4 text-primary" /> Atividade Live
-          </h2>
-          <div className="space-y-4">
-            {kpis.lastTransactions.length > 0 ? (
-              kpis.lastTransactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between p-3 -mx-2 rounded-xl hover:bg-secondary/60 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center font-bold text-[10px] text-primary uppercase shrink-0">
-                      {tx.method?.slice(0, 3) || "PIX"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate">{tx.name}</p>
-                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{tx.time}</p>
+        {/* PRÓXIMOS ATENDIMENTOS (1/3 da tela) */}
+        <div className="rounded-xl bg-card border border-border p-6 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-base font-bold text-foreground">Próximos Atendimentos</h2>
+              <p className="text-xs text-muted-foreground">Quem chega em seguida hoje</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => navigate("/dashboard/agenda")}>
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex-1 space-y-4">
+            {kpis.upcomingAppts.length > 0 ? (
+              kpis.upcomingAppts.map((appt: any) => (
+                <div key={appt.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-secondary/30 hover:bg-secondary/80 transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate">{appt.client_name}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      {format(new Date(appt.scheduled_at), "HH:mm")}
                     </div>
                   </div>
-                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                    +R$ {tx.total.toFixed(2)}
-                  </p>
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border">
-                <Bell className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-xs font-semibold text-muted-foreground">Aguardando vendas...</p>
+              <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                <CalendarDays className="h-8 w-8 text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-foreground">Agenda livre</p>
+                <p className="text-xs text-muted-foreground">Nenhum atendimento pendente para hoje.</p>
               </div>
             )}
-            <Button
-              variant="ghost"
-              className="w-full rounded-xl text-xs font-semibold text-primary hover:bg-primary/10 hover:text-primary"
-              onClick={() => navigate("/dashboard/caixa")}
-            >
-              Ver Extrato Completo →
-            </Button>
           </div>
+          <Button variant="outline" className="w-full mt-4 text-xs font-semibold" onClick={() => navigate("/dashboard/agenda")}>
+            Abrir Agenda Completa
+          </Button>
         </div>
       </div>
     </div>
