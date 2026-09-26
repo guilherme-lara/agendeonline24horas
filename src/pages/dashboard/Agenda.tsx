@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo, useEffect } from "react";
 import CalendarView from "@/components/CalendarView";
 import QuickBooking from "@/components/QuickBooking";
+import SlotClientBookingDialog from "@/components/SlotClientBookingDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusBadgeConfig: Record<string, { label: string; dot: string; chip: string }> = {
@@ -66,6 +67,7 @@ const Agenda = () => {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
   const [editModal, setEditModal] = useState({ open: false, appt: null as any });
+  const [slotBooking, setSlotBooking] = useState<{ open: boolean; slot: Date | null }>({ open: false, slot: null });
 
   const queryEnabled = !!clinic?.id;
 
@@ -102,6 +104,20 @@ const Agenda = () => {
       const { data } = await supabase.from("services").select("*").eq("barbershop_id", clinic?.id).eq("active", true).order("sort_order");
       return data || [];
     }
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ["customers-agenda", clinic?.id],
+    enabled: queryEnabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, phone")
+        .eq("barbershop_id", clinic?.id)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const updateMutation = useMutation({
@@ -240,7 +256,7 @@ const Agenda = () => {
           </button>
         </div>
 
-        <QuickBooking barbershopId={clinic?.id} services={services} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
+        <QuickBooking barbershopId={clinic?.id ?? ""} services={services} customers={customers} onBooked={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} />
       </div>
 
       {viewMode === "list" ? (
@@ -310,8 +326,25 @@ const Agenda = () => {
           </div>
         </div>
       ) : (
-        <CalendarView appointments={filtered} barbershopId={clinic?.id} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })} onEventClick={handleOpenEdit} />
+        <CalendarView
+          appointments={filtered}
+          barbershopId={clinic?.id}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
+          onEventClick={handleOpenEdit}
+          onSlotClick={(slot) => setSlotBooking({ open: true, slot })}
+        />
       )}
+
+      <SlotClientBookingDialog
+        open={slotBooking.open}
+        onOpenChange={(open) => setSlotBooking((prev) => ({ open, slot: open ? prev.slot : null }))}
+        barbershopId={clinic?.id ?? ""}
+        slot={slotBooking.slot}
+        customers={customers}
+        services={services}
+        appointments={appointments}
+        onDone={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
+      />
 
       <Dialog open={editModal.open} onOpenChange={(o) => !o && setEditModal({ open: false, appt: null })}>
         <DialogContent className="bg-sys-surface border-sys-border text-sys-text-primary max-w-2xl rounded-2xl shadow-lg">

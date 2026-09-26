@@ -10,6 +10,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import CustomerSearchSelect, { type SearchableCustomer } from "@/components/CustomerSearchSelect";
 
 interface Service {
   id: string;
@@ -21,14 +22,14 @@ interface Service {
 interface QuickBookingProps {
   barbershopId: string;
   services: Service[];
+  customers: SearchableCustomer[];
   onBooked: () => void;
 }
 
-const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) => {
+const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBookingProps) => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [customer, setCustomer] = useState<SearchableCustomer | null>(null);
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -37,37 +38,35 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
   const selectedService = services.find((s) => s.id === serviceId);
 
   const handleSubmit = async () => {
-    if (!name.trim() || !serviceId || !date || !time || !selectedService) return;
+    if (!customer || !serviceId || !date || !time || !selectedService) return;
     setSaving(true);
 
     const scheduledAt = new Date(`${date}T${time}:00`);
 
     const { error } = await supabase.rpc("create_public_appointment", {
       _barbershop_id: barbershopId,
-      _client_name: name.trim(),
-      _client_phone: phone.trim(),
+      _client_name: customer.name,
+      _client_phone: customer.phone,
       _service_name: selectedService.name,
       _price: selectedService.price,
       _scheduled_at: scheduledAt.toISOString(),
       _payment_method: "local",
-      _barber_id: null as any,
-      _barber_name: null as any,
-      _customer_id: null as any,
+      _customer_id: customer.id,
       _items: [
         {
           name: selectedService.name,
           price: selectedService.price,
           duration: selectedService.duration,
           product_type: false,
-        }
-      ] as any,
+        },
+      ],
     });
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Agendamento criado!" });
-      setName(""); setPhone(""); setServiceId(""); setDate(""); setTime("");
+      setCustomer(null); setServiceId(""); setDate(""); setTime("");
       setOpen(false);
       onBooked();
     }
@@ -86,8 +85,7 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
           <DialogTitle>Agendamento Rápido</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 mt-2">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do cliente" className="bg-secondary border-border" maxLength={100} />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone (opcional)" className="bg-secondary border-border" maxLength={20} />
+          <CustomerSearchSelect customers={customers} value={customer} onChange={setCustomer} />
           <Select value={serviceId} onValueChange={setServiceId}>
             <SelectTrigger className="bg-secondary border-border">
               <SelectValue placeholder="Selecione o serviço" />
@@ -112,7 +110,7 @@ const QuickBooking = ({ barbershopId, services, onBooked }: QuickBookingProps) =
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={saving || !name.trim() || !serviceId || !date || !time}
+            disabled={saving || !customer || !serviceId || !date || !time}
             className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CalendarPlus className="h-4 w-4 mr-2" />}

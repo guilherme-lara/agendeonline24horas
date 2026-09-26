@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useCallback } from "react";
 import { format, isSameDay, addDays, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +24,8 @@ interface CalendarViewProps {
   appointments: Appointment[];
   barbershopId?: string;
   onRefresh?: () => void;
-  onEventClick?: (appt: any) => void;
+  onEventClick?: (appt: Appointment) => void;
+  onSlotClick?: (slot: Date) => void;
 }
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
@@ -40,7 +41,7 @@ const statusConfig: Record<string, { bg: string; bar: string; text: string; dot:
 
 const LONG_PRESS_DELAY = 400; // ms
 
-const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: CalendarViewProps) => {
+const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick, onSlotClick }: CalendarViewProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -261,7 +262,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                       data-cell-key={cellKey}
                       data-day-idx={dayIdx}
                       data-hour={hour}
-                      className={`border-l border-border p-1 relative transition-colors hover:bg-secondary/50
+                      className={`group/cell border-l border-border p-1 relative min-h-[52px] cursor-pointer transition-colors hover:bg-secondary/50
                         ${isHighlighted ? 'bg-secondary' : ''}
                         data-[is-dragover=true]:bg-secondary`}
                       onDragOver={handleDragOver}
@@ -271,7 +272,19 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                         e.currentTarget.removeAttribute('data-is-dragover');
                         handleDrop(e, day, hour);
                       }}
+                      onClick={() => {
+                        if (touchDragActive || !onSlotClick) return;
+                        const slot = new Date(day);
+                        slot.setHours(hour, 0, 0, 0);
+                        onSlotClick(slot);
+                      }}
                     >
+                      {dayAppts.length === 0 && onSlotClick && (
+                        <div className="pointer-events-none absolute inset-0 hidden items-center justify-center text-[10px] font-medium text-sys-text-muted/80 group-hover/cell:flex">
+                          <Plus className="mr-1 h-3 w-3" />
+                          Buscar cliente
+                        </div>
+                      )}
                       {dayAppts.map((a) => {
                         const cfg = statusConfig[a.status] || statusConfig.pending;
                         const isDraggingThis = draggingApptId === a.id;
@@ -283,7 +296,10 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick }: C
                             onDragStart={(e) => handleDragStart(e, a.id)}
                             onDragEnd={() => setDraggingApptId(null)}
                             onTouchStart={(e) => handleTouchStart(e, a.id)}
-                            onClick={() => !touchDragActive && onEventClick && onEventClick(a)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!touchDragActive && onEventClick) onEventClick(a);
+                            }}
                             className={`group relative rounded-md p-2.5 mb-1 transition-all
                                 ${cfg.bg} ${cfg.bar} ${cfg.text}
                                 cursor-grab active:cursor-grabbing

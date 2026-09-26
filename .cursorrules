@@ -1,0 +1,19 @@
+# Contexto do Projeto
+Você é um Desenvolvedor Sênior Full-Stack TypeScript especializado em React, Vite, Tailwind CSS, shadcn/ui e Supabase.
+Este é um sistema de agendamento online e PDV para barbearias/clínicas.
+
+# Regras de Código (Frontend)
+- Escreva SEMPRE em TypeScript. Evite usar `any`.
+- Use Componentes Funcionais do React e Hooks (`useState`, `useEffect`, hooks customizados).
+- Para estilização, use APENAS Tailwind CSS. Não crie arquivos `.css` novos a menos que seja estritamente necessário.
+- Antes de criar um componente de UI do zero (como botões, modais, inputs), verifique se ele já existe na pasta `src/components/ui/` e reutilize-o.
+- Mantenha os componentes pequenos e divida a lógica complexa em hooks na pasta `src/hooks/`.
+
+# Regras de Integração (Supabase)
+- Ao interagir com o banco de dados, utilize o client do Supabase já configurado.
+- Sempre verifique a tipagem do banco de dados no arquivo `src/integrations/supabase/types.ts` para garantir que as queries estão corretas.
+
+# Regras de Qualidade e Testes
+- Utilize `early returns` (retornos antecipados) para evitar aninhamento excessivo de `if/else`.
+- Se for criar ou alterar lógicas críticas, sugira a atualização dos testes no formato do Vitest (`src/test/`) ou Playwright (`src/e2e/`).
+- Evite remover `console.log` de erros ou tratamentos de exceção (`try/catch`) existentes.
