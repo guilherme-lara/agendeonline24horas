@@ -171,14 +171,6 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-muted-foreground font-medium">Cliente *</label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsAddCustomerOpen(true)}
-                  className="h-6 px-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
-                >
-                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">
