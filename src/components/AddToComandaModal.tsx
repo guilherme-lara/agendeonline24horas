@@ -191,7 +191,7 @@ const AddToComandaModal = ({ open, onClose, appointment, professional }: AddToCo
         </div>
 
         {/* Catálogo */}
-        <div className="border-t border-border pt-3 space-y-2 flex-1 overflow-hidden flex flex-col">
+        <div className="border-t border-border pt-3 space-y-2 min-h-0 flex-1 overflow-hidden flex flex-col">
           <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
             <button
               type="button"

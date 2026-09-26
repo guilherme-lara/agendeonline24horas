@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,13 +140,13 @@ export default function TeamMemberDrawer({
 
   return (
     <>
-      <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
-        <DrawerContent className="max-h-[90vh] flex flex-col">
-          <DrawerHeader>
-            <DrawerTitle>Gerenciar Profissional</DrawerTitle>
-            <DrawerDescription>{barber.name}</DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 flex-1 overflow-y-auto">
+      <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Profissional</DialogTitle>
+            <DialogDescription>{barber.name}</DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <Tabs defaultValue="schedule">
               <TabsList className="w-full grid grid-cols-3 mb-4">
                 <TabsTrigger value="schedule"><CalendarClock className="h-4 w-4 mr-2" /> Escala</TabsTrigger>
@@ -252,11 +251,11 @@ export default function TeamMemberDrawer({
               </TabsContent>
             </Tabs>
           </div>
-          <DrawerFooter>
+           <DialogFooter>
             <Button variant="outline" onClick={onClose}>Fechar</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
         <DialogContent>

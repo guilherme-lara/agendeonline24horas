@@ -58,9 +58,9 @@ const UpgradeModal = ({ open, onClose, requiredPlan, featureName }: UpgradeModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
-        <button onClick={handleClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" aria-label="Fechar" onClick={handleClose} className="absolute top-2 right-2 h-9 w-9 text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
-        </button>
+        </Button>
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full premium-gradient shadow-premium">
             <Crown className="h-7 w-7 text-primary-foreground" />
