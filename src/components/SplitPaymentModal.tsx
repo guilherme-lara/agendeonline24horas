@@ -53,6 +53,7 @@ interface Props {
     price?: number | null;
     client_name?: string | null;
     service_name?: string | null;
+    comanda_number?: number | null;
   } | null;
   markAppointmentCompleted?: boolean;
 }
