@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.assign_comanda_number(), public.freeze_appointment_commission(), public.appointment_events(), public.appointment_item_audit() FROM PUBLIC, anon, authenticated;

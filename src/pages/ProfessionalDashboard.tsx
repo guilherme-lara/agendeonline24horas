@@ -155,6 +155,11 @@ const ProfessionalDashboard = () => {
 
   const commissionRate = barber?.commission_pct || 50;
 
+  const commissionOf = (a: any) =>
+    a.commission_amount != null
+      ? Number(a.commission_amount)
+      : Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100);
+
   const stats = useMemo(() => {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
@@ -180,7 +185,7 @@ const ProfessionalDashboard = () => {
       a.status === "confirmed" || a.status === "pending"
     );
 
-    const todayEarnings = todayGross * (commissionRate / 100);
+    const todayEarnings = completedToday.reduce((s: number, a: any) => s + commissionOf(a), 0);
     const completedTodayCount = completedToday.length;
 
     // A RECEBER: procedimentos concluídos aguardando aprovação de comissão pelo gerente
@@ -188,16 +193,16 @@ const ProfessionalDashboard = () => {
       .filter((a: any) =>
         a.status === "completed" && a.payment_status === "paid" && !a.commission_approved
       )
-      .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
+      .reduce((sum: number, a: any) => sum + commissionOf(a), 0);
 
     // SALDO LIBERADO: procedimentos com comissão já aprovada pelo gerente via RPC
     const saldoLiberado = confirmedAppointments
       .filter((a: any) => a.status === "completed" && a.payment_status === "paid" && a.commission_approved === true)
-      .reduce((sum: number, a: any) => sum + Number(a.total_price ?? a.price ?? 0) * (commissionRate / 100), 0);
+      .reduce((sum: number, a: any) => sum + commissionOf(a), 0);
 
     return {
       todayEarnings,
-      monthCommission: monthGross * (commissionRate / 100),
+      monthCommission: monthCompleted.reduce((s: number, a: any) => s + commissionOf(a), 0),
       pendingCount: pendingAppts.length,
       completedTodayCount,
       aReceber,
@@ -254,7 +259,7 @@ const ProfessionalDashboard = () => {
       setFinalizingId(appt.id);
       const { data: fresh } = await supabase
         .from("appointments")
-        .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone")
+        .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone, comanda_number")
         .eq("id", appt.id)
         .maybeSingle();
       setSplitPaymentAppt(fresh ?? appt);
@@ -523,7 +528,8 @@ const ProfessionalDashboard = () => {
               <div className="space-y-4">
                 {confirmedAppointments.filter((a: any) => a.status === "completed").map((appt: any) => {
                   const itemPrice = Number(appt.total_price ?? appt.price ?? 0);
-                  const commission = itemPrice * (commissionRate / 100);
+                  const commission = commissionOf(appt);
+                  const pct = appt.commission_pct ?? commissionRate;
                   return (
                     <div key={appt.id} className="flex items-center gap-4 rounded-2xl border-0 shadow-[var(--shadow-elev-1)] bg-emerald-500/5 px-5 py-4 hover:scale-[1.01] hover:shadow-[var(--shadow-elev-2)]">
                       <div className="text-center min-w-[70px]">
@@ -535,7 +541,7 @@ const ProfessionalDashboard = () => {
                         <p className="text-xs text-muted-foreground">{appt.service_name} • R$ {itemPrice.toFixed(2).replace(".", ",")}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Meu Ganho ({commissionRate}%)</p>
+                        <p className="text-xs text-muted-foreground">{appt.comanda_number ? `CMD-${String(appt.comanda_number).padStart(6, "0")} · ` : ""}Meu Ganho ({pct}%){appt.commission_approved ? "" : " · a liberar"}</p>
                         <p className="text-sm font-black text-emerald-500">R$ {commission.toFixed(2).replace(".", ",")}</p>
                       </div>
                     </div>
