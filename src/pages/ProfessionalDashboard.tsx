@@ -259,7 +259,7 @@ const ProfessionalDashboard = () => {
       setFinalizingId(appt.id);
       const { data: fresh } = await supabase
         .from("appointments")
-        .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone")
+        .select("id, barbershop_id, price, total_price, service_name, client_name, client_phone, comanda_number")
         .eq("id", appt.id)
         .maybeSingle();
       setSplitPaymentAppt(fresh ?? appt);
