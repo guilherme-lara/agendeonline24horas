@@ -152,24 +152,31 @@ const SplitPaymentModal = ({
 
       // Registra movimentações no caixa aberto (uma por método)
       if (registerId) {
+        const code = appointment.comanda_number
+          ? `CMD-${String(appointment.comanda_number).padStart(6, "0")} · `
+          : "";
         const movements = payments.map((p) => ({
           register_id: registerId,
           barbershop_id: appointment.barbershop_id,
-          type: "sale",
+          movement_type: "sale",
+          origin_type: "appointment",
+          origin_id: appointment.id,
           amount: p.amount,
           payment_method: p.payment_method,
-          description: `Atendimento ${appointment.service_name ?? ""} — ${
+          description: `${code}Atendimento ${appointment.service_name ?? ""} — ${
             appointment.client_name ?? ""
           }`.trim(),
           appointment_id: appointment.id,
         }));
-        await (supabase.from("cash_movements") as any).insert(movements);
+        const { error: movErr } = await (supabase.from("cash_movements") as any).insert(movements);
+        if (movErr) throw movErr;
       }
 
       if (markAppointmentCompleted) {
-        await (supabase.from("appointments") as any)
-          .update({ status: "completed", payment_status: "paid" })
+        const { error: upErr } = await (supabase.from("appointments") as any)
+          .update({ status: "completed", payment_status: "paid", payment_confirmed_at: new Date().toISOString() })
           .eq("id", appointment.id);
+        if (upErr) throw upErr;
       }
 
       toast.success("Pagamento registrado");
