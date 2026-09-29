@@ -182,9 +182,12 @@ export type Database = {
           client_id: string | null
           client_name: string
           client_phone: string | null
+          comanda_number: number | null
+          commission_amount: number | null
           commission_approved: boolean
           commission_approved_at: string | null
           commission_approved_by: string | null
+          commission_pct: number | null
           confirmation_sent_at: string | null
           confirmation_status: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at: string | null
@@ -214,9 +217,12 @@ export type Database = {
           client_id?: string | null
           client_name: string
           client_phone?: string | null
+          comanda_number?: number | null
+          commission_amount?: number | null
           commission_approved?: boolean
           commission_approved_at?: string | null
           commission_approved_by?: string | null
+          commission_pct?: number | null
           confirmation_sent_at?: string | null
           confirmation_status?: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at?: string | null
@@ -246,9 +252,12 @@ export type Database = {
           client_id?: string | null
           client_name?: string
           client_phone?: string | null
+          comanda_number?: number | null
+          commission_amount?: number | null
           commission_approved?: boolean
           commission_approved_at?: string | null
           commission_approved_by?: string | null
+          commission_pct?: number | null
           confirmation_sent_at?: string | null
           confirmation_status?: Database["public"]["Enums"]["appointment_confirmation_status"]
           created_at?: string | null
@@ -790,6 +799,68 @@ export type Database = {
           },
         ]
       }
+      comanda_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          appointment_id: string | null
+          barbershop_id: string
+          comanda_number: number | null
+          created_at: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          appointment_id?: string | null
+          barbershop_id: string
+          comanda_number?: number | null
+          created_at?: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          appointment_id?: string | null
+          barbershop_id?: string
+          comanda_number?: number | null
+          created_at?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comanda_audit_log_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_audit_log_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_audit_log_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comanda_audit_log_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           barbershop_id: string
@@ -939,6 +1010,57 @@ export type Database = {
           },
           {
             foreignKeyName: "inventory_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          barbershop_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          barbershop_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          barbershop_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: false
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
             referencedRelation: "barbershops_public"
