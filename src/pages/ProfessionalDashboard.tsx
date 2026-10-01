@@ -300,6 +300,7 @@ const ProfessionalDashboard = () => {
           <p className="text-[10px] text-muted-foreground">{(barber as any).barbershops?.name}</p>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <Button size="sm" variant="outline" onClick={() => setShowStatement(true)} className="h-8 text-xs">
             <FileText className="h-3.5 w-3.5 mr-1" /> Extrato
           </Button>
