@@ -83,7 +83,7 @@ const Dashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from("appointments")
-        .select("id, client_name, service_name, scheduled_at, status, price, total_price, payment_status, barber_id, barber_name")
+        .select("id, client_name, service_name, scheduled_at, status, price, total_price, payment_status, barber_id, barber_name, commission_amount")
         .eq("barbershop_id", clinic.id)
         .gte("scheduled_at", monthStartIso);
 
@@ -182,7 +182,14 @@ const Dashboard = () => {
       .filter((m: any) => isSameDay(toBRT(m.created_at), today))
       .slice(0, 10);
 
+    const monthCommission = appointments
+      .filter((a: any) => a.status === "completed")
+      .reduce((sum: number, a: any) => sum + Number(a.commission_amount ?? 0), 0);
+    const monthNet = monthRevTotal - monthCommission;
+
     return { 
+      monthCommission,
+      monthNet,
       todayRevTotal, 
       monthRevTotal, 
       chartData, 
@@ -214,7 +221,9 @@ const Dashboard = () => {
     { icon: CalendarDays, label: "Agendamentos Hoje", value: kpis.todayApptsCount.toString(), isCurrency: false, color: "text-blue-500", bg: "bg-blue-500/10" },
     { icon: Wallet, label: "Faturamento Hoje", value: kpis.todayRevTotal, isCurrency: true, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { icon: ArrowUpRight, label: "Ticket Médio", value: kpis.ticketMedio, isCurrency: true, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { icon: DollarSign, label: "Faturamento Mês", value: kpis.monthRevTotal, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
+    { icon: DollarSign, label: "Faturamento Mês (Bruto)", value: kpis.monthRevTotal, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
+    { icon: Wallet, label: "Comissões Profissionais (Mês)", value: kpis.monthCommission, isCurrency: true, color: "text-muted-foreground", bg: "bg-secondary" },
+    { icon: DollarSign, label: "Líquido da Clínica (Mês)", value: kpis.monthNet, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
   ];
 
   return (
@@ -248,7 +257,7 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs DE ALTO VALOR (Métricas Reais) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {kpiCards.map((kpi, i) => (
           <div key={i} className="rounded-xl bg-card border border-border p-5 shadow-xs transition-all hover:border-primary/30">
             <div className="flex items-center justify-between mb-4">
