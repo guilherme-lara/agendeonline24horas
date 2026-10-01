@@ -91,7 +91,7 @@ const NotificationBell = ({ className }: { className?: string }) => {
 
   const open = (n: Notification) => {
     if (!n.read_at) markRead([n.id]);
-    if (n.link) navigate(n.link);
+    if (n.link) navigate(n.link === "/profissional" ? "/pdv" : n.link);
   };
 
   if (!user) return null;
