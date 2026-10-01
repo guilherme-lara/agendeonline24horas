@@ -81,7 +81,7 @@ export function AddItemModal({ open, onOpenChange, onAdd }: AddItemModalProps) {
 
   // Unique categories extracted dynamically
   const categories = useMemo(() => {
-    const rawCategories = availableItems.map((i: any) => (i.category ? String(i.category).trim() : "Geral"));
+    const rawCategories: string[] = availableItems.map((i: any) => (i.category ? String(i.category).trim() : "Geral"));
     const uniqueSorted = Array.from(new Set(rawCategories)).sort((a, b) => a.localeCompare(b, "pt-BR"));
     return ["Todas", ...uniqueSorted];
   }, [availableItems]);
