@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 
 // 3. Componentes de UI
+import NotificationBell from "@/components/NotificationBell";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import BottomNav from "@/components/BottomNav";
@@ -119,9 +120,13 @@ const DashboardLayout = () => {
           <span className="text-base font-semibold tracking-tight text-sys-text-primary truncate">
             {(clinic as any)?.name || "Painel"}
           </span>
+          <NotificationBell className="ml-auto" />
         </div>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-8 space-y-4">
+          <div className="hidden md:flex justify-end -mb-2">
+            <NotificationBell />
+          </div>
           <TrialBanner />
           <InstallAppBanner />
           <ExpirationBanner />

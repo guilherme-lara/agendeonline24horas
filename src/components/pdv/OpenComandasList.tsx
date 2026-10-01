@@ -22,7 +22,7 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
       since.setDate(since.getDate() - 7);
       let q = (supabase as any)
         .from("appointments")
-        .select("id, client_name, client_id, customer_id, service_name, price, total_price, barber_id, barber_name, scheduled_at, status, payment_status, appointment_items(id, service_name, price)")
+        .select("id, comanda_number, client_name, client_id, customer_id, service_name, price, total_price, barber_id, barber_name, scheduled_at, status, payment_status, appointment_items(id, service_name, price)")
         .eq("barbershop_id", barbershopId)
         .in("status", OPEN_STATUSES)
         .neq("payment_status", "paid")
@@ -69,7 +69,7 @@ export function OpenComandasList({ barbershopId, professionalId, onSelect }: Pro
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <ClipboardList className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-bold text-sm text-foreground truncate">{a.client_name}</span>
+                      <span className="font-bold text-sm text-foreground truncate">{a.client_name}</span>{a.comanda_number ? <span className="text-[10px] font-mono text-primary shrink-0">CMD-{String(a.comanda_number).padStart(6, "0")}</span> : null}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {format(parseISO(a.scheduled_at), "dd/MM HH:mm")} · {a.status === "in_progress" ? "Em atendimento" : "Aguardando"} · {(a.appointment_items?.length || 1)} item(ns)

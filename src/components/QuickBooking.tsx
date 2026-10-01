@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CalendarPlus, Loader2, Plus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,35 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
 
   const selectedService = services.find((s) => s.id === serviceId);
+  const [barberId, setBarberId] = useState("");
+
+  const { data: barbers = [] } = useQuery({
+    queryKey: ["quick-booking-barbers", barbershopId],
+    queryFn: async () => {
+      const { data } = await (supabase.from("barbers") as any)
+        .select("id, name").eq("barbershop_id", barbershopId).eq("active", true).order("name");
+      return (data || []) as { id: string; name: string }[];
+    },
+    enabled: !!barbershopId,
+  });
+
+  const { data: links = [] } = useQuery({
+    queryKey: ["quick-booking-links", barbershopId],
+    queryFn: async () => {
+      const { data } = await (supabase.from("barber_services") as any)
+        .select("barber_id, service_id").eq("barbershop_id", barbershopId);
+      return (data || []) as { barber_id: string; service_id: string }[];
+    },
+    enabled: !!barbershopId,
+  });
+
+  const availableBarbers = (() => {
+    if (!serviceId) return barbers;
+    const ids = new Set(links.filter((l) => l.service_id === serviceId).map((l) => l.barber_id));
+    const f = barbers.filter((b) => ids.has(b.id));
+    return f.length ? f : barbers;
+  })();
+  const selectedBarber = barbers.find((b) => b.id === barberId);
 
   const formatPhoneInput = (val: string) => {
     const digits = val.replace(/\D/g, "").slice(0, 11);
@@ -120,10 +149,10 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
   };
 
   const handleSubmit = async () => {
-    if (!customer || !serviceId || !date || !time || !selectedService) return;
+    if (!customer || !serviceId || !date || !time || !selectedService || !selectedBarber) return;
     setSaving(true);
 
-    const scheduledAt = new Date(`${date}T${time}:00`);
+    const scheduledAt = new Date(`${date}T${time}:00-03:00`);
 
     const { error } = await supabase.rpc("create_public_appointment", {
       _barbershop_id: barbershopId,
@@ -134,12 +163,16 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
       _scheduled_at: scheduledAt.toISOString(),
       _payment_method: "local",
       _customer_id: customer.id,
+      _barber_id: selectedBarber.id,
+      _barber_name: selectedBarber.name,
       _items: [
         {
           name: selectedService.name,
           price: selectedService.price,
           duration: selectedService.duration,
           product_type: false,
+          barber_id: selectedBarber.id,
+          barber_name: selectedBarber.name,
         },
       ],
     });
@@ -148,7 +181,7 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Agendamento criado!" });
-      setCustomer(null); setServiceId(""); setDate(""); setTime("");
+      setCustomer(null); setServiceId(""); setBarberId(""); setDate(""); setTime("");
       setOpen(false);
       onBooked();
     }
@@ -190,7 +223,7 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground font-medium">Serviço *</label>
-              <Select value={serviceId} onValueChange={setServiceId}>
+              <Select value={serviceId} onValueChange={(v) => { setServiceId(v); setBarberId(""); }}>
                 <SelectTrigger className="bg-secondary border-border h-10">
                   <SelectValue placeholder="Selecione o serviço" />
                 </SelectTrigger>
@@ -199,6 +232,20 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
                     <SelectItem key={s.id} value={s.id}>
                       {s.name} — R$ {s.price}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground font-medium">Profissional responsável *</label>
+              <Select value={barberId} onValueChange={setBarberId}>
+                <SelectTrigger className="bg-secondary border-border h-10">
+                  <SelectValue placeholder="Selecione o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBarbers.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -217,7 +264,7 @@ const QuickBooking = ({ barbershopId, services, customers, onBooked }: QuickBook
 
             <Button
               onClick={handleSubmit}
-              disabled={saving || !customer || !serviceId || !date || !time}
+              disabled={saving || !customer || !serviceId || !barberId || !date || !time}
               className="w-full premium-gradient text-primary-foreground font-semibold hover:opacity-90 h-11 mt-2"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CalendarPlus className="h-4 w-4 mr-2" />}
