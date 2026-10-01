@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLiveAppointments } from "@/hooks/useLiveAppointments";
 
 // 3. Componentes de UI
+import NotificationBell from "@/components/NotificationBell";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardSkeleton from "@/components/DashboardSkeleton";
 import BottomNav from "@/components/BottomNav";
