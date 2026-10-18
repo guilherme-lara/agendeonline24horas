@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -421,6 +421,36 @@ export type Database = {
             foreignKeyName: "barbers_barbershop_id_fkey"
             columns: ["barbershop_id"]
             isOneToOne: false
+            referencedRelation: "barbershops_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barbershop_comanda_counters: {
+        Row: {
+          barbershop_id: string
+          last_number: number
+        }
+        Insert: {
+          barbershop_id: string
+          last_number?: number
+        }
+        Update: {
+          barbershop_id?: string
+          last_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barbershop_comanda_counters_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: true
+            referencedRelation: "barbershops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barbershop_comanda_counters_barbershop_id_fkey"
+            columns: ["barbershop_id"]
+            isOneToOne: true
             referencedRelation: "barbershops_public"
             referencedColumns: ["id"]
           },
