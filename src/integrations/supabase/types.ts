@@ -1931,6 +1931,19 @@ export type Database = {
       }
       cancel_expired_pix_appointments: { Args: never; Returns: number }
       check_is_barber_of_shop: { Args: { shop_id: string }; Returns: boolean }
+      checkout_pdv: {
+        Args: {
+          _appointment?: string
+          _client_name?: string
+          _complete?: boolean
+          _customer?: string
+          _items: Json
+          _payments: Json
+          _sale?: string
+          _shop: string
+        }
+        Returns: string
+      }
       cleanup_expired_appointments: { Args: never; Returns: number }
       create_public_appointment: {
         Args: {
