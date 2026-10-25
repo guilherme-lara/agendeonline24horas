@@ -273,7 +273,7 @@ export function CheckoutModal({
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Receba via maquininha ou chave Pix da clínica e confirme abaixo.
+                  Receba via maquininha ou chave Pix da barbearia e confirme abaixo.
                 </p>
               )}
             </div>

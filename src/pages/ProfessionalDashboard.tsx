@@ -285,7 +285,7 @@ const ProfessionalDashboard = () => {
         <div className="text-center space-y-4">
           <User className="h-12 w-12 text-muted-foreground mx-auto" />
           <h1 className="text-xl font-bold">Conta não vinculada</h1>
-          <p className="text-sm text-muted-foreground">Sua conta não está vinculada a nenhuma clínica. Contate o administrador.</p>
+          <p className="text-sm text-muted-foreground">Sua conta não está vinculada a nenhuma barbearia. Contate o administrador.</p>
           <Button variant="outline" onClick={signOut}>Sair</Button>
         </div>
       </div>
@@ -436,7 +436,7 @@ const ProfessionalDashboard = () => {
                                 const cleanPhone = appt.client_phone.replace(/\D/g, "");
                                 const dateStr = format(toBRT(appt.scheduled_at), "dd/MM");
                                 const timeStr = format(toBRT(appt.scheduled_at), "HH:mm");
-                                const msg = encodeURIComponent(`Olá, ${appt.client_name}! Passando para confirmar seu agendamento na nossa clínica para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
+                                const msg = encodeURIComponent(`Olá, ${appt.client_name}! Passando para confirmar seu agendamento na nossa barbearia para o dia ${dateStr} às ${timeStr}. Qualquer dúvida, estamos à disposição!`);
                                 window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, "_blank");
                               }} className="h-8 text-xs text-emerald-500">
                                 <MessageSquare className="h-3.5 w-3.5" />

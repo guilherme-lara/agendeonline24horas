@@ -187,7 +187,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
             <Input 
               value={pixBeneficiary}
               onChange={(e) => setPixBeneficiary(e.target.value)}
-              placeholder="Ex: Salão do João"
+              placeholder="Ex: Barbearia do João"
               className="bg-secondary border-border h-12"
             />
           </div>

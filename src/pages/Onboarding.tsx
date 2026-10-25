@@ -846,7 +846,7 @@ const Onboarding = () => {
                                       <Input
                                         value={newCategory}
                                         onChange={(e) => setNewCategory(e.target.value)}
-                                        placeholder="Ex: Estética"
+                                        placeholder="Ex: Barbearia do João"
                                         onKeyDown={(e) => {
                                           if (e.key === "Enter") {
                                             e.preventDefault();

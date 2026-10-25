@@ -96,7 +96,7 @@ const Aprovacoes = () => {
           {[
             { l: "Bruto", v: totals.gross, c: "text-foreground" },
             { l: "Comissões", v: totals.comm, c: "text-muted-foreground" },
-            { l: "Líquido clínica", v: totals.net, c: "text-primary" },
+            { l: "Líquido barbearia", v: totals.net, c: "text-primary" },
           ].map((k) => (
             <Card key={k.l} className="border-border">
               <CardContent className="p-3">
@@ -161,7 +161,7 @@ const Aprovacoes = () => {
                       <p className="text-muted-foreground">
                         Profissional ({Number(appt.commission_pct ?? 0)}%) <b className="text-foreground">{brl(comm)}</b>
                       </p>
-                      <p className="text-muted-foreground">Clínica <b className="text-primary">{brl(gross - comm)}</b></p>
+                      <p className="text-muted-foreground">Barbearia <b className="text-primary">{brl(gross - comm)}</b></p>
                     </div>
                     <Button size="sm" disabled={busyId === appt.id} onClick={() => handleApprove(appt.id)}>
                       {busyId === appt.id ? (

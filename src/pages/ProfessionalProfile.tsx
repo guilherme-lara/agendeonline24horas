@@ -161,7 +161,7 @@ const BarberProfile = () => {
               <Percent className="h-3 w-3" /> Taxa de Comissão
             </label>
             <Input value={`${barber?.commission_pct || 0}%`} disabled className="bg-muted border-border h-11 opacity-60 font-bold" />
-            <p className="text-[10px] text-muted-foreground">Definida pelo administrador da clínica.</p>
+            <p className="text-[10px] text-muted-foreground">Definida pelo administrador da barbearia.</p>
           </CardContent>
         </Card>
 

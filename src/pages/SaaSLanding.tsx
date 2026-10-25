@@ -2,50 +2,43 @@ import { useNavigate } from "react-router-dom";
 import { openPlanCheckout } from "@/lib/infinitepay-checkout";
 import {
   CalendarDays, BarChart3, CreditCard, Bell, Users, Shield,
-  Check, ArrowRight, Sparkles, Star, Clock,
+  Check, ArrowRight, Sparkles, Clock,
   TrendingUp, MessageCircleOff, Wallet,
-  Scissors, Brush, Palette, Fingerprint, HeartPulse,
-  ChevronRight, Leaf, Flower2, Heart,
+  Scissors, ChevronRight, Heart, ClipboardList, Package, Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 // ─── PROBLEMA → SOLUÇÃO ───
 const painPoints = [
-  { icon: Clock, title: "Fim dos furos na agenda", subtitle: "Sinal via Pix obrigatório", desc: "Cobramos um sinal no momento do agendamento. Seu cliente se compromete e a no-show cai a praticamente zero." },
+  { icon: Clock, title: "Menos faltas na agenda", subtitle: "Sinal via Pix", desc: "O sinal antecipado ajuda a reduzir faltas e dá mais segurança para os horários da sua barbearia." },
   { icon: MessageCircleOff, title: "Adeus ao caos do WhatsApp", subtitle: "Agendamento autônomo 24h", desc: "Seu cliente escolhe serviço, profissional e horário sozinho — sem troca de mensagens, sem erros humanos." },
-  { icon: Wallet, title: "Gestão financeira que fecha", subtitle: "Comissões automáticas", desc: "Faturamento diário, semanal e mensal claros. Comissões calculadas e distribuídas sem planilha." },
-  { icon: TrendingUp, title: "Escala sem aumentar a equipe", subtitle: "1 a 30 profissionais", desc: "Adicione sedes, organize turnos e acompanhe tudo em tempo real — sem contratar gerente para isso." },
+  { icon: Wallet, title: "Caixa e comissões organizados", subtitle: "Visão clara da operação", desc: "Acompanhe recebimentos, movimentações e comissões da equipe em um só lugar." },
+  { icon: TrendingUp, title: "Mais tempo para atender", subtitle: "Rotina simplificada", desc: "Deixe agenda, comandas e informações da equipe organizadas para cuidar melhor de cada cliente." },
 ];
 
-const niches = [
-  { icon: HeartPulse, title: "Clínicas de Estética", desc: "Procedimentos faciais e corporais com agenda controlada e sinal de garantia." },
-  { icon: Flower2, title: "Salões de Beleza", desc: "Corte, cor, tratamentos — gerencie stylists e comissões em um único painel." },
-  { icon: Brush, title: "Studios Premium", desc: "Experiência impecável de ponta a ponta com confirmação automática por Pix." },
-  { icon: Palette, title: "Esmalterias & Nail Design", desc: "Agenda otimizada, pacotes mensais e pagamento antecipado para sua arte." },
-  { icon: Leaf, title: "Spas & Bem-Estar", desc: "Massagens, terapias e rituais com fluxo de cliente refinado e tranquilo." },
-  { icon: Fingerprint, title: "Estúdios de Tatuagem", desc: "Sessões, orçamentos e portfólio integrados ao agendamento com sinal." },
+const barbershopTools = [
+  { icon: CalendarDays, title: "Agenda da barbearia", desc: "Organize horários, profissionais e agendamentos em uma agenda centralizada." },
+  { icon: Scissors, title: "Serviços e profissionais", desc: "Cadastre os serviços da casa e associe cada profissional ao que realiza." },
+  { icon: ClipboardList, title: "Comandas e atendimento", desc: "Acompanhe os atendimentos e os itens vinculados a cada comanda." },
+  { icon: Wallet, title: "Caixa e comissões", desc: "Registre movimentações e acompanhe valores relacionados à operação." },
+  { icon: Package, title: "Produtos e estoque", desc: "Mantenha os produtos da barbearia organizados no painel de gestão." },
+  { icon: Store, title: "Agendamento online", desc: "Compartilhe o link da barbearia para clientes consultarem serviços e horários." },
 ];
 
 const featureBenefits = [
   { icon: CalendarDays, title: "Agenda online 24h", desc: "Link personalizado para o seu negócio. Bloqueio automático de horários conflitantes." },
   { icon: CreditCard, title: "Pix antecipado", desc: "Cobre sinal ou valor integral via Pix com confirmação instantânea pela InfinitePay." },
   { icon: BarChart3, title: "Relatórios reais", desc: "Receita, ticket médio, ocupação e projeções. Decida com dados, não no achismo." },
-  { icon: Bell, title: "Lembretes automáticos", desc: "Notificações por WhatsApp e e-mail reduzem faltas em até 80%, sem esforço manual." },
+  { icon: Bell, title: "Lembretes automáticos", desc: "Ajude seus clientes a lembrarem dos horários com lembretes por WhatsApp e e-mail." },
   { icon: Users, title: "Equipe & comissões", desc: "Cadastre profissionais, defina splits e deixe o sistema calcular tudo automaticamente." },
   { icon: Shield, title: "Dados protegidos", desc: "Infraestrutura em nuvem com isolamento por negócio e criptografia em trânsito." },
 ];
 
 const plans = [
   { name: "Essencial", price: "49", cents: ",90", period: "/mês", desc: "Para quem está migrando do caderno pro digital", features: ["Agenda online 24h", "Link personalizado", "Dashboard de faturamento", "1 profissional", "Suporte por e-mail"], cta: "Começar grátis", popular: false },
-  { name: "Business", price: "79", cents: ",90", period: "/mês", desc: "O plano mais escolhido por salões e clínicas", features: ["Tudo do Essencial", "Sinal via Pix anti-falta", "Lembretes WhatsApp + e-mail", "Financeiro completo + projeções", "Até 5 profissionais", "Comissões com split automático", "Suporte prioritário"], cta: "Testar Business", popular: true },
+  { name: "Business", price: "79", cents: ",90", period: "/mês", desc: "Para barbearias com equipe e operação em crescimento", features: ["Tudo do Essencial", "Sinal via Pix anti-falta", "Lembretes WhatsApp + e-mail", "Financeiro completo + projeções", "Até 5 profissionais", "Comissões com split automático", "Suporte prioritário"], cta: "Testar Business", popular: true },
   { name: "Enterprise", price: "99", cents: ",90", period: "/mês", desc: "Controle total e profissionais ilimitados", features: ["Tudo do Business", "Profissionais ilimitados", "Estoque e insumos", "Pacotes e combos com validade", "Relatórios avançados + exportação", "Suporte VIP via WhatsApp"], cta: "Falar com consultor", popular: false },
-];
-
-const testimonials = [
-  { name: "Camila R.", shop: "Studio Camila Costa", text: "Gerencio 6 profissionais sozinha. Agenda, comissão e financeiro automáticos. Antes eu levava 3 horas por dia nisso.", rating: 5 },
-  { name: "Ricardo M.", shop: "Barber Club SP", text: "Antes perdia 8 horários por semana com furo. Depois do sinal obrigatório, caiu pra zero. O sistema se paga no primeiro dia.", rating: 5 },
-  { name: "Fernanda T.", shop: "Ateliê Bem-Estar", text: "Meus clientes elogiaram a experiência. Agendam, pagam o sinal, recebem lembrete. Nunca mais 'oi, confirma?'.", rating: 5 },
 ];
 
 const faqs = [
@@ -75,13 +68,13 @@ const SaaSLanding = () => {
         <div className="container max-w-6xl px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center shadow-card">
-              <HeartPulse className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
+              <Scissors className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
             </div>
-            <span className="text-base font-semibold tracking-tight text-foreground">AgendeOnline</span>
+            <span className="text-base font-semibold tracking-tight text-foreground">QuickBarber</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground font-medium">
             <a href="#beneficios" className="hover:text-foreground transition-colors">Benefícios</a>
-            <a href="#para-quem" className="hover:text-foreground transition-colors">Para quem</a>
+            <a href="#para-quem" className="hover:text-foreground transition-colors">Recursos</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
@@ -108,11 +101,11 @@ const SaaSLanding = () => {
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] mt-10 mb-8 text-foreground">
             A gestão profissional<br />
-            para o seu <span className="text-primary">negócio de beleza.</span>
+            para a sua <span className="text-primary">barbearia.</span>
           </h1>
 
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
-            Agenda online, pagamento por Pix antecipado e relatórios claros — uma plataforma corporativa para clínicas, salões e spas que valorizam a experiência do cliente.
+            Agenda online, comandas e gestão financeira em uma plataforma feita para a rotina de barbearias.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8">
@@ -134,15 +127,13 @@ const SaaSLanding = () => {
 
           <div className="flex items-center justify-center gap-6 mt-14 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <Heart className="h-3.5 w-3.5 text-primary fill-primary/30" />
-              200+ negócios ativos
+              <Scissors className="h-3.5 w-3.5 text-primary" />
+              Feito para barbearias
             </div>
             <span className="h-1 w-1 rounded-full bg-border" />
-            <div className="flex items-center -space-x-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-3.5 w-3.5 text-primary fill-primary" />
-              ))}
-              <span className="ml-3 font-medium">4.9 / 5</span>
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+              Agenda online 24h
             </div>
           </div>
         </div>
@@ -152,7 +143,7 @@ const SaaSLanding = () => {
       <section id="beneficios" className="py-24 lg:py-32">
         <div className="container px-6 max-w-6xl">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <Pill>Por que AgendeOnline</Pill>
+            <Pill>Por que QuickBarber</Pill>
             <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
               Resolvemos o que <span className="text-primary">custa o seu tempo</span>
             </h2>
@@ -183,21 +174,21 @@ const SaaSLanding = () => {
         </div>
       </section>
 
-      {/* NICHES */}
+      {/* BARBERSHOP TOOLS */}
       <section id="para-quem" className="py-24 lg:py-32 bg-muted/40">
         <div className="container px-6 max-w-6xl">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <Pill>Para quem é</Pill>
+            <Pill>Feito para barbearias</Pill>
             <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
-              Uma plataforma, <span className="text-primary">muitos mercados</span>
+              Ferramentas para <span className="text-primary">a rotina da barbearia</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Desenhado para a realidade de negócios de beleza e bem-estar de alto padrão.
+              Do agendamento ao caixa, organize a operação da sua barbearia em um só lugar.
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {niches.map((n) => (
+            {barbershopTools.map((n) => (
               <div
                 key={n.title}
                 className="group rounded-2xl bg-card border border-border p-7 shadow-sm hover:border-primary/40 hover:shadow-card transition-all duration-300"
@@ -249,7 +240,7 @@ const SaaSLanding = () => {
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <Pill>Investimento</Pill>
             <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
-              Custa menos que <span className="text-primary">um cancelamento</span>
+              Invista em uma <span className="text-primary">barbearia organizada</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               30 dias grátis. Sem fidelidade. Sem taxa de cancelamento. Sem surpresas.
@@ -311,40 +302,6 @@ const SaaSLanding = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="py-24 lg:py-32">
-        <div className="container px-6 max-w-6xl">
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <Pill>Histórias reais</Pill>
-            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mt-6 mb-4 text-foreground">
-              Quem usa, <span className="text-primary">cresce</span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-2xl bg-card border border-border p-8 shadow-sm flex flex-col hover:shadow-card transition-shadow duration-300">
-                <div className="flex gap-0.5 mb-5">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="h-3.5 w-3.5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-foreground/85 mb-6 text-[15px] leading-relaxed flex-1">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-5 border-t border-border">
-                  <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center font-semibold text-primary-foreground text-sm">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.shop}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section id="faq" className="py-24 lg:py-32 bg-muted/40">
         <div className="container px-6 max-w-3xl">
@@ -381,7 +338,7 @@ const SaaSLanding = () => {
             <div className="relative z-10">
               <Sparkles className="h-9 w-9 text-primary-foreground mx-auto mb-6" strokeWidth={1.6} />
               <h2 className="text-4xl sm:text-5xl font-semibold mb-5 tracking-tight leading-tight">
-                Pronto para modernizar<br />o seu atendimento?
+                Pronto para modernizar<br />a sua barbearia?
               </h2>
               <p className="text-base sm:text-lg text-primary-foreground/85 mb-10 max-w-lg mx-auto leading-relaxed">
                 30 dias grátis. Configure em minutos e veja seus clientes agendando sozinhos ainda esta semana.
@@ -404,12 +361,12 @@ const SaaSLanding = () => {
         <div className="container px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <HeartPulse className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
+              <Scissors className="h-4 w-4 text-primary-foreground" strokeWidth={2.2} />
             </div>
-            <span className="font-semibold text-sm tracking-tight text-foreground">AgendeOnline24Horas</span>
+            <span className="font-semibold text-sm tracking-tight text-foreground">QuickBarber</span>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            Plataforma de gestão para negócios de beleza & bem-estar · © {new Date().getFullYear()}
+            Gestão e agendamento para barbearias · © {new Date().getFullYear()}
           </p>
           <p className="text-[11px] text-muted-foreground/70">Desenvolvido por Jotatechinfo</p>
         </div>

@@ -5,9 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 
-// 1. IMPORTAÇÃO OBRIGATÓRIA DA IMAGEM
-import logoAgenda from "@/assets/nova-logo.jpeg";
-
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -53,7 +50,7 @@ const Header = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           {/* 2. USANDO A VARIÁVEL IMPORTADA AQUI */}
-          <img src={logoAgenda} alt="Logo AgendeOnline24horas" className="h-8 w-auto" />
+          <img src="/quickbarber-icon.svg" alt="Logo QuickBarber" className="h-8 w-auto" />
         </Link>
 
         {/* Desktop nav */}

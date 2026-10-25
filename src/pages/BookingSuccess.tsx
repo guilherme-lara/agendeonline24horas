@@ -52,7 +52,7 @@ const BookingSuccess = () => {
       </div>
 
       <p className="mt-12 text-[10px] text-muted-foreground/50 font-bold uppercase tracking-tighter">
-        Powered by Agende Online 24h
+        QuickBarber
       </p>
     </div>
   );

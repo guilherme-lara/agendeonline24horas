@@ -223,7 +223,7 @@ const Dashboard = () => {
     { icon: ArrowUpRight, label: "Ticket Médio", value: kpis.ticketMedio, isCurrency: true, color: "text-amber-500", bg: "bg-amber-500/10" },
     { icon: DollarSign, label: "Faturamento Mês (Bruto)", value: kpis.monthRevTotal, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
     { icon: Wallet, label: "Comissões Profissionais (Mês)", value: kpis.monthCommission, isCurrency: true, color: "text-muted-foreground", bg: "bg-secondary" },
-    { icon: DollarSign, label: "Líquido da Clínica (Mês)", value: kpis.monthNet, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
+    { icon: DollarSign, label: "Líquido da Barbearia (Mês)", value: kpis.monthNet, isCurrency: true, color: "text-primary", bg: "bg-primary/10" },
   ];
 
   return (

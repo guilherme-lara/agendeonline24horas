@@ -21,30 +21,18 @@ export default defineConfig(({ mode }) => ({
       // e quebre o fluxo de pagamento do cliente.
       registerType: "prompt", 
       manifest: {
-        name: "AgendeOnline24Horas",
-        short_name: "Painel da Clínica",
-        description: "Plataforma de gestão e agendamento online para clínicas e profissionais.",
+        name: "QuickBarber",
+        short_name: "QuickBarber",
+        description: "Gestão e agendamento online para barbearias.",
         theme_color: "#0a0f1a",
         background_color: "#0a0f1a",
         display: "standalone",
         start_url: "/",
         icons: [
           {
-            src: "/icon-144.png",
-            sizes: "144x144",
-            type: "image/png",
-          },
-          {
-            src: "/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any maskable",
-          },
-          {
-            src: "/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable",
+            src: "/quickbarber-icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
           }
         ],
       },
