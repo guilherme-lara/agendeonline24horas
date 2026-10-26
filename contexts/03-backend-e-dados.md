@@ -39,8 +39,13 @@ dados derivados. Exemplos encontrados:
 
 - `create_public_appointment`: criação de agendamento iniciado pelo fluxo
   público;
+- `get_public_booking_slots`, `get_public_booking_status` e
+  `expire_public_booking`: disponibilidade pública limitada, consulta de estado
+  sem dados pessoais e expiração condicional de reservas;
 - `checkout_pdv`: processamento de venda/checkout do PDV;
-- funções de atualização de pagamento e de comissão;
+- `confirm_infinitepay_payment`: confirmação de pagamento restrita à service
+  role;
+- funções de comissão;
 - triggers para recalcular totais, registrar auditoria e atribuir número de
   comanda;
 - funções de limpeza de agendamentos de pagamento expirados.
@@ -54,17 +59,24 @@ junto com a respectiva migração e com o ambiente aplicado.
 
 | Função | Responsabilidade observada |
 | --- | --- |
-| `create-pix-charge` | Busca barbearia/agendamento e credenciais de pagamento com service role; seleciona fluxo PIX estático ou integra com a API InfinitePay. |
-| `infinitepay-webhook` | Recebe notificações de pagamento, registra log, valida o estado/valor recebido frente ao agendamento e tenta atualizar o pagamento. |
+| `create-pix-charge` | Exige JWT e permissão no tenant; valida vínculo do agendamento e saldo antes de usar credenciais privadas. |
+| `infinitepay-webhook` | Exige o secret `INFINITEPAY_WEBHOOK_SECRET`, valida valor e referência única e registra cada pagamento confirmado de forma idempotente. |
 | `create-barber-account` | Fluxo server-side relacionado à criação de conta de profissional. |
 | `revoke-barber-account` | Revogação de conta de profissional. |
 | `reset-user-password` | Operação de redefinição de senha. |
 
 `supabase/config.toml` desabilita a verificação JWT do gateway para
-`create-pix-charge` e `infinitepay-webhook`. Portanto, cada endpoint precisa
-validar explicitamente a entrada e a autorização apropriadas. O webhook também
-precisa validar autenticidade da origem de acordo com o contrato da InfinitePay;
-veja [Segurança e operação](./05-seguranca-e-operacao.md).
+`create-pix-charge` e `infinitepay-webhook`. A primeira valida o JWT da sessão e
+o tenant. O webhook exige um secret server-side no cabeçalho configurado no
+provedor; sem esse mecanismo, falha de forma fechada. Consulte
+[Segurança e operação](./05-seguranca-e-operacao.md) antes de habilitar
+confirmação automática.
+
+Pagamentos confirmados são registrados em `appointment_payments` com referência
+única por barbearia. A função SQL acumula os valores em `appointments.amount_paid`,
+mantém o estado `partial` enquanto houver saldo e só marca `paid` ao quitar o
+total. `payment_expected_amount` vincula a confirmação ao valor da cobrança
+atualmente emitida. O checkout do PDV desconta os pagamentos já registrados.
 
 ## Realtime
 

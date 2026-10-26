@@ -12,16 +12,33 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Mock do Supabase Client para validar os filtros (RBAC) e retornos
 const mockEq = vi.fn().mockReturnThis();
 const mockGte = vi.fn().mockReturnThis();
+const mockLt = vi.fn().mockReturnThis();
 const mockLte = vi.fn().mockReturnThis();
 const mockNeq = vi.fn().mockReturnThis();
 const mockIn = vi.fn().mockReturnThis();
-const mockLimit = vi.fn().mockImplementation((count?: number) => mockOrder());
+const mockQueryResult = (data: unknown) => {
+  const result = Promise.resolve({ data, error: null });
+  return {
+    eq: mockEq,
+    gte: mockGte,
+    lt: mockLt,
+    lte: mockLte,
+    neq: mockNeq,
+    in: mockIn,
+    order: mockOrder,
+    limit: mockLimit,
+    then: result.then.bind(result),
+  };
+};
+const mockLimit = vi.fn().mockReturnThis();
 const mockOrder = vi.fn().mockImplementation(() => {
-  const promise = Promise.resolve({ data: [], error: null });
-  return Object.assign(promise, { limit: mockLimit });
+  return mockQueryResult([]);
 });
 const mockSelect = vi.fn().mockReturnThis();
-const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+const mockMaybeSingle = vi.fn().mockResolvedValue({
+  data: { id: "register-1" },
+  error: null,
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -32,8 +49,10 @@ vi.mock("@/integrations/supabase/client", () => ({
     removeChannel: vi.fn(),
     from: vi.fn(() => ({
       select: mockSelect,
+      insert: vi.fn().mockReturnThis(),
       eq: mockEq,
       gte: mockGte,
+      lt: mockLt,
       lte: mockLte,
       neq: mockNeq,
       in: mockIn,
@@ -108,21 +127,12 @@ describe("Integration Tests: Dashboard & Caixa", () => {
     mockUseClinic.professionalId = null;
 
     // Supabase DB Mock: Retorna 3 cash_movements somando R$ 600
-    mockOrder.mockImplementationOnce(() => {
-      const p = Promise.resolve({ data: [] });
-      return Object.assign(p, { limit: mockLimit });
-    }); // dashboard-appointments
-    mockOrder.mockImplementationOnce(() => {
-      const p = Promise.resolve({
-        data: [
+    mockOrder.mockImplementationOnce(() => mockQueryResult([])); // dashboard-appointments
+    mockOrder.mockImplementationOnce(() => mockQueryResult([
           { id: "cm1", amount: 200, movement_type: "sale", created_at: new Date().toISOString() },
           { id: "cm2", amount: 100, movement_type: "sale", created_at: new Date().toISOString() },
           { id: "cm3", amount: 300, movement_type: "sale", created_at: new Date().toISOString() },
-        ],
-        error: null
-      });
-      return Object.assign(p, { limit: mockLimit });
-    }); // dashboard-cash-movements
+        ])); // dashboard-cash-movements
 
     renderWithProviders(<Dashboard />);
 
@@ -145,24 +155,12 @@ describe("Integration Tests: Dashboard & Caixa", () => {
     mockUseClinic.professionalId = "prof-999";
 
     // Supabase DB Mock: Retorna 1 appointment do profissional e cash_movements
-    mockOrder.mockImplementationOnce(() => {
-      const p = Promise.resolve({
-        data: [
+    mockOrder.mockImplementationOnce(() => mockQueryResult([
           { id: "a1", price: 200, total_price: 200, status: "completed", scheduled_at: new Date().toISOString(), barber_id: "prof-999" }
-        ],
-        error: null
-      });
-      return Object.assign(p, { limit: mockLimit });
-    }); // dashboard-appointments
-    mockOrder.mockImplementationOnce(() => {
-      const p = Promise.resolve({
-        data: [
+        ])); // dashboard-appointments
+    mockOrder.mockImplementationOnce(() => mockQueryResult([
           { id: "cm1", amount: 200, movement_type: "sale", created_at: new Date().toISOString() },
-        ],
-        error: null
-      });
-      return Object.assign(p, { limit: mockLimit });
-    }); // dashboard-cash-movements
+        ])); // dashboard-cash-movements
 
     renderWithProviders(<Dashboard />);
 
@@ -187,12 +185,16 @@ describe("Integration Tests: Dashboard & Caixa", () => {
     mockUseClinic.professionalId = "prof-999";
 
     // Mock das queries do Caixa (daily-appointments, inventory)
-    mockOrder.mockResolvedValueOnce({
-      data: [
-        { id: "appt-1", client_name: "Cliente VIP 1", service_name: "Corte", status: "confirmed", price: 50 },
-      ],
-      error: null
-    }); // appointments query
+    mockOrder.mockImplementationOnce(() => mockQueryResult([
+      {
+        id: "appt-1",
+        client_name: "Cliente VIP 1",
+        service_name: "Corte",
+        status: "confirmed",
+        price: 50,
+        scheduled_at: new Date().toISOString(),
+      },
+    ])); // appointments query
 
     renderWithProviders(<Caixa />);
 
@@ -214,12 +216,16 @@ describe("Integration Tests: Dashboard & Caixa", () => {
     mockUseAuth.isProfessional = false;
     mockUseClinic.professionalId = null;
 
-    mockOrder.mockResolvedValueOnce({
-      data: [
-        { id: "appt-2", client_name: "João Silva", service_name: "Pacote Lux", status: "confirmed", price: 100 },
-      ],
-      error: null
-    });
+    mockOrder.mockImplementationOnce(() => mockQueryResult([
+      {
+        id: "appt-2",
+        client_name: "João Silva",
+        service_name: "Pacote Lux",
+        status: "confirmed",
+        price: 100,
+        scheduled_at: new Date().toISOString(),
+      },
+    ]));
 
     renderWithProviders(<Caixa />);
 
@@ -230,9 +236,8 @@ describe("Integration Tests: Dashboard & Caixa", () => {
     // Interação do usuário
     await userEvent.click(cobrarBtn);
 
-    // Quando clica em cobrar, o carrinho abre.
-    // O nome 'João Silva' deve aparecer agora DUAS vezes na tela: uma na listagem <p> e uma no título <h2> do carrinho.
-    const clientNameElements = await screen.findAllByText("João Silva");
-    expect(clientNameElements.length).toBe(2);
+    expect(await screen.findByText("Comanda Atual")).toBeInTheDocument();
+    expect(await screen.findByText("João Silva")).toBeInTheDocument();
+    expect(await screen.findByText("Pacote Lux")).toBeInTheDocument();
   });
 });

@@ -1,13 +1,11 @@
-/**
- * Serviço InfinitePay — Prepara o payload para a Edge Function de cobrança Pix.
- */
+import { supabase } from "@/integrations/supabase/client";
 
 export interface InfinitePayChargeRequest {
-  amount: number; // em centavos
-  document_number: string; // CPF do cliente
+  amount: number;
+  document_number?: string;
   first_name: string;
   last_name: string;
-  appointment_id: string;
+  appointment_id?: string;
   barbershop_id: string;
 }
 
@@ -19,57 +17,57 @@ export interface InfinitePayChargeResponse {
   payment_id?: string;
   pix_key?: string;
   pix_beneficiary?: string;
+  details?: string;
+  http_status?: number;
   error?: string;
 }
 
-/**
- * Chama a Edge Function `create-pix-charge` com payload InfinitePay.
- */
 export const createInfinitePayCharge = async (
-  request: InfinitePayChargeRequest
+  request: InfinitePayChargeRequest,
 ): Promise<InfinitePayChargeResponse> => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-  const res = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
+  if (sessionError) throw sessionError;
+  if (!session?.access_token) {
+    return { success: false, error: "Faça login para gerar uma cobrança Pix." };
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/create-pix-charge`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({
-      appointment_id: request.appointment_id,
-      barbershop_id: request.barbershop_id,
-      amount: request.amount,
-      document_number: request.document_number,
-      first_name: request.first_name,
-      last_name: request.last_name,
-    }),
+    body: JSON.stringify(request),
   });
 
-  const data = await res.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await response.json();
+  } catch {
+    return { success: false, error: "Resposta inválida ao gerar a cobrança Pix." };
+  }
 
-  if (!res.ok) {
-    console.error("❌ create-pix-charge error:", {
-      status: res.status,
-      data,
-    });
+  if (!response.ok) {
+    console.error("create-pix-charge returned an error:", response.status);
     return {
       success: false,
-      error: data.error || "Erro ao gerar cobrança",
-      ...(data.details && { details: data.details }),
-      ...(data.http_status && { http_status: data.http_status }),
+      error: typeof data.error === "string" ? data.error : "Erro ao gerar cobrança",
+      ...(typeof data.details === "string" && { details: data.details }),
+      ...(typeof data.http_status === "number" && { http_status: data.http_status }),
     };
   }
 
   return {
     success: true,
-    mode: data.mode || "infinitepay",
-    brcode: data.brcode || data.pix_code || "",
-    qr_code_base64: data.qr_code_base64 || data.pix_qr_code_image || "",
-    payment_id: data.payment_id || "",
-    pix_key: data.pix_key || "",
-    pix_beneficiary: data.pix_beneficiary || "",
+    mode: data.mode === "static" ? "static" : "infinitepay",
+    brcode: typeof data.brcode === "string" ? data.brcode : "",
+    qr_code_base64: typeof data.qr_code_base64 === "string" ? data.qr_code_base64 : "",
+    payment_id: typeof data.payment_id === "string" ? data.payment_id : "",
+    pix_key: typeof data.pix_key === "string" ? data.pix_key : "",
+    pix_beneficiary: typeof data.pix_beneficiary === "string" ? data.pix_beneficiary : "",
   };
 };

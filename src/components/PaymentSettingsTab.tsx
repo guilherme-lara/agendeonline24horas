@@ -219,7 +219,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
           </div>
           <div>
             <h3 className="font-bold text-base text-foreground">Integração InfinitePay</h3>
-            <p className="text-xs text-muted-foreground">Gera Links e QR Codes dinâmicos com baixa automática.</p>
+            <p className="text-xs text-muted-foreground">Gera cobranças Pix; a confirmação depende da autenticação do webhook.</p>
           </div>
         </div>
 
@@ -260,6 +260,10 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
               {copiedWebhook ? <Check className="h-4 w-4 text-emerald-500" /> : <><Copy className="h-3.5 w-3.5 mr-1" />Copiar URL</>}
             </Button>
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Configure <code>INFINITEPAY_WEBHOOK_SECRET</code> nos secrets das Edge Functions e o mesmo valor no cabeçalho personalizado
+            {" "}<code>x-infinitepay-webhook-secret</code> no painel InfinitePay. Sem esse cabeçalho, os pagamentos não serão confirmados automaticamente.
+          </p>
           <div className="flex items-center gap-3 mt-3">
             <Button
               type="button"
@@ -270,12 +274,11 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
                 setPingMessage("");
                 try {
                   const { data, error } = await supabase.functions.invoke("infinitepay-webhook", {
-                    method: "POST",
-                    body: { ping: true },
+                    method: "GET",
                   });
                   if (error) throw error;
                   setPingStatus("ok");
-                  setPingMessage(data?.ok ? "Webhook ativo e respondendo ✓" : "Webhook respondeu, mas sem confirmação");
+                  setPingMessage(data?.message || "Endpoint online; autenticação do webhook não foi testada.");
                 } catch (err: any) {
                   setPingStatus("error");
                   setPingMessage(err.message || "Falha ao conectar com o webhook");
@@ -285,7 +288,7 @@ const PaymentSettingsTab = ({ barbershopId }: PaymentSettingsTabProps) => {
               className={`h-9 rounded-lg text-xs font-bold ${pingStatus === "ok" ? "border-emerald-500/30 text-emerald-500" : pingStatus === "error" ? "border-destructive/30 text-destructive" : "border-border"}`}
             >
               {pingStatus === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : pingStatus === "ok" ? <Wifi className="h-3.5 w-3.5 mr-1.5" /> : pingStatus === "error" ? <WifiOff className="h-3.5 w-3.5 mr-1.5" /> : <Wifi className="h-3.5 w-3.5 mr-1.5" />}
-              Testar Webhook
+              Testar disponibilidade
             </Button>
             {pingMessage && (
               <span className={`text-[10px] font-bold ${pingStatus === "ok" ? "text-emerald-500" : "text-destructive"}`}>

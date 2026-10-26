@@ -29,6 +29,7 @@ interface CheckoutModalProps {
   onOpenChange: (open: boolean) => void;
   items: CartItem[];
   customerName: string;
+  barbershopId?: string;
   onConfirm: (method: string, amount: number) => void;
   isSubmitting?: boolean;
 }
@@ -69,7 +70,8 @@ export function CheckoutModal({
   onOpenChange, 
   items, 
   customerName, 
-  onConfirm, 
+  barbershopId,
+  onConfirm,
   isSubmitting 
 }: CheckoutModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("pix");
@@ -88,6 +90,10 @@ export function CheckoutModal({
 
   const handleGeneratePix = async () => {
     if (totalDue <= 0) return;
+    if (!barbershopId) {
+      toast.error("Não foi possível identificar a barbearia.");
+      return;
+    }
     setIsGeneratingPix(true);
     try {
       const amountCents = Math.round(totalDue * 100);
@@ -97,8 +103,7 @@ export function CheckoutModal({
         document_number: "",
         first_name: first || "Cliente",
         last_name: rest.join(" ") || "N",
-        appointment_id: items[0]?.source_appointment_id || "pdv-" + Date.now(),
-        barbershop_id: "",
+        barbershop_id: barbershopId,
       });
 
       if (!res.success) throw new Error(res.error || "Falha ao gerar cobrança Pix");
@@ -161,7 +166,7 @@ export function CheckoutModal({
                 <div className="flex justify-between items-center text-sm font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 -mx-2 px-2 py-1 rounded-lg">
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    Sinal Online Pago Antecipadamente
+                    Valor Já Pago
                   </span>
                   <span>- R$ {totalDeposit.toFixed(2).replace(".", ",")}</span>
                 </div>

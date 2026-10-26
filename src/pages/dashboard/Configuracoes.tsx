@@ -31,10 +31,10 @@ const Configuracoes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // ProteÃ§Ã£o contra loading infinito
+  // Proteção contra loading infinito
   const queryEnabled = !!clinic?.id;
 
-  // Estados locais para controle dos inputs do formulÃ¡rio
+  // Estados locais para controle dos inputs do formulário
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
   const [cnpjCpf, setCnpjCpf] = useState("");
@@ -46,7 +46,7 @@ const Configuracoes = () => {
   const [pixBeneficiary, setPixBeneficiary] = useState("");
   const [copiedPix, setCopiedPix] = useState(false);
 
-  // --- PARSER SEGURO DE CONFIGURAÃ‡Ã•ES ---
+  // --- PARSER SEGURO DE CONFIGURAÇÕES ---
   const getParsedSettings = (rawSettings: any) => {
     if (typeof rawSettings === "string") {
       try { return JSON.parse(rawSettings); } catch (e) { return {}; }
@@ -54,7 +54,7 @@ const Configuracoes = () => {
     return rawSettings || {};
   };
 
-  // Sincroniza o formulÃ¡rio sempre que os dados da clÃ­nica mudarem
+  // Sincroniza o formulário sempre que os dados da clínica mudarem
   useEffect(() => {
     if (clinic) {
       setCompanyName(clinic.name || "");
@@ -77,11 +77,11 @@ const Configuracoes = () => {
     setTimeout(() => setCopiedPix(false), 2000);
   };
 
-  // --- MUTAÃ‡ÃƒO: SALVAR CONFIGURAÃ‡Ã•ES ---
+  // --- MUTAÇÃO: SALVAR CONFIGURAÇÕES ---
   const saveMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("SessÃ£o expirada. Recarregando...");
+      if (!session) throw new Error("Sessão expirada. Recarregando...");
 
       const currentSettings = getParsedSettings(clinic.settings);
 
@@ -104,32 +104,32 @@ const Configuracoes = () => {
         .from("barbershops")
         .update(payload)
         .eq("id", clinic.id)
-        .select(); // FORÃ‡A o banco a devolver a linha atualizada
+        .select(); // FORÇA o banco a devolver a linha atualizada
 
       if (updateError) throw updateError;
       
-      // Se data voltar vazio, significa que o RLS bloqueou a ediÃ§Ã£o (o usuÃ¡rio nÃ£o tem permissÃ£o)
+      // Se data voltar vazio, significa que o RLS bloqueou a edição (o usuário não tem permissão)
       if (!data || data.length === 0) {
-          throw new Error("PermissÃ£o negada. VocÃª nÃ£o tem autorizaÃ§Ã£o para editar este estabelecimento.");
+          throw new Error("Permissão negada. Você não tem autorização para editar este estabelecimento.");
       }
 
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["current-clinic"] });
-      toast({ title: "ConfiguraÃ§Ãµes Atualizadas!", description: "As mudanÃ§as jÃ¡ estÃ£o em vigor em todo o sistema." });
+      toast({ title: "Configurações Atualizadas!", description: "As mudanças já estão em vigor em todo o sistema." });
     },
     onError: (err: any) => {
       console.error("Erro ao salvar:", err);
       toast({ 
         title: "Falha ao salvar", 
-        description: err.message || "Verifique sua conexÃ£o.", 
+        description: err.message || "Verifique sua conexão.",
         variant: "destructive" 
       });
     }
   });
 
-  // --- RENDERS DE PROTEÃ‡ÃƒO ---
+  // --- RENDERS DE PROTEÇÃO ---
   if (barberLoading && queryEnabled && !clinic) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -143,8 +143,8 @@ const Configuracoes = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in px-6">
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronizaÃ§Ã£o</h2>
-        <p className="text-sm text-muted-foreground mb-8">NÃ£o conseguimos carregar as configuraÃ§Ãµes da sua empresa.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Erro de sincronização</h2>
+        <p className="text-sm text-muted-foreground mb-8">Não conseguimos carregar as configurações da sua empresa.</p>
         <Button onClick={() => refetch()} className="bg-primary text-primary-foreground px-8 font-bold">
           <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
         </Button>
@@ -161,13 +161,13 @@ const Configuracoes = () => {
             <Settings className="h-7 w-7 text-zinc-900" />
         </div>
         <div>
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-display">ConfiguraÃ§Ãµes</h1>
-            <p className="text-zinc-500 text-sm font-medium">Gerencie a identidade e os dados fiscais do seu negÃ³cio.</p>
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight font-display">Configurações</h1>
+            <p className="text-zinc-500 text-sm font-medium">Gerencie a identidade e os dados fiscais do seu negócio.</p>
         </div>
       </div>
 
       <div className="grid gap-8">
-        {/* SEÃ‡ÃƒO: IDENTIDADE VISUAL */}
+        {/* SEÇÃO: IDENTIDADE VISUAL */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm transition-shadow">
             <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-6 flex items-center gap-2">
                 <Building2 className="h-4 w-4" /> Logo da Empresa
@@ -180,10 +180,10 @@ const Configuracoes = () => {
             <p className="text-[10px] text-muted-foreground mt-4 uppercase font-bold text-center">Recomendado: Imagem quadrada (512x512px)</p>
         </div>
 
-        {/* SEÃ‡ÃƒO: DADOS DA EMPRESA */}
+        {/* SEÇÃO: DADOS DA EMPRESA */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm transition-shadow space-y-6">
             <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-2 flex items-center gap-2">
-                <Save className="h-4 w-4" /> InformaÃ§Ãµes do Perfil
+                <Save className="h-4 w-4" /> Informações do Perfil
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -192,7 +192,7 @@ const Configuracoes = () => {
                   <Input 
                     value={companyName} 
                     onChange={(e) => setCompanyName(e.target.value)} 
-                    placeholder="Meu NegÃ³cio" 
+                    placeholder="Meu Negócio"
                     className="bg-background border-border h-12 text-foreground focus-visible:ring-primary/50" 
                   />
                 </div>
@@ -224,24 +224,24 @@ const Configuracoes = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">EndereÃ§o PÃºblico</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Endereço Público</label>
                   <Input 
                     value={address} 
                     onChange={(e) => setAddress(e.target.value)} 
-                    placeholder="Rua, NÃºmero, Cidade" 
+                    placeholder="Rua, Número, Cidade"
                     className="bg-background border-border h-12 text-foreground focus-visible:ring-primary/50" 
                   />
                 </div>
             </div>
         </div>
 
-        {/* SEÃ‡ÃƒO: CHAVE PIX */}
+        {/* SEÇÃO: CHAVE PIX */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-sm transition-shadow space-y-6">
             <h2 className="text-xs font-bold text-zinc-900 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <QrCode className="h-4 w-4" /> Chave Pix para Recebimentos
             </h2>
             <p className="text-xs text-muted-foreground -mt-4">
-              Configure sua chave Pix para receber sinais de agendamento e cobranÃ§as presenciais.
+              Configure sua chave Pix para receber sinais de agendamento e cobranças presenciais.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -256,13 +256,13 @@ const Configuracoes = () => {
                       <SelectItem value="cnpj">CNPJ</SelectItem>
                       <SelectItem value="email">E-mail</SelectItem>
                       <SelectItem value="phone">Telefone</SelectItem>
-                      <SelectItem value="random">Chave AleatÃ³ria</SelectItem>
+                      <SelectItem value="random">Chave Aleatória</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nome do BeneficiÃ¡rio</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Nome do Beneficiário</label>
                   <Input
                     value={pixBeneficiary}
                     onChange={(e) => setPixBeneficiary(e.target.value)}
@@ -286,7 +286,7 @@ const Configuracoes = () => {
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Esta chave serÃ¡ exibida para seus clientes no momento de pagar o sinal do agendamento.
+                Esta chave será exibida para seus clientes no momento de pagar o sinal do agendamento.
               </p>
             </div>
         </div>
@@ -297,7 +297,7 @@ const Configuracoes = () => {
             className="w-full bg-zinc-900 text-white font-bold h-14 rounded-xl shadow-sm hover:bg-zinc-800 transition-all"
         >
           {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
-          Aplicar AlteraÃ§Ãµes no Sistema
+          Aplicar Alterações no Sistema
         </Button>
       </div>
     </div>
@@ -305,4 +305,3 @@ const Configuracoes = () => {
 };
 
 export default Configuracoes;
-

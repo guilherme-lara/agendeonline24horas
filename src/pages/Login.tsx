@@ -24,7 +24,7 @@ const Login = () => {
     name: "",
   });
 
-  // Se o cara JÃ TIVER LOGADO e tentar acessar a tela de login pela URL, tira ele de lÃ¡
+  // Se o cara JÁ TIVER LOGADO e tentar acessar a tela de login pela URL, tira ele de lá
   useEffect(() => {
     if (!authLoading && user) {
       if (isAdmin) {
@@ -37,7 +37,7 @@ const Login = () => {
     }
   }, [user, isAdmin, isProfessional, authLoading, navigate]);
 
-  // --- MUTAÃ‡ÃƒO: LOGIN / CADASTRO COM ROTEAMENTO IMPERATIVO (FORÃ‡ADO) ---
+  // --- MUTAÇÃO: LOGIN / CADASTRO COM ROTEAMENTO IMPERATIVO (FORÇADO) ---
   const authMutation = useMutation({
     mutationFn: async () => {
       const email = formData.email.trim();
@@ -69,13 +69,13 @@ const Login = () => {
     },
     onSuccess: async (res) => {
       if (res.type === "signup") {
-        // NÃƒO limpar cache aqui â€” usuÃ¡rio ainda pode precisar navegar
-        // Se confirmaÃ§Ã£o de e-mail estÃ¡ ativa, sessÃ£o vem null
+        // NÃO limpar cache aqui — usuário ainda pode precisar navegar
+        // Se confirmação de e-mail está ativa, sessão vem null
         const needsConfirm = !res.data.session;
         toast({
           title: needsConfirm ? "Confirme seu e-mail para continuar." : "Conta criada!",
           description: needsConfirm
-            ? "Enviamos um link de confirmaÃ§Ã£o para o seu e-mail."
+            ? "Enviamos um link de confirmação para o seu e-mail."
             : "Redirecionando para o onboarding...",
         });
         if (!needsConfirm) {
@@ -86,7 +86,7 @@ const Login = () => {
         return;
       }
 
-      // Login: limpa cache de usuÃ¡rio anterior APÃ“S a autenticaÃ§Ã£o estar consolidada
+      // Login: limpa cache de usuário anterior APÓS a autenticação estar consolidada
       queryClient.clear();
       toast({ title: "Acesso autorizado. Carregando painel..." });
 
@@ -94,7 +94,7 @@ const Login = () => {
       if (!loggedUser) return;
 
       try {
-        // Descobre o role do usuÃ¡rio
+        // Descobre o role do usuário
         const { data: roles } = await supabase
           .from("user_roles")
           .select("role")
@@ -102,7 +102,7 @@ const Login = () => {
 
         const roleSet = new Set((roles || []).map((r: any) => r.role));
 
-        // Admin â†’ Super Admin
+        // Admin → Super Admin
         if (roleSet.has("admin")) {
           window.location.href = "/super-admin";
           return;
@@ -129,17 +129,17 @@ const Login = () => {
       } catch (error) {
         toast({
           title: "Erro no roteamento",
-          description: "Tente recarregar a pÃ¡gina.",
+          description: "Tente recarregar a página.",
           variant: "destructive",
         });
       }
     },
     onError: (err: any) => {
       const raw = String(err?.message || "").toLowerCase();
-      let msg = "Falha na autenticaÃ§Ã£o. Verifique os dados.";
+      let msg = "Falha na autenticação. Verifique os dados.";
 
       if (raw.includes("already registered") || raw.includes("already exists") || raw.includes("user already")) {
-        msg = "Este e-mail jÃ¡ estÃ¡ cadastrado.";
+        msg = "Este e-mail já está cadastrado.";
       } else if (raw.includes("password") && (raw.includes("6 characters") || raw.includes("weak") || raw.includes("short"))) {
         msg = "A senha precisa ter pelo menos 6 caracteres.";
       } else if (raw.includes("email not confirmed") || raw.includes("confirm")) {
@@ -149,7 +149,7 @@ const Login = () => {
       } else if (raw.includes("rate limit") || raw.includes("too many")) {
         msg = "Muitas tentativas. Aguarde alguns minutos.";
       } else if (raw.includes("network") || raw.includes("failed to fetch")) {
-        msg = "Sem conexÃ£o. Verifique sua internet.";
+        msg = "Sem conexão. Verifique sua internet.";
       }
 
       toast({ title: "Erro", description: msg, variant: "destructive" });
@@ -169,7 +169,7 @@ const Login = () => {
       if (error) throw error;
       toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
     } catch (err: any) {
-      toast({ title: "NÃ£o foi possÃ­vel enviar", description: err?.message || "Tente novamente.", variant: "destructive" });
+      toast({ title: "Não foi possível enviar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
   };
 
@@ -204,13 +204,13 @@ const Login = () => {
           </p>
         </div>
 
-        {/* CARD DO FORMULÃRIO */}
+        {/* CARD DO FORMULÁRIO */}
         <div className="bg-card border border-slate-200 p-8 sm:p-10 rounded-3xl shadow-xl relative">
           <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && (
               <div className="space-y-2 animate-in slide-in-from-top-4 duration-500">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-                  ProprietÃ¡rio
+                  Proprietário
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -265,7 +265,7 @@ const Login = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
@@ -323,7 +323,7 @@ const Login = () => {
             className="w-full text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
           >
             {isSignUp
-              ? "JÃ¡ possui uma conta? Entrar"
+              ? "Já possui uma conta? Entrar"
               : "Novo estabelecimento? Criar uma conta"}
           </button>
         </div>

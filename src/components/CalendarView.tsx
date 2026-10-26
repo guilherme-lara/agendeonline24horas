@@ -87,10 +87,10 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick, onS
       setDraggingApptId(null);
     },
     onSuccess: () => {
-      toast({ title: "HorÃ¡rio atualizado!", description: "Remarcado com sucesso." });
+      toast({ title: "Horário atualizado!", description: "Remarcado com sucesso." });
     },
     onError: () => {
-      toast({ title: "Falha na conexÃ£o", description: "NÃ£o foi possÃ­vel remarcar.", variant: "destructive" });
+      toast({ title: "Falha na conexão", description: "Não foi possível remarcar.", variant: "destructive" });
     },
     onSettled: () => {
       if (onRefresh) onRefresh();
@@ -218,7 +218,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick, onS
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-xs font-semibold uppercase tracking-wide text-sys-text-muted">
-          {format(days[0], "dd MMM", { locale: ptBR })} â€” {format(days[6], "dd MMM yyyy", { locale: ptBR })}
+          {format(days[0], "dd MMM", { locale: ptBR })} — {format(days[6], "dd MMM yyyy", { locale: ptBR })}
         </span>
         <Button variant="ghost" size="sm" onClick={() => setWeekStart((p) => addDays(p, 7))} className="h-8 w-8 p-0 hover:bg-sys-brand-primary/10 hover:text-sys-brand-primary rounded-lg">
           <ChevronRight className="h-4 w-4" />
@@ -309,7 +309,7 @@ const CalendarView = ({ appointments, barbershopId, onRefresh, onEventClick, onS
                                 ${isDraggingThis ? "opacity-30 scale-95" : "opacity-100"}
                                 ${isMobile ? 'select-none' : ''}
                               `}
-                            title={`${a.client_name} â€” ${a.service_name} â€¢ ${cfg.label}`}
+                            title={`${a.client_name} — ${a.service_name} • ${cfg.label}`}
                           >
                             <div className="flex items-center justify-between gap-1 pointer-events-none mb-0.5">
                               <span className="font-medium text-[10px] tabular-nums text-muted-foreground tracking-tight">

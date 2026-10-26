@@ -176,6 +176,7 @@ export type Database = {
       appointments: {
         Row: {
           advance_payment_amount: number
+          amount_paid: number
           barber_id: string | null
           barber_name: string | null
           barbershop_id: string
@@ -198,6 +199,7 @@ export type Database = {
           payment_confirmed_at: string | null
           payment_id: string | null
           payment_method: string | null
+          payment_expected_amount: number | null
           payment_status: string | null
           payment_url: string | null
           pix_code: string | null
@@ -211,6 +213,7 @@ export type Database = {
         }
         Insert: {
           advance_payment_amount?: number
+          amount_paid?: number
           barber_id?: string | null
           barber_name?: string | null
           barbershop_id: string
@@ -233,6 +236,7 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
+          payment_expected_amount?: number | null
           payment_status?: string | null
           payment_url?: string | null
           pix_code?: string | null
@@ -246,6 +250,7 @@ export type Database = {
         }
         Update: {
           advance_payment_amount?: number
+          amount_paid?: number
           barber_id?: string | null
           barber_name?: string | null
           barbershop_id?: string
@@ -268,6 +273,7 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
+          payment_expected_amount?: number | null
           payment_status?: string | null
           payment_url?: string | null
           pix_code?: string | null

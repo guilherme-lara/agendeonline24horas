@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Rota pÃºblica /reset-password
+ * Rota pública /reset-password
  * O Supabase, com detectSessionInUrl: true, captura o token do #hash da URL
  * automaticamente e dispara PASSWORD_RECOVERY no onAuthStateChange (useAuth),
- * que nos redireciona pra cÃ¡. Aqui apenas trocamos a senha.
+ * que nos redireciona pra cá. Aqui apenas trocamos a senha.
  */
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -22,13 +22,13 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Garante que a sessÃ£o de recovery foi restaurada antes de permitir o submit
+    // Garante que a sessão de recovery foi restaurada antes de permitir o submit
     supabase.auth.getSession().then(({ data }) => {
       setReady(!!data.session);
       if (!data.session) {
         toast({
-          title: "Link invÃ¡lido ou expirado",
-          description: "Solicite um novo e-mail de recuperaÃ§Ã£o.",
+          title: "Link inválido ou expirado",
+          description: "Solicite um novo e-mail de recuperação.",
           variant: "destructive",
         });
       }
@@ -42,19 +42,19 @@ const ResetPassword = () => {
       return;
     }
     if (password !== confirm) {
-      toast({ title: "Senhas nÃ£o coincidem", variant: "destructive" });
+      toast({ title: "Senhas não coincidem", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast({ title: "Senha atualizada!", description: "FaÃ§a login com a nova senha." });
+      toast({ title: "Senha atualizada!", description: "Faça login com a nova senha." });
       await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (err: any) {
       toast({
-        title: "NÃ£o foi possÃ­vel atualizar",
+        title: "Não foi possível atualizar",
         description: err?.message || "Tente novamente.",
         variant: "destructive",
       });
@@ -88,7 +88,7 @@ const ResetPassword = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type={show ? "text" : "password"}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-slate-50 border-slate-200 pl-12 pr-12 h-14 rounded-2xl"
@@ -113,7 +113,7 @@ const ResetPassword = () => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   type={show ? "text" : "password"}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="bg-slate-50 border-slate-200 pl-12 h-14 rounded-2xl"

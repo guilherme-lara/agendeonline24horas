@@ -27,10 +27,11 @@ no frontend com o identificador do agendamento como `order_nsu`. Há também a
 Edge Function `create-pix-charge`, utilizada para o fluxo de geração de PIX.
 Os caminhos disponíveis dependem do modo de pagamento configurado pela barbearia.
 
-O banco mantém a criação do agendamento dentro de uma função SQL e possui
-migrações de pagamento/expiração. As regras exatas de colisão, status e timeout
-devem ser verificadas nas migrações aplicadas; a interface não é a autoridade
-para garantir exclusividade do horário.
+O banco mantém a criação do agendamento dentro de uma função SQL, serializa
+reservas concorrentes por barbearia e inclui horários locais e reservas de
+pagamento ainda válidas na verificação de conflito. A disponibilidade pública
+é consultada por RPC limitada, sem leitura anônima direta da tabela de
+agendamentos. A expiração também é aplicada por RPC condicional no servidor.
 
 ## Gestão da barbearia
 
@@ -66,13 +67,17 @@ Existem caminhos de pagamento relacionados, mas não idênticos:
   agendamento;
 - `create-pix-charge` pode gerar cobrança PIX usando credencial da barbearia ou
   retornar dados de PIX estático;
-- `infinitepay-webhook` recebe eventos, confere status e valor conforme os
-  dados do agendamento e registra tentativa de atualização.
+- `infinitepay-webhook` recebe eventos com um cabeçalho secreto configurado,
+  exige valor e referência do pagamento, verifica o valor esperado da cobrança e
+  registra o evento de forma idempotente em `appointment_payments`. O saldo
+  acumulado fica em `appointments.amount_paid`; pagamentos parciais permanecem
+  `partial` até que o total seja quitado e são descontados no fechamento do PDV.
 
-O webhook aceita eventos HTTP sem autenticação JWT do gateway e o código atual
-não valida uma assinatura criptográfica do provedor. Até essa validação ser
-implementada e testada, não se deve descrever esse endpoint como autenticado
-criptograficamente; detalhes em [Segurança e operação](./05-seguranca-e-operacao.md).
+O cabeçalho personalizado precisa ser suportado e configurado no painel
+InfinitePay. Sem `INFINITEPAY_WEBHOOK_SECRET` ou sem o cabeçalho correto, o
+webhook falha fechado e não confirma pagamentos. Não se presume validação
+criptográfica nativa do provedor; detalhes em
+[Segurança e operação](./05-seguranca-e-operacao.md).
 
 ## Atualização em tempo real
 

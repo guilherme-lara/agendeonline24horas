@@ -1,277 +1,198 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  normalizeProviderAmount,
+  validatePaymentAmount,
+} from "../_shared/payment-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-infinitepay-webhook-secret",
 };
 
-/**
- * InfinitePay Webhook — Bulletproof + Partial Payment State Machine
- *
- * 1. Routes GET/OPTIONS gracefully (no 500)
- * 2. Rejects non-POST with 405
- * 3. Parses payload with try/catch
- * 4. Partial payment rule: if has_signal=true and amount >= signal_value,
- *    the appointment is confirmed (partial payment ok). If no signal,
- *    requires full price match. Records amount_paid for dashboard.
- */
+const respond = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const constantTimeEqual = (actual: string, expected: string) => {
+  const encoder = new TextEncoder();
+  const actualBytes = encoder.encode(actual);
+  const expectedBytes = encoder.encode(expected);
+  if (actualBytes.length !== expectedBytes.length) return false;
+  let difference = 0;
+  for (let i = 0; i < actualBytes.length; i++) difference |= actualBytes[i] ^ expectedBytes[i];
+  return difference === 0;
+};
 
 Deno.serve(async (req) => {
-  // --- 1. ROUTING ---
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "GET") return respond({ message: "InfinitePay webhook active." });
+  if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
+
+  const webhookSecret = Deno.env.get("INFINITEPAY_WEBHOOK_SECRET");
+  if (!webhookSecret) {
+    console.error("INFINITEPAY_WEBHOOK_SECRET is not configured; rejecting webhook");
+    return respond({ error: "Webhook de pagamento não configurado." }, 503);
+  }
+  const providedSecret = req.headers.get("x-infinitepay-webhook-secret") || "";
+  if (!constantTimeEqual(providedSecret, webhookSecret)) {
+    return respond({ error: "Webhook não autenticado." }, 401);
   }
 
-  if (req.method === "GET") {
-    return new Response(
-      JSON.stringify({ message: "InfinitePay Webhook Active. Use POST." }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    console.error("Payment webhook is missing Supabase configuration");
+    return respond({ error: "Serviço de pagamento indisponível." }, 500);
   }
 
-  if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  // --- 2. INIT ---
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  // --- 3. PARSE SAFELY ---
   let payload: Record<string, unknown>;
   try {
-    payload = await req.json();
+    const parsed: unknown = await req.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return respond({ error: "Payload inválido." }, 400);
+    }
+    payload = parsed as Record<string, unknown>;
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return respond({ error: "JSON inválido." }, 400);
   }
 
-  const appointmentId = payload.order_nsu as string | undefined;
-
-  if (!appointmentId) {
-    console.warn("Webhook: missing order_nsu. Payload keys:", Object.keys(payload).join(", "));
-    return new Response(
-      JSON.stringify({ ok: true, skipped: true, reason: "Missing order_nsu" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  const appointmentId = typeof payload.order_nsu === "string" ? payload.order_nsu : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(appointmentId)) {
+    return respond({ error: "Identificador de agendamento inválido." }, 400);
   }
 
-  // --- 4. EXTRACT FIELDS ---
-  const rawStatus = (payload.status ?? payload.payment_status ?? "") as string;
-  const status = String(rawStatus).toLowerCase();
+  const status = String(payload.status ?? payload.payment_status ?? "").toLowerCase();
+  const statusCode = String(payload.status_code ?? "");
+  const isPayment = ["paid", "approved", "completed", "confirmed"].includes(status);
+  if (!isPayment) return respond({ ok: true, skipped: true });
 
-  const statusCode = payload.status_code as string | undefined;
-  const isStatusApproved = [
-    "paid", "approved", "completed", "confirmed", "authorized",
-  ].includes(status);
-
-  const isSuccessByCode = statusCode === "200" || statusCode === "10000";
-  const isPayment = isStatusApproved || isSuccessByCode;
-
-  // Amount from webhook (may come in cents or as float — normalize)
-  const rawAmount = payload.amount ?? payload.paid_amount ?? payload.value ?? payload.total ?? null;
-  const amountReceived = rawAmount != null
-    ? normalizeAmount(Number(rawAmount))
-    : null;
-
-  console.log(`Webhook: appt=${appointmentId} status=${status} statusCode=${statusCode ?? "null"} amountReceived=${amountReceived ?? "null"}`);
-
-  // --- 5. AUDIT LOG (best-effort) ---
-  try {
-    const { data: apptLookup } = await supabase
-      .from("appointments")
-      .select("barbershop_id")
-      .eq("id", appointmentId)
-      .maybeSingle();
-
-    await supabase.from("payment_logs").insert({
-      barbershop_id: apptLookup?.barbershop_id ?? null,
-      source: "webhook_infinitepay",
-      event_type: (payload.event_type as string) ?? "payment_notification",
-      status_code: statusCode ?? null,
-      request_body: payload,
-      response_body: {},
-      payment_id: (payload.payment_id as string) ?? (appointmentId ?? ""),
-    });
-  } catch (logErr) {
-    console.error("Warning: payment_logs insert failed (non-critical):", logErr);
+  const rawAmount = payload.amount ?? payload.paid_amount ?? payload.value ?? payload.total;
+  const numericAmount = typeof rawAmount === "number" || typeof rawAmount === "string"
+    ? Number(rawAmount)
+    : Number.NaN;
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    console.warn(`Authenticated payment webhook had no valid amount for appointment ${appointmentId}`);
+    return respond({ error: "O pagamento não contém um valor válido." }, 422);
   }
+  const amountReceived = normalizeProviderAmount(numericAmount);
 
-  // --- 6. NOT A PAYMENT → skip ---
-  if (!isPayment) {
-    console.log(`Webhook: status [${status}] is not a payment. Skipping.`);
-    return new Response(
-      JSON.stringify({ ok: true, skipped: true, reason: `Status [${status}] is not a recognized payment status.` }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  // --- 7. FETCH APPOINTMENT ---
-  const { data: appt, error } = await supabase
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const { data: appt, error: appointmentError } = await supabase
     .from("appointments")
-    .select("id, barbershop_id, status, price, total_price, signal_value, has_signal, payment_status")
+    .select("id, barbershop_id, status, price, total_price, signal_value, has_signal, payment_status, amount_paid, advance_payment_amount, payment_expected_amount")
     .eq("id", appointmentId)
     .maybeSingle();
+  if (appointmentError) {
+    console.error("Unable to load webhook appointment:", appointmentError.message);
+    return respond({ error: "Não foi possível validar o agendamento." }, 500);
+  }
+  if (!appt) return respond({ error: "Agendamento não encontrado." }, 404);
 
-  if (error || !appt) {
-    console.error(`Webhook: appointment not found for id=${appointmentId}`);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Appointment not found", appointment_id: appointmentId }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  const safeLogBody = {
+    order_nsu: appointmentId,
+    status,
+    status_code: statusCode,
+    amount: numericAmount,
+  };
+  const { error: logError } = await supabase.from("payment_logs").insert({
+    barbershop_id: appt.barbershop_id,
+    source: "webhook_infinitepay",
+    event_type: typeof payload.event_type === "string" ? payload.event_type : "payment_notification",
+    status_code: statusCode || null,
+    request_body: safeLogBody,
+    response_body: {},
+    payment_id: typeof payload.payment_id === "string" ? payload.payment_id : appointmentId,
+  });
+  if (logError) console.warn("Payment webhook audit log could not be saved:", logError.message);
+
+  if (appt.payment_status === "paid") {
+    return respond({ ok: true, already_processed: true, appointment_id: appt.id });
+  }
+
+  const paymentReference = [payload.payment_id, payload.transaction_nsu]
+    .find((value): value is string | number =>
+      (typeof value === "string" && value.trim().length > 0) ||
+      (typeof value === "number" && Number.isSafeInteger(value))
     );
+  if (paymentReference === undefined) {
+    console.warn(`Authenticated payment webhook has no unique payment reference for appointment ${appt.id}`);
+    return respond({ error: "O evento não contém um identificador único de pagamento." }, 422);
+  }
+  const externalReference = `infinitepay:${paymentReference}`;
+  const { data: existingPayment, error: existingPaymentError } = await supabase
+    .from("appointment_payments")
+    .select("id")
+    .eq("appointment_id", appt.id)
+    .eq("barbershop_id", appt.barbershop_id)
+    .eq("external_reference", externalReference)
+    .maybeSingle();
+  if (existingPaymentError) {
+    console.error("Unable to check for duplicate InfinitePay payment:", existingPaymentError.message);
+    return respond({ error: "Não foi possível validar o pagamento." }, 500);
+  }
+  if (existingPayment) {
+    return respond({ ok: true, already_processed: true, appointment_id: appt.id });
   }
 
-  // --- 8. IDEMPOTENCY ---
-  if (appt.status === "confirmed" && appt.payment_status === "paid") {
-    console.log(`Webhook: appointment ${appointmentId} already confirmed (idempotent).`);
-    return new Response(
-      JSON.stringify({ ok: true, already_processed: true, appointment_id: appointmentId }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  const { data: confirmedPayments, error: confirmedPaymentsError } = await supabase
+    .from("appointment_payments")
+    .select("amount")
+    .eq("appointment_id", appt.id)
+    .eq("barbershop_id", appt.barbershop_id)
+    .eq("status", "confirmed");
+  if (confirmedPaymentsError) {
+    console.error("Unable to load confirmed appointment payments:", confirmedPaymentsError.message);
+    return respond({ error: "Não foi possível calcular o saldo do agendamento." }, 500);
   }
-
-  // --- 9. PARTIAL PAYMENT STATE MACHINE ---
-  const totalPrice = Number(appt.total_price ?? appt.price ?? 0);
-  const signalValue = Number(appt.signal_value ?? 0);
-  const hasSignal = Boolean(appt.has_signal);
-  const tolerance = 0.02; // R$ 0.01 tolerance for cent rounding
-
-  if (amountReceived !== null && (hasSignal || totalPrice > 0)) {
-    if (hasSignal && signalValue > 0) {
-      // PARTIAL RULE: if amount >= signal_value, confirm the appointment
-      if (amountReceived < signalValue - tolerance) {
-        // Paid LESS than the signal — reject
-        console.warn(
-          `⚠️ Partial validation FAILED: appt=${appointmentId} received=${amountReceived} < signal=${signalValue}`
-        );
-
-        await supabase
-          .from("appointments")
-          .update({
-            payment_status: "partial_insufficient",
-            status: "pending",
-          })
-          .eq("id", appt.id);
-
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            validation_failed: true,
-            reason: `Amount ${amountReceived} < signal ${signalValue}`,
-            required_min: signalValue,
-            received: amountReceived,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // amount >= signal_value → confirm (partial payment valid)
-      console.log(
-        `✅ Partial payment OK: received=${amountReceived} >= signal=${signalValue}. Confirming appointment.`
-      );
-    } else {
-      // NO SIGNAL: must match total price exactly
-      const matchesTotal = Math.abs(amountReceived - totalPrice) <= tolerance;
-      if (!matchesTotal) {
-        console.warn(
-          `🚨 Full price mismatch: appt=${appointmentId} expected=${totalPrice} received=${amountReceived}`
-        );
-
-        await supabase
-          .from("appointments")
-          .update({
-            payment_status: "amount_mismatch",
-            status: "flagged",
-          })
-          .eq("id", appt.id);
-
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            validation_failed: true,
-            reason: "Full price mismatch",
-            expected: totalPrice,
-            received: amountReceived,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      console.log(`✅ Full payment validated: received=${amountReceived} = total=${totalPrice}`);
-    }
-  } else if (amountReceived === null) {
-    console.warn(
-      `⚠️ Webhook: no amount in payload for appt=${appointmentId}. Confirming without validation.`
-    );
-  }
-
-  // --- 10. SECURE UPDATE ---
-  const paymentAmount = amountReceived !== null ? amountReceived : 0;
-
-  let updateError: unknown = null;
-
-  try {
-    const rpcResult = await supabase.rpc("update_appointment_payment", {
-      _appt_id: appt.id,
-      _amount_paid: paymentAmount,
-    });
-    updateError = rpcResult.error;
-  } catch (error) {
-    updateError = error;
-  }
-
-  if (updateError) {
-    // Fallback to direct update
-    const fallbackUpdate = await supabase
-      .from("appointments")
-      .update({
-        status: "confirmed",
-        payment_status: "paid",
-        payment_confirmed_at: new Date().toISOString(),
-      })
-      .eq("id", appt.id);
-
-    if (fallbackUpdate.error) {
-      console.error("Fallback update also failed:", fallbackUpdate.error);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Failed to update appointment" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-  }
-
-  const isPartial = hasSignal && signalValue > 0 && paymentAmount >= signalValue - tolerance && paymentAmount < totalPrice;
-
-  console.log(`✅ Payment confirmed: appt=${appt.id} amount_paid=${paymentAmount} is_partial=${isPartial}`);
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      payment_confirmed: true,
-      appointment_id: appt.id,
-      amount_paid: paymentAmount,
-      is_partial: isPartial,
-    }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  const amountPaid = Math.max(
+    Number(appt.amount_paid || 0),
+    Number(appt.advance_payment_amount || 0),
+    (confirmedPayments || []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
   );
-});
 
-/**
- * Normalize amount: InfinitePay sends cents (integer), convert to float.
- * Detects if the value looks like cents (> 100 suggests cents for typical payments).
- */
-function normalizeAmount(value: number): number {
-  if (value <= 0) return value;
-  // If value is > 100 and is an integer, treat as cents
-  if (value >= 100 && Number.isInteger(value)) {
-    return value / 100;
+  const totalPrice = Number(appt.total_price ?? appt.price ?? 0);
+  const expectedAmount = appt.payment_expected_amount == null
+    ? null
+    : Number(appt.payment_expected_amount);
+  const paymentValidation = validatePaymentAmount({
+    amountReceived,
+    amountPaid,
+    totalAmount: totalPrice,
+    expectedAmount,
+    hasSignal: Boolean(appt.has_signal),
+    signalAmount: Number(appt.signal_value || 0),
+  });
+  if (!paymentValidation.valid) {
+    console.warn(`Payment amount validation failed for appointment ${appt.id}: ${paymentValidation.reason}`);
+    return respond({
+      ok: true,
+      validation_failed: true,
+      reason: paymentValidation.reason,
+      expected: expectedAmount,
+      received: amountReceived,
+      remaining: Math.max(0, totalPrice - amountPaid),
+    });
   }
-  return value;
-}
+
+  const { error: updateError } = await supabase.rpc("confirm_infinitepay_payment", {
+    _appointment_id: appt.id,
+    _amount_paid: amountReceived,
+    _payment_reference: externalReference,
+    _expected_amount: expectedAmount,
+  });
+  if (updateError) {
+    console.error("Unable to confirm InfinitePay payment:", updateError.message);
+    return respond({ error: "Não foi possível confirmar o pagamento." }, 500);
+  }
+
+  return respond({
+    ok: true,
+    payment_confirmed: true,
+    appointment_id: appt.id,
+    amount_paid: amountReceived,
+    is_partial: !paymentValidation.fullyPaid,
+  });
+});

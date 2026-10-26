@@ -16,7 +16,6 @@ import { ptBR } from "date-fns/locale";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 
 const BUFFER_MINUTES = 10;
-const PAYMENT_LOCK_MS = 3 * 60 * 1000;
 
 const ALWAYS_BLOCKING_STATUSES = new Set(["confirmed", "completed"]);
 const TEMPORARY_LOCK_STATUSES = new Set(["pending_payment", "pendente_pagamento"]);
@@ -48,13 +47,6 @@ const getFallbackExpiry = (appointment: any) => {
     }
   }
 
-  if (appointment?.created_at) {
-    const createdAt = new Date(appointment.created_at);
-    if (!Number.isNaN(createdAt.getTime())) {
-      return new Date(createdAt.getTime() + PAYMENT_LOCK_MS);
-    }
-  }
-
   return null;
 };
 
@@ -69,11 +61,9 @@ const doesAppointmentBlockSlot = (appointment: any, now: Date) => {
     return true;
   }
 
-  // Regra de negócio: só agendamentos CONFIRMADOS ocupam o horário.
-  // Reservas aguardando pagamento não bloqueiam outros clientes.
   if (TEMPORARY_LOCK_STATUSES.has(status) || LEGACY_PENDING_STATUSES.has(status)) {
-    void getFallbackExpiry; void now;
-    return false;
+    const expiresAt = getFallbackExpiry(appointment);
+    return !expiresAt || expiresAt > now;
   }
 
   return true;
@@ -158,10 +148,7 @@ const PublicBooking = () => {
 
       try {
         const { data, error } = await (supabase as any)
-          .from("appointments_public")
-          .select("status, expires_at")
-          .eq("id", apptId)
-          .maybeSingle();
+          .rpc("get_public_booking_status", { _appointment_id: apptId });
 
         if (error) return;
 
@@ -177,9 +164,23 @@ const PublicBooking = () => {
           // Still pending - keep polling but also check if expiry passed
           const expiresAt = data?.expires_at ? new Date(data.expires_at).getTime() : null;
           if (expiresAt && Date.now() > expiresAt) {
-            setApptStatus("expired");
-            sessionStorage.removeItem("payment_expires_at");
-            sessionStorage.removeItem("pending_appt_id");
+            const { data: expired, error: expireError } = await (supabase as any)
+              .rpc("expire_public_booking", { _appointment_id: apptId });
+            if (expireError) throw expireError;
+            if (expired) {
+              setApptStatus("expired");
+              sessionStorage.removeItem("payment_expires_at");
+              sessionStorage.removeItem("pending_appt_id");
+            } else {
+              const { data: latestStatus, error: latestStatusError } = await (supabase as any)
+                .rpc("get_public_booking_status", { _appointment_id: apptId });
+              if (latestStatusError) throw latestStatusError;
+              setApptStatus(
+                latestStatus?.status === "confirmed" || latestStatus?.status === "completed"
+                  ? "confirmed"
+                  : "expired",
+              );
+            }
             return;
           }
           setApptStatus("pending");
@@ -201,7 +202,7 @@ const PublicBooking = () => {
     return () => { clearInterval(polling); clearTimeout(timeout); };
   }, [success]);
 
-  // 3-minute payment lock state
+  // 10-minute payment lock state
   const [paymentExpiresAt, setPaymentExpiresAt] = useState<number | null>(() => {
     try {
       const stored = sessionStorage.getItem("payment_expires_at");
@@ -233,38 +234,57 @@ const PublicBooking = () => {
 
     const checkBooking = async () => {
       if (Date.now() > paymentExpiresAt) {
-        const { data } = await (supabase as any)
-          .from("appointments_public")
-          .select("status")
-          .eq("id", pendingApptId)
-          .maybeSingle();
+        const { data, error } = await (supabase as any)
+          .rpc("get_public_booking_status", { _appointment_id: pendingApptId });
+        if (error) throw error;
 
         if (data?.status === "confirmed" || data?.status === "completed") {
           return;
         }
-
-        await supabase
-          .from("appointments")
-          .update({ status: "cancelled", payment_status: "expired" })
-          .eq("id", pendingApptId)
-          .in("status", ["pending_payment", "pendente_pagamento", "pending", "pendente_sinal"]);
-
-          toast({
-            title: "Reserva Expirada",
-            description: "O tempo para pagamento acabou. Escolha outro horário.",
-            variant: "destructive",
-          });
+        if (data?.status === "cancelled" || data?.status === "expired") {
           sessionStorage.removeItem("payment_expires_at");
           sessionStorage.removeItem("pending_appt_id");
           setPaymentExpiresAt(null);
           setPendingApptId(null);
+          return;
+        }
+        const serverExpiry = data?.expires_at ? new Date(data.expires_at).getTime() : null;
+        if (serverExpiry && Date.now() <= serverExpiry) return;
+
+        const { data: expired, error: expireError } = await (supabase as any)
+          .rpc("expire_public_booking", { _appointment_id: pendingApptId });
+        if (expireError) throw expireError;
+
+        if (!expired) {
+          const { data: latestStatus, error: latestStatusError } = await (supabase as any)
+            .rpc("get_public_booking_status", { _appointment_id: pendingApptId });
+          if (latestStatusError) throw latestStatusError;
+          if (latestStatus?.status === "confirmed" || latestStatus?.status === "completed") return;
+        }
+
+        toast({
+            title: "Reserva Expirada",
+            description: "O tempo para pagamento acabou. Escolha outro horário.",
+            variant: "destructive",
+        });
+        sessionStorage.removeItem("payment_expires_at");
+        sessionStorage.removeItem("pending_appt_id");
+        setPaymentExpiresAt(null);
+        setPendingApptId(null);
       }
     };
 
-    checkBooking();
+    checkBooking().catch((error) => {
+      console.error("Não foi possível verificar a expiração da reserva:", error);
+      toast({
+        title: "Não foi possível verificar a reserva",
+        description: "Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+    });
   }, [success]);
 
-  // Countdown timer Ã”Ã‡Ã¶ reset when paymentExpiresAt changes (e.g. after redirect)
+  // Countdown timer - reset when paymentExpiresAt changes (e.g. after redirect)
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -396,31 +416,15 @@ const PublicBooking = () => {
     if (!shop?.id || !selectedDate) return [];
 
     const { dayStart, dayEnd } = getDayBoundsBRT(selectedDate);
-    // Only select fields needed for availability checking Ã”Ã‡Ã¶ no client PII
-    const selectWithExpiry = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at, expires_at";
-    const selectFallback = "id, scheduled_at, service_name, status, barber_id, barber_name, created_at";
+    // Only select fields needed for availability checking - no client PII
+    const { data, error } = await (supabase as any).rpc("get_public_booking_slots", {
+      _barbershop_id: shop.id,
+      _start_at: dayStart,
+      _end_at: dayEnd,
+    });
 
-    let result: any = await (supabase as any)
-      .from("appointments_public")
-      .select(selectWithExpiry)
-      .eq("barbershop_id", shop.id)
-      .gte("scheduled_at", dayStart)
-      .lte("scheduled_at", dayEnd);
-
-    if (result.error && result.error.message?.toLowerCase().includes("expires_at")) {
-      result = await (supabase as any)
-        .from("appointments_public")
-        .select(selectFallback)
-        .eq("barbershop_id", shop.id)
-        .gte("scheduled_at", dayStart)
-        .lte("scheduled_at", dayEnd);
-    }
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    return (result.data || []) as any[];
+    if (error) throw error;
+    return (data || []) as any[];
   };
 
   const { data: existingAppts = [], isLoading: loadingSlots } = useQuery({
@@ -533,9 +537,9 @@ const PublicBooking = () => {
     setCartUpdateTick((t) => t + 1);
   }, [addToCart]);
 
-  // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
-  // BOOKING MUTATION Ã”Ã‡Ã¶ now supports cart with multiple services
-  // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
+  // -----------------------------------------------------------
+  // BOOKING MUTATION - now supports cart with multiple services
+  // -----------------------------------------------------------
   const bookingMutation = useMutation({
     mutationFn: async () => {
       const phoneDigits = clientData.phone.replace(/\D/g, "");
@@ -547,19 +551,18 @@ const PublicBooking = () => {
         }
       if (cartItems.length === 0) throw new Error("Adicione pelo menos um serviço ao agendamento.");
 
-      // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
+      // -----------------------------------------------------------
       // PESSIMISTIC PRE-FLIGHT CHECK
-      // Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡Ã”Ã¶Ã‡
+      // -----------------------------------------------------------
       const preFlightCheck = async (): Promise<boolean> => {
         const now = new Date();
 
         const servicesInCart = cartItems.filter((i) => i.type === "service");
         if (servicesInCart.length === 0) return true;
 
-        // Use max duration slot for conflict checking
-        const maxDuration = Math.max(...servicesInCart.map((s) => s.duration || 30));
+        const requestedDuration = servicesInCart.reduce((sum, service) => sum + (service.duration || 30), 0);
         const slotStartMinutes = getMinutesFromTimeString(selectedTime!);
-        const slotEndMinutes = slotStartMinutes + maxDuration + BUFFER_MINUTES;
+        const slotEndMinutes = slotStartMinutes + requestedDuration + BUFFER_MINUTES;
         const appointments = await fetchAppointmentsForSelectedDay();
 
         for (const appointment of appointments) {
@@ -595,7 +598,7 @@ const PublicBooking = () => {
       if (custErr) throw new Error(`Erro ao registrar cliente: ${custErr.message}`);
       const customerId: string = customerIdData as string;
 
-      // 2. Criaâ”œÂºâ”œÃºo do Agendamento via RPC com mâ”œâ•‘ltiplos itens
+      // 2. Criação do Agendamento via RPC com múltiplos itens
       const scheduledAt = new Date(selectedDate!);
       const [h, m] = selectedTime!.split(":").map(Number);
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -617,7 +620,7 @@ const PublicBooking = () => {
         };
       });
 
-      // O Supabase requer os argumentos antigos de serviâ”œÂºo base para resolver a sobrecarga (function overloading)
+      // O Supabase requer os argumentos antigos de serviço base para resolver a sobrecarga (function overloading)
       const serviceItems = cartItems.filter((i) => i.type === "service");
       const mainItem = serviceItems[0] || cartItems[0];
       const { data: apptId, error: rpcError } = await supabase.rpc(
@@ -638,7 +641,7 @@ const PublicBooking = () => {
       );
 
       if (rpcError) {
-        if (/horâ”œÃ­rio|reservad|indisponâ”œÂ¡vel|conflict/i.test(rpcError.message || "")) {
+        if (/horário|reservad|indisponível|conflict/i.test(rpcError.message || "")) {
           throw new Error("Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.");
         }
         throw new Error(rpcError.message);
@@ -648,7 +651,7 @@ const PublicBooking = () => {
 
       // 3. Redirecionamento para Pagamento
       if (totalToCharge === 0) {
-        return { url: null, apptId };
+        return { url: null, apptId, expiresAt: null };
       }
 
       const infiniteTag = shop?.settings?.infinitepay_tag;
@@ -656,24 +659,33 @@ const PublicBooking = () => {
 
       const cleanHandle = infiniteTag.replace(/[@$ ]/g, '');
 
-      // totalToCharge jâ”œÃ­ foi calculado acima para o RPC
+      // totalToCharge já foi calculado acima para o RPC
       const priceInCents = Math.round(totalToCharge * 100);
 
       if (priceInCents > 0 && priceInCents < 100) {
         throw new Error("O valor total deve ser de no mínimo R$ 1,00 para pagamento online.");
       }
 
-      // serviceItems e mainItem jâ”œÃ­ foram declarados acima para uso no RPC
+      // serviceItems e mainItem já foram declarados acima para uso no RPC
       const itemName = mainItem?.advance_payment_value && mainItem.advance_payment_value > 0
-        ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} serviâ”œÂºos`}`
-        : `Agendamento - ${shop?.name || 'Serviâ”œÂºos'}`;
+        ? `Sinal: ${serviceItems.length === 1 ? mainItem.name : `${serviceItems.length} serviços`}`
+        : `Agendamento - ${shop?.name || 'Serviços'}`;
 
       const items = JSON.stringify([{ name: itemName, price: priceInCents, quantity: 1 }]);
 
       const redirectUrl = `https://${window.location.host}/agendamentos/${slug}?success=true`;
       const checkoutUrl = `https://checkout.infinitepay.io/${cleanHandle}?items=${encodeURIComponent(items)}&order_nsu=${apptId}&redirect_url=${encodeURIComponent(redirectUrl)}`;
+      const { data: bookingStatus, error: bookingStatusError } = await (supabase as any)
+        .rpc("get_public_booking_status", { _appointment_id: apptId });
+      if (bookingStatusError) throw bookingStatusError;
+      const expiresAt = bookingStatus?.expires_at
+        ? new Date(bookingStatus.expires_at).getTime()
+        : Number.NaN;
+      if (!Number.isFinite(expiresAt)) {
+        throw new Error("Não foi possível confirmar o prazo de pagamento da reserva.");
+      }
 
-      return { url: checkoutUrl, apptId };
+      return { url: checkoutUrl, apptId, expiresAt };
     },
     onSuccess: (res) => {
       clearCart();
@@ -681,9 +693,9 @@ const PublicBooking = () => {
       queryClient.invalidateQueries({ queryKey: ['customers', shop?.id] });
       
       if (res.url) {
-        const expires = Date.now() + PAYMENT_LOCK_MS;
+        const expires = res.expiresAt;
         try {
-          sessionStorage.setItem("payment_expires_at", String(expires));
+          if (expires) sessionStorage.setItem("payment_expires_at", String(expires));
           sessionStorage.setItem("pending_appt_id", res.apptId);
         } catch { /* */ }
         setPaymentExpiresAt(expires);
@@ -744,7 +756,7 @@ const PublicBooking = () => {
         if (isToday(selectedDate) && slotStartMinutes <= nowBrtMinutes) continue;
         const slotEndMinutes = slotStartMinutes + durationToUse + BUFFER_MINUTES;
 
-        // Slot Ã© vÃ¡lido se PELO MENOS UM candidato pode atender
+        // Slot é válido se PELO MENOS UM candidato pode atender
         const canFulfill = candidateBarbers.some(b => {
            const sched = shopResources.schedules.find(s => s.barber_id === b.id && s.day_of_week === dayOfWeek);
            if (!sched) return false;
@@ -779,7 +791,7 @@ const PublicBooking = () => {
   if (errorShop || !shop) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
       <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
-      <h1 className="text-2xl font-black text-foreground font-display">Estabelecimento Nâ”œÃºo Encontrado</h1>
+      <h1 className="text-2xl font-black text-foreground font-display">Estabelecimento Não Encontrado</h1>
     </div>
   );
 
@@ -798,7 +810,7 @@ const PublicBooking = () => {
                 </p>
              </div>
           </div>
-          {/* Cart button Ã”Ã‡Ã¶ shown after step 2 */}
+          {/* Cart button - shown after step 2 */}
           {step >= 2 && cartItems.length > 0 && !success && (
             <button
               onClick={() => setShowCart(true)}
@@ -855,7 +867,7 @@ const PublicBooking = () => {
               <div className="bg-secondary/50 rounded-2xl p-4 border border-border space-y-2 mb-4">
                 {cartItems.filter((i) => i.type === "service").length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground uppercase font-black">Serviâ”œÂºos</span>
+                    <span className="text-xs text-muted-foreground uppercase font-black">Serviços</span>
                     <span className="text-sm font-black text-foreground">{cartItems.filter((i) => i.type === "service").length} {cartItems.filter((i) => i.type === "service").length === 1 ? 'item' : 'itens'}</span>
                   </div>
                 )}
@@ -893,7 +905,7 @@ const PublicBooking = () => {
             {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                     <h3 className="text-2xl font-black mb-1 tracking-tight text-foreground font-display">Escolha a categoria</h3>
-                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o tipo de serviâ”œÂºo</p>
+                    <p className="text-sm text-muted-foreground mb-8 font-medium">Selecione o tipo de serviço</p>
                     {loadingResources ? (
                       <Loader2 className="animate-spin text-primary mx-auto" />
                     ) : shopCategories.length > 0 ? (
@@ -911,7 +923,7 @@ const PublicBooking = () => {
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
                           <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem categorias</h1>
-                          <p className="text-muted-foreground text-sm">Nenhuma categoria de serviâ”œÂºo disponâ”œÂ¡vel no momento.</p>
+                          <p className="text-muted-foreground text-sm">Nenhuma categoria de serviço disponível no momento.</p>
                       </div>
                     )}
                 </div>
@@ -919,7 +931,7 @@ const PublicBooking = () => {
 
             {step === 2 && (
                 <div className="animate-in fade-in slide-in-from-right-4">
-                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha os serviâ”œÂºos</h3>
+                    <h3 className="text-2xl font-black mb-1 text-foreground font-display">Escolha os serviços</h3>
                     <p className="text-sm text-muted-foreground mb-4 font-medium">
                       Adicione quantos quiser de diferentes categorias
                     </p>
@@ -1000,8 +1012,8 @@ const PublicBooking = () => {
                           <div className="h-24 w-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                               <UserX className="h-12 w-12 text-red-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviâ”œÂºos</h1>
-                          <p className="text-muted-foreground text-sm">Nâ”œÃºo hâ”œÃ­ serviâ”œÂºos nesta categoria.</p>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Sem serviços</h1>
+                          <p className="text-muted-foreground text-sm">Não há serviços nesta categoria.</p>
                       </div>
                     )}
 
@@ -1025,7 +1037,7 @@ const PublicBooking = () => {
                     <h3 className="text-2xl font-black mb-1 text-foreground font-display">Quem vai te atender?</h3>
                     <p className="text-sm text-muted-foreground mb-6 font-medium">
                       {serviceIdsInCart.length > 1
-                        ? `Profissionais que realizam os ${serviceIdsInCart.length} serviâ”œÂºos selecionados`
+                        ? `Profissionais que realizam os ${serviceIdsInCart.length} serviços selecionados`
                         : cartItems.filter((i) => i.type === "service").length === 1
                           ? `Profissionais que realizam ${cartItems.find((i) => i.type === "service")?.name}`
                           : "Selecione um profissional"
@@ -1051,9 +1063,9 @@ const PublicBooking = () => {
                           <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
                               <AlertTriangle className="h-12 w-12 text-amber-500" />
                           </div>
-                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Combinaâ”œÂºâ”œÃºo Incompatâ”œÂ¡vel</h1>
+                          <h1 className="text-xl font-black text-foreground mb-2 tracking-tight font-display">Ops! Combinação Incompatível</h1>
                           <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
-                            Nâ”œÃºo encontramos um profissional que realize <span className="text-foreground font-bold">todos esses serviâ”œÂºos juntos</span>. Tente remover um item ou agendar em horâ”œÃ­rios separados.
+                            Não encontramos um profissional que realize <span className="text-foreground font-bold">todos esses serviços juntos</span>. Tente remover um item ou agendar em horários separados.
                           </p>
                           <Button
                             onClick={() => setStep(2)}
@@ -1068,7 +1080,7 @@ const PublicBooking = () => {
                       onClick={() => setStep(2)}
                       className="mt-8 text-muted-foreground font-bold uppercase text-[10px] mx-auto flex"
                     >
-                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar aos Serviâ”œÂºos
+                      <ArrowLeft className="mr-2 h-3 w-3" /> Voltar aos Serviços
                     </Button>
                 </div>
             )}
@@ -1077,7 +1089,7 @@ const PublicBooking = () => {
                 <div className="animate-in fade-in zoom-in-95">
                     <h3 className="text-2xl font-black mb-8 text-foreground text-center tracking-tight font-display">Finalize seu Agendamento</h3>
                     <p className="text-sm text-muted-foreground text-center mb-6 -mt-4">
-                      Confira seus serviâ”œÂºos, escolha a data e o horâ”œÃ­rio
+                      Confira seus serviços, escolha a data e o horário
                     </p>
                     <div className="bg-card border-0 rounded-3xl p-8 shadow-[var(--shadow-elev-3)] space-y-8">
                         {/* Show cart summary if there are items, otherwise single service summary */}
@@ -1118,7 +1130,7 @@ const PublicBooking = () => {
                         ) : (
                           <div className="bg-secondary/50 rounded-2xl p-6 border border-border space-y-3 mb-2">
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Categoria</span><span className="font-bold text-foreground text-right">{shopResources?.categories.find((c: any) => c.id === selectedCategory)?.name || ""}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviâ”œÂºo</span><span className="font-bold text-foreground text-right">Ã”Ã‡Ã¶</span></div>
+                            <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Serviço</span><span className="font-bold text-foreground text-right">-</span></div>
                             <div className="flex justify-between items-center"><span className="text-xs text-muted-foreground uppercase font-black">Profissional</span><span className="font-bold text-foreground text-right">{selectedBarber?.name}</span></div>
                           </div>
                         )}
@@ -1138,7 +1150,7 @@ const PublicBooking = () => {
                                 {loadingSlots ? (
                                   <div className="col-span-4 flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
                                 ) : timeSlots.length === 0 ? (
-                                  <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horâ”œÃ­rios para este dia.</p>
+                                  <p className="col-span-4 text-center text-sm text-destructive font-bold py-4">Sem horários para este dia.</p>
                                 ) : (
                                   timeSlots.map(t => (
                                       <button key={t} onClick={() => setSelectedTime(t)} className={`h-12 rounded-xl border text-xs font-black transition-all ${selectedTime === t ? "border-primary text-primary bg-primary/10" : "border-border bg-secondary/50 text-foreground hover:border-primary/50 hover:text-primary"}`}>
@@ -1248,7 +1260,7 @@ const PublicBooking = () => {
           <div />
         )}
 
-        {/* Sticky Cart Footer Ã”Ã‡Ã¶ only during booking flow (steps 2-4) */}
+        {/* Sticky Cart Footer - only during booking flow (steps 2-4) */}
         {!success && !cancelled && cartItems.length > 0 && step >= 2 && step < 4 && (
           <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl border-t border-border/50 shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
             <div className="container max-w-2xl mx-auto px-4 py-3">
@@ -1267,7 +1279,7 @@ const PublicBooking = () => {
                   </div>
                   <div className="text-left min-w-0">
                     <p className="text-xs font-black text-foreground truncate">
-                      {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} â”¬Ã€ {totalCartDuration} min
+                      {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'} · {totalCartDuration} min
                     </p>
                     <p className="text-sm font-black text-primary">
                       R$ {cartTotalPrice.toFixed(2).replace('.', ',')}
@@ -1278,14 +1290,14 @@ const PublicBooking = () => {
                   onClick={() => setStep(step === 2 ? (barberId ? 4 : 3) : 4)}
                   className="h-12 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm whitespace-nowrap shrink-0 transition-colors"
                 >
-                  {step === 2 ? (barberId ? 'Escolher HorÃ¡rio' : 'Escolher Profissional') : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                  {step === 2 ? (barberId ? 'Escolher Horário' : 'Escolher Profissional') : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Payment in progress Ã”Ã‡Ã¶ countdown + urgency */}
+        {/* Payment in progress - countdown + urgency */}
         {success && (apptStatus === "pending" || (timeLeft > 0 && !statusChecked)) && (
           <div className="animate-in fade-in zoom-in-95 text-center py-12 px-6 max-w-md mx-auto">
             <div className="h-24 w-24 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
@@ -1298,11 +1310,11 @@ const PublicBooking = () => {
               <div className="flex items-center gap-2 mb-3 justify-center">
                 <AlertTriangle className="h-5 w-5 text-amber-500 animate-pulse" />
                 <p className="text-sm font-bold text-amber-500">
-                  Seu horâ”œÃ­rio estâ”œÃ­ reservado por tempo limitado
+                  Seu horário está reservado por tempo limitado
                 </p>
               </div>
               <p className="text-muted-foreground text-sm mb-2">
-                Realize o pagamento do sinal para confirmar. Apâ”œâ”‚s a expiraâ”œÂºâ”œÃºo, o horâ”œÃ­rio serâ”œÃ­ liberado para outros clientes.
+                Realize o pagamento do sinal para confirmar. Após a expiração, o horário será liberado para outros clientes.
               </p>
               <p className={`text-3xl font-black tabular-nums ${timerColor}`}>
                 {timerText}
@@ -1311,7 +1323,7 @@ const PublicBooking = () => {
 
             {timeLeft <= 60 && timeLeft > 0 && (
               <p className="text-red-400 text-xs font-bold animate-pulse mb-4">
-                Ã”ÃœÃ¡Â´Â©Ã… â”œÃœltimo minuto para pagar! O horâ”œÃ­rio serâ”œÃ­ perdido se o pagamento nâ”œÃºo for confirmado.
+                 Último minuto para pagar! O horário será perdido se o pagamento não for confirmado.
               </p>
             )}
 
@@ -1321,7 +1333,7 @@ const PublicBooking = () => {
                   <XCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
                   <h2 className="text-xl font-black text-foreground mb-2">Reserva Expirada</h2>
                   <p className="text-muted-foreground text-sm mb-4">
-                    O tempo para pagamento acabou. Escolha outro horâ”œÃ­rio e tente novamente.
+                    O tempo para pagamento acabou. Escolha outro horário e tente novamente.
                   </p>
                 </div>
                 <Button
@@ -1337,7 +1349,7 @@ const PublicBooking = () => {
                   }}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
                 >
-                  Escolher Outro Horâ”œÃ­rio
+                  Escolher Outro Horário
                 </Button>
               </div>
             )}
@@ -1360,7 +1372,7 @@ const PublicBooking = () => {
               Reserva Expirada
             </h1>
             <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-              O tempo para pagamento acabou. Escolha outro horâ”œÃ­rio e tente novamente.
+              O tempo para pagamento acabou. Escolha outro horário e tente novamente.
             </p>
             <Button
               onClick={() => {
@@ -1375,7 +1387,7 @@ const PublicBooking = () => {
               }}
               className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors"
             >
-              Escolher Outro Horâ”œÃ­rio
+              Escolher Outro Horário
             </Button>
           </div>
         )}
@@ -1390,14 +1402,14 @@ const PublicBooking = () => {
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-8 text-left">
                   <div className="flex items-center gap-2 mb-3">
                     <AlertTriangle className="h-6 w-6 text-amber-500" />
-                    <h3 className="font-bold text-amber-500">AtenÃ§Ã£o: ConfirmaÃ§Ã£o ObrigatÃ³ria!</h3>
+                    <h3 className="font-bold text-amber-500">Atenção: Confirmação Obrigatória!</h3>
                   </div>
                   <p className="text-sm text-foreground/80 mb-4">
-                    Para garantir sua vaga, vocÃª <strong>DEVE confirmar</strong> o agendamento pelo WhatsApp atÃ© <strong>2 horas antes</strong> do horÃ¡rio marcado (ou seja, se marcou Ã s 10h, confirme atÃ© Ã s 08h).
+                    Para garantir sua vaga, você <strong>DEVE confirmar</strong> o agendamento pelo WhatsApp até <strong>2 horas antes</strong> do horário marcado (ou seja, se marcou às 10h, confirme até às 08h).
                   </p>
                   <Button
                     onClick={() => {
-                      const msg = encodeURIComponent(`OlÃ¡, gostaria de confirmar meu agendamento para o dia ${format(selectedDate || new Date(), 'dd/MM/yyyy')} Ã s ${selectedTime} com ${selectedBarber?.name || 'o profissional'}.`);
+                      const msg = encodeURIComponent(`Olá, gostaria de confirmar meu agendamento para o dia ${format(selectedDate || new Date(), 'dd/MM/yyyy')} às ${selectedTime} com ${selectedBarber?.name || 'o profissional'}.`);
                       let cleanPhone = shop?.phone?.replace(/\D/g, '') || '';
                       if (cleanPhone && !cleanPhone.startsWith('55')) {
                         cleanPhone = '55' + cleanPhone;
@@ -1410,7 +1422,7 @@ const PublicBooking = () => {
                   </Button>
                 </div>
                 
-                <p className="text-muted-foreground mb-6 max-w-xs mx-auto">Te esperamos no dia {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ''} Ã s {selectedTime}.</p>
+                <p className="text-muted-foreground mb-6 max-w-xs mx-auto">Te esperamos no dia {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ''} às {selectedTime}.</p>
 
                  <div className="flex flex-col gap-3 mb-6">
                     <Button
@@ -1439,7 +1451,7 @@ const PublicBooking = () => {
                   )}
                 </div>
 
-                <Button onClick={() => navigate(`/`)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors">Ir para a Pâ”œÃ­gina Inicial</Button>
+                <Button onClick={() => navigate(`/`)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 rounded-xl font-bold shadow-sm w-full transition-colors">Ir para a Página Inicial</Button>
             </div>
         )}
       </div>
@@ -1448,11 +1460,6 @@ const PublicBooking = () => {
 };
 
 export default PublicBooking;
-
-
-
-
-
 
 
 

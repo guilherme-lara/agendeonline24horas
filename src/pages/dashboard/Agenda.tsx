@@ -21,7 +21,7 @@ const statusBadgeConfig: Record<string, { label: string; dot: string; chip: stri
   pending:              { label: "Pendente",          dot: "bg-sys-text-muted",      chip: "bg-sys-bg-base text-sys-text-muted border-sys-border" },
   pendente_pagamento:   { label: "Aguardando Pgto",   dot: "bg-sys-status-warning",  chip: "bg-sys-status-warning/10 text-sys-status-warning border-sys-status-warning/30 animate-pulse" },
   confirmed:            { label: "Confirmado",        dot: "bg-sys-status-info",     chip: "bg-sys-status-info/10 text-sys-status-info border-sys-status-info/30" },
-  completed:            { label: "ConcluÃ­do",         dot: "bg-sys-status-success",  chip: "bg-sys-status-success/10 text-sys-status-success border-sys-status-success/30" },
+  completed:            { label: "Concluído",         dot: "bg-sys-status-success",  chip: "bg-sys-status-success/10 text-sys-status-success border-sys-status-success/30" },
   cancelled:            { label: "Cancelado",         dot: "bg-sys-status-danger",   chip: "bg-sys-status-danger/10 text-sys-status-danger border-sys-status-danger/30" },
 };
 
@@ -164,13 +164,13 @@ const Agenda = () => {
 
   const handleWhatsAppClick = (appt: any) => {
     if (!appt.client_phone) {
-      toast({ title: "Cliente sem telefone", description: "NÃ£o Ã© possÃ­vel enviar mensagem.", variant: "destructive" });
+      toast({ title: "Cliente sem telefone", description: "Não é possível enviar mensagem.", variant: "destructive" });
       return;
     }
     const cleanPhone = appt.client_phone.replace(/\D/g, '');
     const date = format(parseISO(appt.scheduled_at), "dd/MM/yyyy", { locale: ptBR });
     const time = format(parseISO(appt.scheduled_at), "HH:mm");
-    const message = `OlÃ¡, ${appt.client_name}! Passando para confirmar seu agendamento para "${appt.service_name}" no dia ${date} Ã s ${time} na ${clinic.name}. Estamos te esperando!`;
+    const message = `Olá, ${appt.client_name}! Passando para confirmar seu agendamento para "${appt.service_name}" no dia ${date} às ${time} na ${clinic.name}. Estamos te esperando!`;
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -234,7 +234,7 @@ const Agenda = () => {
 
         <div className="flex-1 min-w-[200px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sys-text-muted h-4 w-4" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente ou serviÃ§o..."
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente ou serviço..."
             className="h-9 pl-9 bg-sys-bg-base border-sys-border text-sm" />
         </div>
 
@@ -243,7 +243,7 @@ const Agenda = () => {
             <Clock className="h-3.5 w-3.5" /> Ativos
           </button>
           <button onClick={() => setActiveTab("completed")} className={`px-3 h-8 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${activeTab === "completed" ? "bg-sys-surface text-sys-text-primary shadow-sm" : "text-sys-text-muted hover:text-sys-text-primary"}`}>
-            <History className="h-3.5 w-3.5" /> HistÃ³rico
+            <History className="h-3.5 w-3.5" /> Histórico
           </button>
         </div>
 
@@ -267,10 +267,10 @@ const Agenda = () => {
                 <tr className="text-[10px] uppercase font-semibold text-sys-text-muted tracking-wider">
                   <th className="px-4 py-3 text-left">Hora</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
-                  <th className="px-4 py-3 text-left">ServiÃ§o / Profissional</th>
-                  <th className="px-4 py-3 text-left">PreÃ§o</th>
+                  <th className="px-4 py-3 text-left">Serviço / Profissional</th>
+                  <th className="px-4 py-3 text-left">Preço</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">AÃ§Ãµes</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sys-border">
@@ -353,7 +353,7 @@ const Agenda = () => {
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-2">
               <div className="space-y-1.5"><label className="text-[11px] font-semibold text-sys-text-muted uppercase tracking-wide">Nome do Cliente</label><Input defaultValue={editModal.appt.client_name} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, client_name: e.target.value })} className="bg-sys-bg-base border-sys-border" /></div>
               <div className="space-y-1.5"><label className="text-[11px] font-semibold text-sys-text-muted uppercase tracking-wide">Telefone (WhatsApp)</label><Input defaultValue={editModal.appt.client_phone} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, client_phone: e.target.value })} className="bg-sys-bg-base border-sys-border font-mono" /></div>
-              <div className="space-y-1.5"><label className="text-[11px] font-semibold text-sys-text-muted uppercase tracking-wide">Status</label><select defaultValue={editModal.appt.status} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, status: e.target.value })} className="w-full bg-sys-bg-base border border-sys-border rounded-xl h-10 px-3 text-sm text-sys-text-primary"><option value="pendente_pagamento">Aguardando Pagamento</option><option value="confirmed">Confirmado</option><option value="completed">ConcluÃ­do</option><option value="cancelled">Cancelado</option></select></div>
+              <div className="space-y-1.5"><label className="text-[11px] font-semibold text-sys-text-muted uppercase tracking-wide">Status</label><select defaultValue={editModal.appt.status} onChange={(e) => updateMutation.mutate({ id: editModal.appt.id, status: e.target.value })} className="w-full bg-sys-bg-base border border-sys-border rounded-xl h-10 px-3 text-sm text-sys-text-primary"><option value="pendente_pagamento">Aguardando Pagamento</option><option value="confirmed">Confirmado</option><option value="completed">Concluído</option><option value="cancelled">Cancelado</option></select></div>
             </div>
           )}
         </DialogContent>
@@ -363,7 +363,6 @@ const Agenda = () => {
 };
 
 export default Agenda;
-
 
 
 

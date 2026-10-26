@@ -50,9 +50,11 @@ export function AppointmentsList({
           status,
           payment_status,
           confirmation_status,
+          amount_paid,
           has_signal,
           signal_value,
           advance_payment_amount,
+          appointment_payments(amount, status),
           appointment_items (id, service_name, price)
         `)
         .eq("barbershop_id", clinic.id)
@@ -130,8 +132,17 @@ export function AppointmentsList({
           const date = parseISO(appt.scheduled_at);
           const isFinished = appt.status === "completed" || appt.payment_status === "paid";
           const isInCart = selectedAppointmentIds.includes(appt.id);
-          const signalAmount = (appt.has_signal && appt.signal_value ? Number(appt.signal_value) : 0) || Number(appt.advance_payment_amount || 0);
           const finalPrice = Number(appt.total_price ?? appt.price ?? 0);
+          const appointmentPayments: Array<{ amount: number; status: string }> =
+            appt.appointment_payments || [];
+          const paymentsTotal = appointmentPayments
+            .filter((payment) => payment.status === "confirmed")
+            .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+          const paidAmount = Math.min(finalPrice, Math.max(
+            paymentsTotal,
+            Number(appt.advance_payment_amount || 0),
+            Number(appt.amount_paid || 0),
+          ));
 
           return (
             <div 
@@ -177,10 +188,10 @@ export function AppointmentsList({
                     )}
                   </div>
 
-                  {signalAmount > 0 && (
+                  {paidAmount > 0 && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-sm border border-emerald-500/20">
-                        Sinal Pago: R$ {signalAmount.toFixed(2).replace(".", ",")}
+                        Pago: R$ {paidAmount.toFixed(2).replace(".", ",")}
                       </span>
                     </div>
                   )}

@@ -38,7 +38,7 @@ BEGIN
     SELECT COALESCE(sum((value->>'total_price')::numeric),0) INTO _linked FROM jsonb_array_elements(_items_actual) WHERE value->>'source_appointment_id'=_id::text;
     IF round(_linked,2)<>round(_gross,2) THEN RAISE EXCEPTION 'Os itens da comanda mudaram. Atualize e selecione a comanda completa'; END IF;
     SELECT COALESCE(sum(amount),0) INTO _already FROM public.appointment_payments WHERE appointment_id=_id AND status='confirmed';
-    _deposit := _deposit + LEAST(_gross,GREATEST(_already,COALESCE(_a.advance_payment_amount,0),CASE WHEN _a.has_signal THEN COALESCE(_a.signal_value,0) ELSE 0 END));
+    _deposit := _deposit + LEAST(_gross,GREATEST(_already,COALESCE(_a.advance_payment_amount,0),COALESCE(_a.amount_paid,0)));
   END LOOP;
   FOR _p IN SELECT value FROM jsonb_array_elements(_payments) LOOP
     _method := _p->>'method';
@@ -66,7 +66,7 @@ BEGIN
       VALUES(_ids[1],_shop,round((_p->>'amount')::numeric,2),_p->>'method',COALESCE((_p->>'installments')::integer,1),'confirmed',_reg,_uid);
     END IF;
   END LOOP;
-  UPDATE public.appointments SET status=CASE WHEN _complete THEN 'completed' ELSE status END,payment_status='paid',payment_method=CASE WHEN jsonb_array_length(_payments)>1 THEN 'split' ELSE COALESCE(_payments->0->>'method','local') END,payment_confirmed_at=now() WHERE id=ANY(_ids);
+  UPDATE public.appointments SET status=CASE WHEN _complete THEN 'completed' ELSE status END,payment_status='paid',amount_paid=COALESCE(total_price,price),payment_method=CASE WHEN jsonb_array_length(_payments)>1 THEN 'split' ELSE COALESCE(_payments->0->>'method','local') END,payment_confirmed_at=now() WHERE id=ANY(_ids);
   RETURN _sale_id;
 END $$;
 REVOKE ALL ON FUNCTION public.checkout_pdv(uuid,jsonb,jsonb,uuid,text,uuid,uuid,boolean) FROM PUBLIC,anon;

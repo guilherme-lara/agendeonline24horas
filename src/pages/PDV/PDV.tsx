@@ -338,7 +338,17 @@ export default function PDV() {
       return;
     }
 
-    const signal = (appt.has_signal && appt.signal_value ? Number(appt.signal_value) : 0) || Number(appt.advance_payment_amount || 0);
+    const appointmentTotal = Number(appt.total_price ?? appt.price ?? 0);
+    const appointmentPayments: Array<{ amount: number; status: string }> =
+      appt.appointment_payments || [];
+    const paymentsTotal = appointmentPayments
+      .filter((payment) => payment.status === "confirmed")
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const amountAlreadyPaid = Math.min(appointmentTotal, Math.max(
+      paymentsTotal,
+      Number(appt.advance_payment_amount || 0),
+      Number(appt.amount_paid || 0),
+    ));
 
     // Se o agendamento já tiver itens de procedimento detalhados
     if (appt.appointment_items && appt.appointment_items.length > 0) {
@@ -353,7 +363,7 @@ export default function PDV() {
         barber_id: appt.barber_id,
         barber_name: appt.barber_name,
         source_appointment_id: appt.id,
-        advance_payment: idx === 0 ? signal : 0,
+        advance_payment: idx === 0 ? amountAlreadyPaid : 0,
       }));
       setCartItems((prev) => [...prev, ...newItems]);
     } else {
@@ -370,7 +380,7 @@ export default function PDV() {
           barber_id: appt.barber_id,
           barber_name: appt.barber_name,
           source_appointment_id: appt.id,
-          advance_payment: signal,
+          advance_payment: amountAlreadyPaid,
         },
       ]);
     }
@@ -747,6 +757,7 @@ export default function PDV() {
         onOpenChange={setShowCheckout}
         items={cartItems}
         customerName={customerName}
+        barbershopId={clinic?.id}
         onConfirm={handleCheckoutConfirm}
         isSubmitting={checkoutMutation.isPending}
       />
